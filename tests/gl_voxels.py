@@ -41,8 +41,8 @@ class Voxels(Window):
             distance=1.5,
             svivel_speed=0.005,
         )
-        shape = (256, 256, 1024)
-        resolution = 2**11
+        shape = (128, 128, 128)
+        resolution = 2**8
         self.voxels = VoxelGrid(shape, resolution)
 
         # Cache transforms
@@ -73,14 +73,16 @@ class Voxels(Window):
         self.keys.toggle("I")(lambda press: setattr(self, 'alpha_dn', press))
 
         # TODO: async load
+        """
         self.bone = Wireframe(
             bone(),
             glm.vec4(0.8, 0.8, 1, 1),
             2.0,
         )
+        """
 
         # Display fancy volumetric sphere
-        vox_sphere(self.voxels)
+        # vox_sphere(self.voxels)
 
     def resize(self, width: int, height: int):
         self.move_scale = 1 / max(width, height)
@@ -100,7 +102,7 @@ class Voxels(Window):
 
     def update(self, time: float, delta: float):
         # Debug w ranom voxels
-        if random() * time < 0:
+        if random() * time < 1:
             S: int = np.min(self.voxels.shape) // 2  # type: ignore
             self.voxels.randBox(S)
 
@@ -119,8 +121,8 @@ class Voxels(Window):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)  # type: ignore
         M = self.matrices
         # Render Opaque first
-        with M.Push(self.t_bone):
-            self.bone.render(self.matrices)
+        #with M.Push(self.t_bone):
+        #    self.bone.render(self.matrices)
         # Render Transparent last
         with M.Push(self.t_vox):
             self.voxels.render(self.matrices)
