@@ -1,0 +1,35 @@
+#version 430
+
+layout (location = 0) uniform float diff = 0.1;
+layout (location = 1) uniform float decay = 0.1;
+layout (binding = 0, rgba32f) uniform restrict readonly image2D src;
+layout (binding = 1, rgba32f) uniform restrict writeonly image2D dst;
+layout (local_size_x = 16, local_size_y = 16) in;
+
+
+float max4(vec4 v) {
+    return max(max(v.r, v.g), max(v.b, 0.0));
+}
+
+vec4 average(ivec2 px, int size) {
+    ivec2 I = imageSize(src);
+    vec4 res = vec4(0,0,0,0);
+    for (int x = -size; x <= size; x++) {
+        for (int y = -size; y <= size; y++) {
+            ivec2 C = px + ivec2(x, y) + I;
+            res += imageLoad(src, C % I);
+        }
+    }
+    return res / (size * size);
+}
+
+void main() {
+    ivec2 px = ivec2(gl_GlobalInvocationID.xy);
+    vec4 color = imageLoad(src, px);
+    vec4 blur = average(px, 1);
+    vec4 combined = color * (1 - diff) + blur * diff;
+    // Del Loss
+    combined *= (1 - decay);
+    // Set Out
+    imageStore(dst, px, combined);
+}
