@@ -1,13 +1,13 @@
 from OpenGL.GL import *
 from OpenGL.arrays.vbo import VBO
 from dataclasses import dataclass
-from ..utils.shaders import (
+from .shaders import (
     ShaderAttributes,
     ShaderUniforms,
     ShaderCache,
 )
-from ..utils.directory import cwd, script_dir
-from ..utils.matrices import Hierarchy
+from .directory import cwd, script_dir
+from .matrices import Hierarchy
 
 from ctypes import c_void_p as ptr
 import numpy as np

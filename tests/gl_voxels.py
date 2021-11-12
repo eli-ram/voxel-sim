@@ -1,12 +1,13 @@
+# pyright: reportUnusedImport=false
 import __init__
 import glm
 import numpy as np
 from source.interactive import Window
 from source.utils.matrices import Hierarchy, OrbitCamera
 from source.voxels.extra import vox_sphere
-from source.voxels.mesh_loader import loadMeshes
 from source.voxels.render import VoxelGrid
-from source.voxels.wireframe import Wireframe
+from source.utils.wireframe import Wireframe
+from source.utils.mesh_loader import loadMeshes
 from source.utils.directory import cwd, script_dir
 from OpenGL.GL import *
 from random import random

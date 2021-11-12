@@ -5,7 +5,7 @@ from source.utils import shader, cwd, ShaderUniforms, Animated, bind
 from source.swarm import Swarm
 from OpenGL.GL import *
 
-SIZE = (1000 // 16) * 16
+SIZE = (500 // 16) * 16
 
 class FadeUniforms(ShaderUniforms):
     diff: int
