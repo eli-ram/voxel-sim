@@ -9,3 +9,7 @@ Rendering for voxels with utilities in Python
 
 > Should use a python virtual environment
 > `python3.9 -m venv .env`
+
+# Applications
+
+All test applications are located in the `./tests/` directory.
