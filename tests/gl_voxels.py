@@ -6,10 +6,11 @@ from source.utils.matrices import Hierarchy, OrbitCamera
 from source.voxels.extra import vox_sphere
 from source.voxels.mesh_loader import loadMeshes
 from source.voxels.render import VoxelGrid
+from source.voxels.wireframe import Wireframe
+from source.utils.directory import cwd, script_dir
 from OpenGL.GL import *
 from random import random
 
-from source.voxels.wireframe import Wireframe
 
 """
 TODO:
@@ -24,11 +25,9 @@ TODO:
 
 """
 
-
+@cwd(script_dir(__file__), '..', 'meshes')
 def bone():
-    # TODO: include in this project !
-    BONE_FILE = 'G:/git/master_Proj/models/test_bone.obj'
-    BONE, = loadMeshes(BONE_FILE)
+    BONE, = loadMeshes('test_bone.obj')
     return BONE
 
 
@@ -73,6 +72,7 @@ class Voxels(Window):
         self.keys.toggle("U")(lambda press: setattr(self, 'alpha_up', press))
         self.keys.toggle("I")(lambda press: setattr(self, 'alpha_dn', press))
 
+        # TODO: async load
         self.bone = Wireframe(
             bone(),
             glm.vec4(0.8, 0.8, 1, 1),
