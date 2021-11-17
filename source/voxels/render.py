@@ -4,8 +4,8 @@ from OpenGL.GL import *  # type: ignore
 from OpenGL.arrays.vbo import VBO  # type: ignore
 import numpy as np
 
-from source.utils.texture import Format, Sample, Size_3D, Texture1D, Texture3D, TextureProps, Wrap
-
+from ..utils.texture import Format, Sample, Texture1D, Texture3D, TextureProps, Wrap
+from ..utils.types import int3
 from ..utils.matrices import Hierarchy
 from ..utils.shaders import ShaderCache, ShaderUniforms, ShaderAttributes
 from ..utils.directory import cwd, script_dir
@@ -33,7 +33,7 @@ class VoxelShader(ShaderCache):
         self.U = VoxelUniforms(self.S)
 
 
-class VoxelGrid:
+class VoxelRenderer:
     """
         Each Voxel is represented by a single float.
 
@@ -47,7 +47,6 @@ class VoxelGrid:
         which is in a RGBA float32 format.
         Values that are close to integers will directly get a single color.
         Values that are in between will interpolate between two colors.
-        Warning: does not work if there are fewer than 3 colors !
     """
 
     # Each voxel is represented by a single float
@@ -61,10 +60,10 @@ class VoxelGrid:
     COLOR_FMT = TextureProps(
         sample=Sample.LINEAR,
         format=Format.RGBA_F32,
-        wrap=Wrap.REPEAT,
+        wrap=Wrap.CLAMP,
     )
 
-    def __init__(self, shape: Size_3D, layer_count: int = 64):
+    def __init__(self, shape: int3, layer_count: int = 64):
         self.shader = VoxelShader.get()
 
         self.alpha = 0.5
@@ -88,31 +87,23 @@ class VoxelGrid:
         color_data: Any = self.RNG.random(size=(colors, 4), dtype=np.float32)
         color_data[:, 3] = 1  # fix alpha
         self.colors.setData(color_data)
-        self.S = np.ones((1,1,1), dtype=np.float32)
+        self.S = np.ones((1, 1, 1), dtype=np.float32)
 
     @property
     def color_count(self) -> int:
         return self.colors.shape[0]
 
-    def set(self, pos: Size_3D, color: float):
+    def set(self, pos: int3, color: float):
         self.voxels.setPixels(pos, self.S * color)
 
-    def setBox(self, pos: Size_3D, colors: 'np.ndarray[np.float32]'):
+    def setBox(self, pos: int3, colors: 'np.ndarray[np.float32]'):
         self.voxels.setPixels(pos, colors)
 
-    def clear(self, pos: Size_3D):
+    def clear(self, pos: int3):
         self.voxels.setPixels(pos, (1, 1, 1), 0)
 
-    def clearBox(self, pos: Size_3D, shape: Size_3D):
+    def clearBox(self, pos: int3, shape: int3):
         self.voxels.setPixels(pos, np.zeros(shape, dtype=np.float32))
-
-    def randBox(self, max_size: int = 8):
-        RNG = self.RNG
-        SHAPE: Any = 1 + RNG.integers(max_size, size=3)
-        MIN: Any = RNG.integers(self.shape - SHAPE + 1, size=3)
-        COLOR: Any = RNG.integers(0, 1 + self.color_count)
-        COLORS = np.ones(shape=SHAPE, dtype=np.float32) * COLOR
-        self.setBox(MIN, COLORS)
 
     def getLayerDirection(self, h: Hierarchy) -> int:
         DIR = h.GetCameraDirection()

@@ -1,3 +1,4 @@
+from enum import Enum
 from OpenGL.GL import *
 from OpenGL.arrays.vbo import VBO
 from dataclasses import dataclass
@@ -13,11 +14,15 @@ from ctypes import c_void_p as ptr
 import numpy as np
 import glm
 
+class Geometry(Enum):
+    Triangles = GL_TRIANGLES
+    Lines = GL_LINES
 
 @dataclass
 class SimpleMesh:
     vertices: 'np.ndarray[np.float32]'
-    indices: 'np.ndarray[np.uint16]'
+    indices: 'np.ndarray[np.uint32]'
+    geometry: Geometry = Geometry.Triangles
 
 
 class WireframeAttributes(ShaderAttributes):
@@ -55,6 +60,7 @@ class Wireframe:
         self.color: 'np.ndarray[np.float32]' = \
             np.array(color, dtype=np.float32)  # type: ignore
         self.width = width
+        self.geometry = mesh.geometry.value
 
     def render(self, h: Hierarchy):
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
@@ -71,5 +77,5 @@ class Wireframe:
                 0,                  # stride    (0 => tighty packed)
                 None,               # start     (None => start at 0)
             )
-            glDrawElements(GL_TRIANGLES, size, GL_UNSIGNED_INT, ptr(0))
+            glDrawElements(self.geometry, size, GL_UNSIGNED_INT, ptr(0))
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)

@@ -3,19 +3,16 @@ from OpenGL.GL import *  # type: ignore
 from dataclasses import dataclass
 from enum import IntEnum, Enum
 from numpy import ndarray, float32, uint32
+from ..utils.types import int2, int3, intN
 
 Array = Union['ndarray[float32]', 'ndarray[uint32]']
 OptArray = Union[Array, None]
-
-Size_1D = tuple[int]
-Size_2D = tuple[int, int]
-Size_3D = tuple[int, int, int]
-Size_ND = Union[Size_1D, Size_2D, Size_3D]
 
 class Sample(IntEnum):
     """ Texture sampling in shaders """
     NEAREST = GL_NEAREST
     LINEAR = GL_LINEAR
+
 
 class Access(IntEnum):
     """ Allowed shader access """
@@ -23,11 +20,13 @@ class Access(IntEnum):
     WRITE = GL_WRITE_ONLY
     READ_WRITE = GL_READ_WRITE
 
+
 @dataclass
 class FormatSet:
     internal_format: Any
     data_format: Any
     data_type: Any
+
 
 class Format(Enum):
     """ Internal image format """
@@ -47,10 +46,12 @@ class Format(Enum):
         data_type=GL_UNSIGNED_INT
     )
 
+
 class Wrap(IntEnum):
     """ Image wrapping """
     REPEAT = GL_REPEAT
     CLAMP = GL_CLAMP_TO_EDGE
+
 
 @dataclass
 class TextureProps:
@@ -59,13 +60,14 @@ class TextureProps:
     format: Format = Format.RGBA_F32
     wrap: Wrap = Wrap.CLAMP
 
+
 class Texture:
     """ Generic Texture """
     TARGET: Any
     SETDATA: Any
     SUBSETDATA: Any
 
-    def __init__(self, shape: Size_ND, props: TextureProps):
+    def __init__(self, shape: intN, props: TextureProps):
         """ (Protected) Texture Constructor """
         self.handle = cast(int, glGenTextures(1))
         self.props = props
@@ -83,7 +85,11 @@ class Texture:
         f: FormatSet = self.props.format.value
         if data is not None:
             # todo shape stack per layer ?
-            self.shape = data.shape
+            L = len(self.shape)
+            self.shape = data.shape[:L]
+            assert L == len(self.shape), \
+                "Cannot set data of lower dimensionality"
+
         self.bind(0)
         self.SETDATA(
             self.TARGET,        # target
@@ -105,7 +111,7 @@ class Texture:
             f.internal_format,  # internal-format
         )
 
-    def setPixels(self, offset: Size_ND, data: Array, level: int = 0):
+    def setPixels(self, offset: intN, data: Array, level: int = 0):
         f: FormatSet = self.props.format.value
         self.bind(0)
         self.SUBSETDATA(
@@ -122,6 +128,7 @@ class Texture:
         glActiveTexture(cast(int, GL_TEXTURE0) + at)
         glBindTexture(self.TARGET, self.handle)
 
+
 class Texture1D(Texture):
     TARGET = GL_TEXTURE_1D
     SETDATA = glTexImage1D
@@ -130,21 +137,24 @@ class Texture1D(Texture):
     def __init__(self, size: int, props: TextureProps = TextureProps()) -> None:
         super().__init__((size,), props)
 
+
 class Texture2D(Texture):
     TARGET = GL_TEXTURE_2D
     SETDATA = glTexImage2D
     SUBSETDATA = glTexSubImage2D
 
-    def __init__(self, size: Size_2D, props: TextureProps = TextureProps()) -> None:
+    def __init__(self, size: int2, props: TextureProps = TextureProps()) -> None:
         super().__init__(size, props)
+
 
 class Texture3D(Texture):
     TARGET = GL_TEXTURE_3D
     SETDATA = glTexImage3D
     SUBSETDATA = glTexSubImage3D
 
-    def __init__(self, size: Size_3D, props: TextureProps = TextureProps()) -> None:
+    def __init__(self, size: int3, props: TextureProps = TextureProps()) -> None:
         super().__init__(size, props)
+
 
 class TextureSet:
     """ Bind a set of textures in sequence """

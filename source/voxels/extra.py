@@ -1,4 +1,4 @@
-from .render import VoxelGrid
+from .render import VoxelRenderer
 from typing import Any
 import numpy as np
 
@@ -13,7 +13,7 @@ def cut(v: Any, l: Any, h: Any):
     H = 1.0 > v
     return np.where(L & H, v, 0.0)
 
-def vox_sphere(v: VoxelGrid):
+def vox_sphere(v: VoxelRenderer):
     X, Y, Z = [space(size)**2 for size in v.shape]
     N = np.newaxis
     field = X[:, N, N] + Y[N, :, N] + Z[N, N, :]

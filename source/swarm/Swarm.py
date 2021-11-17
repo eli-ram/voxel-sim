@@ -1,15 +1,15 @@
 # pyright: reportUnknownArgumentType=false
 from ctypes import c_void_p as ptr
-from source.utils.texture import Size_2D, Texture2D, TextureSet
 from OpenGL.GL import *  # type: ignore
 from OpenGL.GL.shaders import *  # type: ignore
 from OpenGL.arrays.vbo import *  # type: ignore
 import numpy as np
 
-from ..utils import (
-    shader, cwd, script_dir,
-    Framebuffer, ShaderUniforms, ShaderAttributes,
-)
+from ..utils.types import int2
+from ..utils.shaders import shader, ShaderUniforms, ShaderAttributes
+from ..utils.texture import Texture2D, TextureSet
+from ..utils.directory import cwd, script_dir
+from ..utils.framebuffer import Framebuffer
 
 
 class RenderAttributes(ShaderAttributes):
@@ -31,7 +31,7 @@ class ComputeUniforms(ShaderUniforms):
 class Swarm:
 
     @cwd(script_dir(__file__), 'shaders')
-    def __init__(self, shape: Size_2D):
+    def __init__(self, shape: int2):
         self.compute = shader('swarm.comp')
         self.render = shader('swarm.vert', 'swarm.geom', 'swarm.frag')
         self.textures = TextureSet(0, [

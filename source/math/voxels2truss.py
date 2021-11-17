@@ -1,17 +1,17 @@
 from ..data.truss import Truss
-from ..data.voxels import Voxels, Volume, Offset
+from ..data.voxels import Voxels, int3
 import numpy as np
 
 __all__ = ['voxels2truss', 'Builder']
 
 
-def voxels2truss(voxels: Voxels, **options: bool):
+def voxels2truss(voxels: Voxels, exclude: list[str]):
     builder = Builder(voxels)
-    if options.get('faces', True):
+    if 'faces' not in exclude:
         builder.run(Builder.FACES)
-    if options.get('edges', True):
+    if 'edges' not in exclude:
         builder.run(Builder.EDGES)
-    if options.get('corners', True):
+    if 'corners' not in exclude:
         builder.run(Builder.CORNERS)
     return builder.output()
 
@@ -26,7 +26,7 @@ def get_range(size: int, offset: int):
     return a, b
 
 
-def get_ranges(size: Volume, offset: Offset):
+def get_ranges(size: int3, offset: int3):
     sx, sy, sz = size
     ox, oy, oz = offset
     AX, BX = get_range(sx, ox)
@@ -40,19 +40,20 @@ def get_ranges(size: Volume, offset: Offset):
 class Builder:
 
     # Offsets to check to assemble the Truss
-    FACES: list[Offset] = [
+    FACES: list[int3] = [
         (1, 0, 0),
         (0, 1, 0),
         (0, 0, 1),
     ]
-    EDGES: list[Offset] = [
+    EDGES: list[int3] = [
         (1, 1, 0),
         (0, 1, 1),
         (1, 0, 1),
         (1, -1, 0),
         (1, 0, -1),
+        (0, 1, -1),
     ]
-    CORNERS: list[Offset] = [
+    CORNERS: list[int3] = [
         (1, 1, 1),
         (1, 1, -1),
         (1, -1, 1),
@@ -64,11 +65,11 @@ class Builder:
         self.areas: 'list[np.ndarray[np.float32]]' = []
         self.voxels = voxels
 
-    def run(self, offsets: list[Offset]):
+    def run(self, offsets: list[int3]):
         for offset in offsets:
             self.get_edges(offset)
 
-    def get_edges(self, offset: Offset):
+    def get_edges(self, offset: int3):
         V = self.voxels
         A, B = get_ranges(V.shape, offset)
         connectivity = V.grid[A] & V.grid[B]
