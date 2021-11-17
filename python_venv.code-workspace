@@ -12,5 +12,6 @@
 			"reportMissingTypeStubs": "none",
 			"reportWildcardImportFromLibrary": "none"
 		},
+		"python.languageServer": "Pylance",
 	},
 }

@@ -81,6 +81,9 @@ class Texture:
 
     def setData(self, data: OptArray = None, level: int = 0):
         f: FormatSet = self.props.format.value
+        if data is not None:
+            # todo shape stack per layer ?
+            self.shape = data.shape
         self.bind(0)
         self.SETDATA(
             self.TARGET,        # target
