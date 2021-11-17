@@ -5,12 +5,10 @@ import glm
 import numpy as np
 from source.data.colors import Colors
 from source.interactive import Window
-from source.utils.animated import Animated
 from source.utils.matrices import Hierarchy, OrbitCamera
 from source.voxels.extra import vox_sphere
 from source.voxels.proxy import VoxelProxy
 from source.utils.types import int3
-from source.voxels.render import VoxelRenderer
 from source.utils.wireframe import Wireframe
 from source.utils.mesh_loader import loadMeshes
 from source.utils.directory import cwd, script_dir

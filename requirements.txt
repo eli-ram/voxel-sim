@@ -2,7 +2,7 @@ wheel
 autopep8==1.5.7
 data-science-types==0.2.23
 glfw==2.1.0
-numpy==1.21.2
+numpy==1.21.4
 pycodestyle==2.7.0
 PyGLM==2.5.4
 pyglm-typing==0.1.1
@@ -10,3 +10,4 @@ PyOpenGL==3.1.5
 PyOpenGL-accelerate==3.1.5
 PyWavefront==1.3.3
 toml==0.10.2
+typing_extensions==4.0.0
