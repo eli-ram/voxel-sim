@@ -1,8 +1,8 @@
 # pyright: reportUnknownMemberType=false, reportGeneralTypeIssues=false, reportUnknownVariableType=false
-from typing import Any
 from OpenGL.GL import *  # type: ignore
 from OpenGL.arrays.vbo import VBO  # type: ignore
 import numpy as np
+import glm
 
 from ..utils.texture import Format, Sample, Texture1D, Texture3D, TextureProps, Wrap
 from ..utils.types import int3
@@ -66,35 +66,50 @@ class VoxelRenderer:
     def __init__(self, shape: int3, layer_count: int = 64):
         self.shader = VoxelShader.get()
 
+        # Shader Uniform Values
         self.alpha = 0.5
         self.shape = shape
-        self.count = layer_count
         self.outline = True
 
+        # The final for the voxels Transform
+        scale = glm.scale(glm.vec3(*shape))
+        # offset = glm.translate(glm.vec3(1.0))
+        self.transform = scale # * offset
+
+        # Rendering Layer Stack
         data = np.linspace(0.0, 1.0, num=layer_count, dtype=np.float32)
+        self.count = layer_count
         self.planes = VBO(data)
 
         with self.shader.A, self.planes:
-            glVertexAttribPointer(self.shader.A.t, 1,
-                                  GL_FLOAT, GL_FALSE, 0, None)
+            glVertexAttribPointer(
+                self.shader.A.t,    # index
+                1,                  # size
+                GL_FLOAT,           # type
+                GL_FALSE,           # normalize
+                0,                  # stride    (0 = tightly packed)
+                None,               # start     (None = start at 0)
+            )
 
-        colors = 3
-
+        # Voxel Textures [3d-grid & colors]
         self.voxels = Texture3D(shape, self.VOXEL_FMT)
-        self.colors = Texture1D(colors, self.COLOR_FMT)
+        self.colors = Texture1D(1, self.COLOR_FMT)
 
-        self.RNG = np.random.default_rng()
-        color_data: Any = self.RNG.random(size=(colors, 4), dtype=np.float32)
-        color_data[:, 3] = 1  # fix alpha
-        self.colors.setData(color_data)
-        self.S = np.ones((1, 1, 1), dtype=np.float32)
+    def set_colors(self, colors: 'np.ndarray[np.float32]'):
+        S = colors.shape
+        assert len(S) == 2 and S[1] == 4, \
+            "Color array shape must be [Nx4]"
+        assert colors.dtype == np.float32, \
+            "Color array data format must be float32"
+        self.colors.setData(colors)
 
     @property
     def color_count(self) -> int:
         return self.colors.shape[0]
 
     def set(self, pos: int3, color: float):
-        self.voxels.setPixels(pos, self.S * color)
+        color = np.full((1, 1, 1), color, np.float32)
+        self.voxels.setPixels(pos, color)
 
     def setBox(self, pos: int3, colors: 'np.ndarray[np.float32]'):
         self.voxels.setPixels(pos, colors)
@@ -118,10 +133,13 @@ class VoxelRenderer:
         self.voxels.bind(0)
         self.colors.bind(1)
 
+        # Calculate full MVP transform
+        MVP = h.MVP * self.transform
+
         # Bind Uniforms & Render
         with self.shader.S, self.shader.A, self.planes:
             U = self.shader.U
-            glUniformMatrix4fv(U.MVP, 1, GL_TRUE, h.ptr(h.MVP))
+            glUniformMatrix4fv(U.MVP, 1, GL_TRUE, h.ptr(MVP))
             glUniform1i(U.LAYER_DIR, self.getLayerDirection(h))
             # TODO: scale alpha by voxel-layer-ratio ?
             glUniform1f(U.MOD_ALPHA, self.alpha)

@@ -4,7 +4,7 @@
 layout(points) in;
 layout(triangle_strip, max_vertices = 4) out;
 
-// Model View Projection
+// Model View Projection [transforms from (-1 <-> +1) for all directions]
 layout(location = 0) uniform mat4 MVP;
 
 // Layer Stack Direction
@@ -20,17 +20,12 @@ in float offset[1];
 // 3D texture coord
 out vec3 tex;
 
-float max3(vec3 v)
-{
-    return max(max(v.x, v.y), v.z);
-}
 
-vec3 scale;
 void emitPoint(float x, float y, float z) {
     // Texture3D-uv
     tex = vec3(x, y, z);
     // Scale & transform the grid
-    gl_Position = MVP * vec4(tex * scale, 1.0);
+    gl_Position = MVP * vec4(tex, 1.0);
     // Submit vertex
     EmitVertex();
 }
@@ -38,10 +33,6 @@ void emitPoint(float x, float y, float z) {
 void main() {
     float t = offset[0];
     int side = LAYER_DIR;
-
-    // Calculate scale for non-cubic grids
-    vec3 size = textureSize(VOXELS, 0);
-    scale = size / max3(size);
 
     // Calculate plane offset based on heading
     // Important to render the furthest plane first !

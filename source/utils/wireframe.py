@@ -14,9 +14,11 @@ from ctypes import c_void_p as ptr
 import numpy as np
 import glm
 
+
 class Geometry(Enum):
     Triangles = GL_TRIANGLES
     Lines = GL_LINES
+
 
 @dataclass
 class SimpleMesh:
@@ -38,7 +40,11 @@ class WireframeShader(ShaderCache):
 
     @cwd(script_dir(__file__), 'shaders')
     def __init__(self):
-        self.S = self.compile('wireframe.vert', 'wireframe.frag')
+        self.S = self.compile(
+            'wireframe.vert',
+            'wireframe.geom',
+            'wireframe.frag',
+        )
         self.A = WireframeAttributes(self.S)
         self.U = WireframeUniforms(self.S)
 
@@ -79,3 +85,27 @@ class Wireframe:
             )
             glDrawElements(self.geometry, size, GL_UNSIGNED_INT, ptr(0))
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+
+    def delete(self):
+        self.vertices.delete()
+        self.indices.delete()
+
+def origin(size: float):
+    P = +size
+    M = -size
+    return SimpleMesh(
+        vertices=np.array([  # type: ignore
+            [0, 0, P],
+            [0, 0, M],
+            [0, P, 0],
+            [0, M, 0],
+            [P, 0, 0],
+            [M, 0, 0],
+        ], np.float32),
+        indices=np.array([  # type: ignore
+            [0, 1],
+            [2, 3],
+            [4, 5],
+        ], np.uint32),
+        geometry=Geometry.Lines,
+    )

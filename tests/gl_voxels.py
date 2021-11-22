@@ -1,19 +1,20 @@
 # pyright: reportUnusedImport=false
-from typing import Any
+from typing import Any, cast
 import __init__
 import glm
 import numpy as np
 from source.data.colors import Colors
 from source.interactive import Window
 from source.utils.matrices import Hierarchy, OrbitCamera
-from source.voxels.extra import vox_sphere
+from source.utils.misc import random_box
 from source.voxels.proxy import VoxelProxy
 from source.utils.types import int3
-from source.utils.wireframe import Wireframe
+from source.utils.wireframe import Wireframe, origin
 from source.utils.mesh_loader import loadMeshes
 from source.utils.directory import cwd, script_dir
 from OpenGL.GL import *
-from random import random, choice, randint
+from random import random, choice
+
 
 
 """
@@ -49,30 +50,29 @@ class Voxels(Window):
         glClearColor(0.4, 0.4, 0.8, 1.0)
         self.matrices = Hierarchy()
         self.camera = OrbitCamera(
-            distance=1.5,
+            distance=1.25,
             svivel_speed=0.005,
         )
-        shape = (32, 32, 32)
+        shape = (256, 256, 256)
         resolution = 2**10
         self.voxels = VoxelProxy(shape, resolution, {
             "blue": Colors.BLUE,
             "green": Colors.GREEN,
             "red": Colors.RED,
+            "gray" : Colors.GRAY,
         })
 
         self.materials = self.voxels.material_list()
-        self.addVoxels()
+        for _ in range(1):
+            self.addVoxels()
         self.wireframe()
+
+        self.origin = Wireframe(origin(0.05), glm.vec4(1, 0.5, 0, 1), 1.0)
+
         # Cache transforms
 
-        # Translate to center of Voxel grid
-        S: int = np.max(shape)  # type: ignore
-        T = glm.vec3(shape) * (-0.5/S)
-        self.t_vox = glm.translate(T)
-        self.t_mesh = (
-            rescale(shape) *
-            glm.translate(glm.vec3(1, 1, 1) * -0.5)
-        )
+        # Normalze Voxel grid (0 -> N) => (0.0 -> 1.0) 
+        self.t_norm = glm.scale(glm.vec3(1/max(*shape)))
         self.t_bone = (
             glm.translate(glm.vec3(0, 0, -0.35)) *
             glm.scale(glm.vec3(0.17)) *
@@ -93,7 +93,7 @@ class Voxels(Window):
         self.keys.action("U")(lambda: self.alpha(True))
         self.keys.action("I")(lambda: self.alpha(False))
         # Bind refresh controls
-        self.keys.action("R")(lambda : self.wireframe())
+        self.keys.action("R")(self.wireframe)
 
         # Bind toggle outline
         self.keys.action("O")(self.voxels.toggle_outline)
@@ -107,22 +107,23 @@ class Voxels(Window):
         )
         """
 
-        # Display fancy volumetric sphere
-        # vox_sphere(self.voxels)
-
     def alpha(self, up: bool):
         step = 1 if up else -1
         self.alphas: 'np.ndarray[np.float32]' = \
             np.roll(self.alphas, step)  # type: ignore
         self.voxels.set_alpha(self.alphas[0])
 
-    _old: list[Any] = []
-
     def wireframe(self):
-        if hasattr(self, 'mesh'):
-            # TODO: fix !
-            self._old.append(self.mesh)
-        self.mesh = self.voxels.get_mesh(glm.vec4(0.8, 0.8, 1, 1))
+        print("[Mesh] Building")
+        try:
+            self.truss = self.voxels.get_mesh(glm.vec4(0.8, 0.8, 1, 1))
+            print("[Mesh] Done")
+        except AssertionError as e:
+            print("[Mesh] Assertion")
+            print(e)
+        except Error as e:
+            print("[Mesh] Error")
+            print(e)
 
     def resize(self, width: int, height: int):
         self.move_scale = 1 / max(width, height)
@@ -137,19 +138,15 @@ class Voxels(Window):
     rng = np.random.default_rng()
 
     def addVoxels(self):
-        material = choice(self.materials)
-        shape = self.voxels.data.shape
-        R = randint
-        volume = tuple(R(4, 16) for _ in range(3))
-        offset: int3 = \
-            tuple(R(0, a - b) for a, b in zip(shape, volume))  # type: ignore
+        voxels = self.voxels
+        volume, offset = random_box(voxels.data.shape, 32, 32)
         strength: Any = \
             self.rng.random(size=volume, dtype=np.float32)  # type: ignore
-        self.voxels.add_box(offset, strength + 0.5, material)
+        voxels.add_box(offset, strength - 0.35, choice(self.materials))  # type: ignore
 
     def update(self, time: float, delta: float):
         # Debug w random voxels
-        if random() * time < 2:
+        if random() * time < 0.5:
             self.addVoxels()
 
         # Update Camera Matrix
@@ -159,15 +156,22 @@ class Voxels(Window):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)  # type: ignore
         M = self.matrices
         # Render Opaque first
+
+        # Render origin when navigating
+        if self.move_active:
+            with M.Push(glm.translate(self.camera.center)):
+                self.origin.render(M)
+
         # with M.Push(self.t_bone):
         #    self.bone.render(self.matrices)
-        with M.Push(self.t_vox):
-            # Render mesh
-            with M.Push(self.t_mesh):
-                self.mesh.render(self.matrices)
+
+        with M.Push(self.t_norm):
+
+            # Render Truss mesh
+            self.truss.render(M)
+
             # Render Transparent last
-            self.voxels.render(self.matrices)
-        # TODO: post process with gaussian blur ?
+            self.voxels.render(M)
 
     def move(self, dx: float, dy: float):
         if self.move_mode:

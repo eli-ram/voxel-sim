@@ -2,17 +2,17 @@ from ..data.truss import Truss
 from ..data.voxels import Voxels, int3
 import numpy as np
 
-__all__ = ['voxels2truss', 'Builder']
+__all__ = ['voxels2truss', 'TrussBuilder']
 
 
-def voxels2truss(voxels: Voxels, exclude: list[str]):
-    builder = Builder(voxels)
+def voxels2truss(voxels: Voxels, exclude: list[str] = []):
+    builder = TrussBuilder(voxels)
     if 'faces' not in exclude:
-        builder.run(Builder.FACES)
+        builder.run(TrussBuilder.FACES)
     if 'edges' not in exclude:
-        builder.run(Builder.EDGES)
+        builder.run(TrussBuilder.EDGES)
     if 'corners' not in exclude:
-        builder.run(Builder.CORNERS)
+        builder.run(TrussBuilder.CORNERS)
     return builder.output()
 
 
@@ -37,15 +37,17 @@ def get_ranges(size: int3, offset: int3):
     return A, B
 
 
-class Builder:
+class TrussBuilder:
 
     # Offsets to check to assemble the Truss
     FACES: list[int3] = [
+        # 6 faces / 2 = 3
         (1, 0, 0),
         (0, 1, 0),
         (0, 0, 1),
     ]
     EDGES: list[int3] = [
+        # 12 edges / 2 = 6
         (1, 1, 0),
         (0, 1, 1),
         (1, 0, 1),
@@ -54,6 +56,7 @@ class Builder:
         (0, 1, -1),
     ]
     CORNERS: list[int3] = [
+        # 8 corners / 2 = 4
         (1, 1, 1),
         (1, 1, -1),
         (1, -1, 1),

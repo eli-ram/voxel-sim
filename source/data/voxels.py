@@ -113,7 +113,8 @@ class Voxels:
         return getattr(self, '__buffer__')
 
     def invalidate(self):
-        delattr(self, '__buffer__')
+        if hasattr(self, '__buffer__'):
+            delattr(self, '__buffer__')
 
 
 class VoxelDataBuffer:
@@ -127,5 +128,6 @@ class VoxelDataBuffer:
     def __init__(self, voxels: Voxels):
         self.voxels = np.nonzero(voxels.grid)  # type: ignore
         self.vertices = np.vstack(self.voxels).astype(np.float32).transpose()
+        self.vertices += 0.5 # type: ignore
         self.lut = _zeros(voxels.shape, dtype=np.uint32)
         self.lut[self.voxels] = range(len(self.vertices))
