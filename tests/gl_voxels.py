@@ -21,7 +21,6 @@ from random import random, choice
 TODO:
 
 1. Triangle intersection:
-    https://courses.cs.washington.edu/courses/csep557/10au/lectures/triangle_intersection.pdf
 
 2. Mesh Loader
     use .obj to load

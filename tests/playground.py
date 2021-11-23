@@ -4,7 +4,8 @@ from typing import Any
 import numpy as np
 import sys
 from source.data.voxels import Voxels
-from source.math.Intersection import range_2D
+from source.math.intersection import range_2D
+from source.math.linalg import normal
 from source.math.voxels2truss import voxels2truss
 
 rng = np.random.default_rng()
@@ -40,9 +41,20 @@ def x_test_2():
     print(f"{truss.edges.shape=}")
     print(f"{truss.areas.shape=}")
 
-def test_range():
+def x_test_range():
     for x, y in range_2D(2, 5, 2, 5):
         print(x, y)
+
+
+def test_normal():
+    A, B, C = np.array([ # type: ignore
+        [0,0,0],
+        [1,0,0],
+        [0,1,0],
+    ])
+    print("tri", A, B, C, sep='\n')
+    N = normal(A, B, C) # type: ignore
+    print("res", N)
 
 # Run all Test functions
 if __name__ == '__main__':
