@@ -53,8 +53,8 @@ class Voxels(Window):
             distance=1.25,
             svivel_speed=0.005,
         )
-        shape = (256, 256, 256)
-        resolution = 2**10
+        shape = (16, 16, 16)
+        resolution = 2**7
         self.voxels = VoxelProxy(shape, resolution, {
             "blue": Colors.BLUE,
             "green": Colors.GREEN,
@@ -146,7 +146,7 @@ class Voxels(Window):
 
     def update(self, time: float, delta: float):
         # Debug w random voxels
-        if random() * time < 0.5:
+        if random() * time < 0:
             self.addVoxels()
 
         # Update Camera Matrix
@@ -193,4 +193,10 @@ class Voxels(Window):
 if __name__ == '__main__':
     size = 900
     window = Voxels(size, size, "voxels")
+    from source.debug.performance import performance, GPU
+    
+    @window.keys.action("P")
+    def perf():
+        performance(GPU.NVIDIA)
+
     window.spin()

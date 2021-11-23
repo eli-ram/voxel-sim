@@ -5,14 +5,17 @@ from source.utils import shader, cwd, ShaderUniforms, Animated, bind
 from source.swarm import Swarm
 from OpenGL.GL import *
 
-SIZE = (500 // 16) * 16
+SIZE = (900 // 16) * 16
+
 
 class FadeUniforms(ShaderUniforms):
     diff: int
     decay: int
 
+
 class RectUniforms(ShaderUniforms):
     aspect: int
+
 
 class Swarm_Window(Window):
 
@@ -21,10 +24,10 @@ class Swarm_Window(Window):
         # glEnable(GL_DEPTH_TEST)
         glClearColor(0.0, 0.0, 0.0, 1.0)
         self.swarm = Swarm((SIZE, SIZE))
-        self.swarm.set_size(1_000_000)
+        self.swarm.set_size(10_000)
         self.fade = shader('fade.comp')
         self.shader = shader('rect.frag', 'rect.vert')
-        self.square = np.array([ # type: ignore
+        self.square = np.array([  # type: ignore
             [-1, -1],
             [+1, -1],
             [+1, +1],
@@ -37,7 +40,7 @@ class Swarm_Window(Window):
         @bind(self.fade)
         def diff(value: float):
             glUniform1f(self.u_fade.diff, value)
-        self.diff = Animated(diff, 0.505, 0.001)
+        self.diff = Animated(diff, 0.502, 0.001)
 
         @bind(self.fade)
         def decay(value: float):
@@ -52,17 +55,18 @@ class Swarm_Window(Window):
     def resize(self, width: int, height: int):
         glViewport(0, 0, width, height)
         if width > height:
-            aspect = [(height / width), 1.0] 
+            aspect = [(height / width), 1.0]
         else:
             aspect = [1.0, (width / height)]
         with self.shader:
             glUniform2f(self.u_shader.aspect, *aspect)
 
     def update(self, time: float, delta: float):
-        with self.fade, self.swarm.textures:
-            glDispatchCompute(SIZE//16, SIZE//16, 1)
+        for _ in range(4):
+            with self.fade, self.swarm.textures:
+                glDispatchCompute(SIZE//16, SIZE//16, 1)
 
-        self.swarm.update(time, delta)
+            self.swarm.update(time, delta)
 
     def render(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)  # type: ignore

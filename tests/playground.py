@@ -4,7 +4,7 @@ from typing import Any
 import numpy as np
 import sys
 from source.data.voxels import Voxels
-
+from source.math.Intersection import range_2D
 from source.math.voxels2truss import voxels2truss
 
 rng = np.random.default_rng()
@@ -24,14 +24,14 @@ def grid_coords(grid: 'np.ndarray[Any]'):
     return coords, voxels
 
 
-def test_1():
+def x_test_1():
     grid = random_voxels(3)
     _, v = grid_coords(grid.grid)
     test = np.zeros(grid.shape)
     test[v] = grid.grid[v]
     assert np.array_equal(grid.grid, test), " Grid & Test-Grid differ"
 
-def test_2():
+def x_test_2():
     grid = random_voxels(4)
     truss = voxels2truss(grid)
     print(f"{truss.nodes.shape=}")
@@ -39,6 +39,10 @@ def test_2():
     print(f"{truss.static.shape=}")
     print(f"{truss.edges.shape=}")
     print(f"{truss.areas.shape=}")
+
+def test_range():
+    for x, y in range_2D(2, 5, 2, 5):
+        print(x, y)
 
 # Run all Test functions
 if __name__ == '__main__':

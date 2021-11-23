@@ -12,11 +12,12 @@ layout (binding = 0, std430) buffer Source { Agent agents [ ]; };
 layout (binding = 0, rgba32f) uniform restrict readonly image2D environment;
 layout (local_size_x = 16) in;
 
-float random(){
+float random;
+void rng(){
     float i = float(gl_GlobalInvocationID.x) / float(gl_NumWorkGroups.x * gl_WorkGroupSize.x);
     float t = fract(20.5 + 10.5 * time);
     vec2 v = vec2(t, i) * 2.0 - 1.0; 
-    return fract(sin(atan(v.x, v.y) * 43758.5453));
+    random = fract(sin(atan(v.x, v.y) * 43758.5453));
 }
 
 vec2 heading(float dir) {
@@ -53,8 +54,8 @@ float sensor(Agent agent, float offset) {
 
     float type = (agent.velocity - 0.001) / (0.002 - 0.001); 
 
-    vec3 A = vec3(1,-0.2,-0.3);
-    vec3 B = vec3(1,-0.3,-0.2);
+    vec3 A = vec3(-1,0.3,0.1);
+    vec3 B = vec3(-1,0.1,0.4);
     vec3 weights = mix(A, B, type);
 
     return dot(sum, weights);
@@ -71,19 +72,19 @@ float steer(Agent agent) {
     }
 
     if (F < R && F < L) {
-        return (random() - 0.5) * 0.1;
+        return (random - 0.5) * 0.1;
     }
 
-    return random() * sign(L - R) * 0.3;
+    return random * sign(L - R) * 0.1;
 }
 
 void bounce(inout float position, inout float heading) {
     if (position > 1.0) {
         position -= 2.0 * (position - 1.0);
-        heading = -heading + random();
+        heading = -heading + random;
     } else if (position < -1.0) {
         position -= 2.0 * (position + 1.0); 
-        heading = -heading + random();
+        heading = -heading + random;
     }
 }
 
@@ -93,6 +94,9 @@ void loop(inout float position) {
 }
 
 void main() {
+    // Set RNG
+    rng();
+
     // get Agent
     uint id = gl_GlobalInvocationID.x;
     Agent agent = agents[id];
