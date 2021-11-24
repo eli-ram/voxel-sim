@@ -1,10 +1,10 @@
-from typing import Any
+from typing import DefaultDict
 import numpy as np
 
-from .linalg import coords, normal, unpack
+from .linalg import coordinates, unpack
 
 from ..utils.wireframe import Geometry, SimpleMesh
-from ..utils.types import int3, int2
+from ..utils.types import int3,  Array, F, I
 
 """
 This is basically a (black/white) software-rasterizer.
@@ -16,155 +16,223 @@ Resources:
 
 """
 
+class Rasterizer_3D:
 
-class _XY_to_Z:
-    # Triangle (a, b, c)
-    vertices: 'np.ndarray[np.float32]'
+    def __init__(self, volume: int3, swizzle: int3 = (2, 1, 0)):
+        # Configure swizzle
+        x, y, z = swizzle
+        self.swizzle: slice = [x, y, z] # type: ignore
 
-    def hit(self, XY: 'np.ndarray[np.float32]'):
-        """ Check if Points lies inside the triangle """
+        # Configure z-buffer-hash
+        self.y_size = volume[y]
+        self.hash: dict[int, 'Array[F]'] = \
+            DefaultDict(lambda: np.zeros(0, np.float32))
+
+        # Configure xy-space
+        self.xy_min: 'Array[F]' = \
+            np.zeros(2, np.int32)
+        self.xy_max: 'Array[F]' = \
+            np.array(list(volume), np.int32)[[x, y]]  # type: ignore
+
+    def grid_index(self, x: int, y: int):
+        t = (int(x), int(y), slice(None, None, 1))
+        return (t[i] for i in self.swizzle) # type: ignore
+
+    def get(self, I: int):
+        x = I % self.y_size
+        y = I // self.y_size
+        z = np.unique(self.hash[I].round(4))
+        return x, y, z
+
+    def hit(self, triangle: 'Array[F]', P: 'Array[F]'):
+        """ Check if Points lies inside the triangle 
+
+            Using: Barycentric Coordinates
+
+        """
         # Retrieve triangle XY's
-        A, B, C = unpack(self.vertices[:, ::2])
+        A, B, C = unpack(triangle[:, :2])
+        # print(A, B, C)
 
-        # Calculate Barycentric Conversion
-        T = np.vstack((B - C, A - C)).T
-        M: 'np.ndarray[np.float32]' = np.linalg.inv(T)  # type: ignore
+        # Unpack
+        ax, ay = A
+        bx, by = B
+        cx, cy = C
+        px, py = P.T
 
-        # Apply to Points
-        CXY = XY - C
-        a, b = unpack(M @ CXY.transpose())
-        c = 1 - a - b
+        # signed (double) area
+        area = (
+            + (ax * by)
+            + (bx * cy)
+            + (cx * ay)
+            - (ax * cy)
+            - (bx * ay)
+            - (cx * by)
+        )
+        # Avoid dividing by 0
+        if area == 0.0:
+            return
 
-        """
-         a = ((by - cy)*(x - cx) + (cx - bx)*(y - cy)) / ((by - cy)*(ax - cx) + (cx - bx)*(ay - cy))
-         b = ((cy - ay)*(x - cx) + (ax - cx)*(y - cy)) / ((by - cy)*(ax - cx) + (cx - bx)*(ay - cy))
-         c = 1 - a - b
-        """
+        # inverse signed area
+        area = 1 / area
 
-        # Check if conditions is met
-        T1 = (0 <= a) & (a <= 1)
-        T2 = (0 <= b) & (b <= 1)
-        T3 = (0 <= c) & (c <= 1)
+        # barycentric coords
+        s = area * (
+            + (ay * cx)
+            - (ax * cy)
+            + (cy - ay) * px
+            + (ax - cx) * py
+        )
 
-        return T1 & T2 & T3
+        t = area * (
+            + (ax * by)
+            - (ay * bx)
+            + (ay - by) * px
+            + (bx - ax) * py
+        )
 
-    def proj(self, XY: 'np.ndarray[np.float32]') -> 'np.ndarray[np.float32]':
+        return (s >= 0) & (t >= 0) & (1-s-t >= 0)
+
+    def proj(self, triangle: 'Array[F]', P: 'Array[F]'):
         """ Project XY onto Triangle plane to find Z """
-        A, B, C = unpack(self.vertices)
+        A, B, C = unpack(triangle)
+
+        # Find [non-normalized] normal vector
+        AB = B - A
+        AC = C - A
+        N: 'Array[F]' = np.cross(AB, AC)  # type: ignore
 
         # Solve Triangle Plane for Z
-        N = normal(A, B, C)
         D = N[2]
         N[2] = np.dot(N, A)  # type: ignore
-        N[:] /= D
+        N /= D  # type: ignore
 
         # Compute Z-array
-        P: 'np.ndarray[np.float32]' = np.dot(XY, N[:2]) # type: ignore
-        return P + N[2]
+        V: 'Array[F]' = np.dot(P, N[:2])  # type: ignore
+        return N[2] - V 
 
-    def min_xy(self, low: 'np.ndarray[np.int32]'):
-        """ Get min xy-index with low cutoff """
-        M = np.min(self.vertices[:, ::2], axis=0)
-        I = np.floor(M).astype(np.int32)
-        L = np.maximum(I, low)
-        return L
+    def cache(self, triangle: 'Array[F]'):
+        """ Cache a triangle into the Z-buffers """
+        triangle = triangle[:, self.swizzle]
+        # print("triangle")
 
-    def max_xy(self, high: 'np.ndarray[np.int32]'):
-        """ Get max xy-index with high cutoff """
-        M = np.max(self.vertices[:, ::2], axis=0)
-        I = np.ceil(M).astype(np.int32)
-        L = np.minimum(I, high)
-        return L
+        # Find triangle low bounds
+        xy_min = np.floor(np.min(triangle[:, :2], axis=0)).astype(np.int32)
+        if not np.all(xy_min <= self.xy_max):
+            # print("min is out of bounds")
+            return
+
+        # Find triangle high bounds
+        xy_max = np.ceil(np.max(triangle[:, :2], axis=0) + 0.01).astype(np.int32)
+        if not np.all(xy_max >= self.xy_min):
+            # print("max is out of bounds")
+            return
+
+        # Get coordinates & points around the triangle
+        lx, ly = np.maximum(xy_min, self.xy_min)
+        hx, hy = np.minimum(xy_max, self.xy_max)
+        coords = coordinates(lx, hx, ly, hy)
+        points = coords + 0.5
+
+        # Get boolean hit array
+        hits = self.hit(triangle, points)
+        if not np.any(hits):  # type: ignore
+            # print("no hits")
+            return
+
+        """
+        sx = int(hx - lx)
+        sy = int(hy - ly)
+        H = hits.reshape(sy, sx)
+        print("\n".join(" ".join(l) for l in np.where(H, '#', '.')))
+        """
+
+        # Cut away coordinates & points that misses
+        coords = coords[hits, :]
+        points = points[hits, :]
+
+        # Calculate points on the triangle plane
+        P = self.proj(triangle, points)
+
+        I = coords[:, 0] + (coords[:, 1] * self.y_size)
+
+        # Fill Z-buffers
+        for i, z in zip(I, P):
+            # i = int(i)
+            self.hash[i] = np.append(self.hash[i], z)  # type: ignore
+
+    def run(self, indices: 'Array[I]', vertices: 'Array[F]'):
+        assert indices.shape[1] == 3, \
+            " Indices must be on the form [Nx3] to represent triangles !"
+        assert vertices.shape[1] == 3, \
+            " Vertices must be on the form [Nx3] to represent vertices !"
+
+        for tri in indices:
+            self.cache(vertices[tri, :])
+
+    def points(self):
+
+        count = sum(l.size for l in self.hash.values())
+        i = 0
+
+        points = np.zeros((count, 3), np.float32)
+        for I in self.hash:
+            x, y, z = self.get(I)
+            XY = np.array([x, y, 1]) + 0.5  # type: ignore
+            print(x, y, z)
+            for v in z:
+                XY[2] = v
+                points[i, :] = XY
+                i += 1
+
+        return points
 
 
-def range_2D(lx: int, hx: int, ly: int, hy: int):
-    rx = range(lx, hx)
-    ry = range(ly, hy)
-    yield from ((x, y) for y in ry for x in rx)
-
-
-def mesh_2_voxels(mesh: SimpleMesh, transform: 'np.ndarray[np.float32]', voxels: int3) -> 'np.ndarray[np.float32]':
+def mesh_2_voxels(mesh: SimpleMesh, transform: 'Array[F]', voxels: int3) -> 'Array[F]':
     assert mesh.geometry == Geometry.Triangles, \
         " Mesh must be made up of triangles! "
 
     assert transform.shape == (3, 4), \
         " Expected [3x4] affine transform matrix "
 
-    # Hash (x,y) indices to Z-arrays
-    xy_hash: dict[int2, 'np.ndarray[np.float32]'] = dict()
-
-    # Add z-value to xy_hash
-    def add(x: int, y: int, z: Any):
-        key = (x, y)
-        arr = xy_hash.get(key)
-        if arr is None:
-            arr = np.zeros(0, dtype=np.float32)
-        xy_hash[key] = np.append(arr, z)  # type: ignore
-
     # Get Triangles from mesh
-    M = transform[:,:3]
-    V = transform[:,3]
+    print("[#] Transform")
+    M = transform[:, :3]
+    V = transform[:, 3]
     VS = mesh.vertices.size // 3
     vertices = mesh.vertices.reshape(VS, 3)
     vertices = (M @ vertices.T).T + V
     IS = mesh.indices.size // 3
     indices = mesh.indices.reshape(IS, 3)
 
-    # Lowest allowed index
-    v_min: 'np.ndarray[np.int32]' = \
-        np.zeros(2, dtype=np.int32)  # type: ignore
+    # Init rasterizer
+    rasterizer = Rasterizer_3D(voxels)
 
-    # Higest allowed index
-    v_max: 'np.ndarray[np.int32]' = \
-        np.array(voxels[::2], dtype=np.int32)  # type: ignore
+    print("[#] Wide Triangles")
+    rasterizer.run(indices, vertices)
 
-    # Support structure for abstraction
-    triangle = _XY_to_Z()
-
-    print("Wide Triangles")
-    
-    # Potential Parallel-For
-    for tri in indices:
-        # Set vertices in support structure
-        triangle.vertices = vertices[tri,:]
-        # Get index-ranges
-        lx, ly = triangle.min_xy(v_min)
-        hx, hy = triangle.max_xy(v_max)
-        # Get relevant coordinates
-        coordinates = coords(lx, ly, hx, hy)
-        # Check if the triangle is outside the grid
-        if coordinates.size == 0:
-            continue
-        # Center points in the voxels
-        points = (coordinates.astype(np.float32) + 0.5).astype(np.float32)
-        # Find triangle intersections
-        hits = triangle.hit(points)
-        # Check if there are any hits
-        if not np.any(hits): # type: ignore
-            continue
-        # Find Z-values per intersection
-        Z = triangle.proj(points[hits, :])
-        # Fill Z-buffers
-        for (x, y), z in zip(unpack(coordinates[hits]), Z):
-            # this would require mutex if multithreaded !
-            add(x, y, z)
+    # debug
+    # rasterizer.points()
 
     # Voxel Grid to fill / return
     grid = np.zeros(shape=voxels, dtype=np.float32)
 
     # Z-indexes for Z-axis
-    Z_space = np.arange(voxels[2], dtype=np.float32) + 0.5
+    i: int = rasterizer.swizzle[2] # type: ignore
+    Z_space = np.arange(voxels[i], dtype=np.float32) + 0.5
 
-    print("Wide Voxels")
+    print("[#] Wide Voxels")
 
     # Potentia Parallel-For
-    for (x, y), Z_points in xy_hash.items():
-        print(x, y, Z_points)
+    for I in rasterizer.hash:
+        x, y, z = rasterizer.get(I)
         # Find the boolean matrix for voxel-surface-ray-intersection
-        B = Z_space[:, np.newaxis] < Z_points[np.newaxis, :]
+        B = Z_space[:, np.newaxis] < z[np.newaxis, :]
         # Count ray-intersections
-        C: 'np.ndarray[np.uint64]' = np.count_nonzero(B, axis=1)  # type: ignore
+        C: 'np.ndarray[np.uint64]' = \
+            np.count_nonzero(B, axis=1)  # type: ignore
         # intersection modulo 2 means that the voxel is inside the mesh
-        grid[x, :, y] = C % 2
+        x, y, z = rasterizer.grid_index(x, y)
+        grid[x, y, z] = C % 2
 
     return grid

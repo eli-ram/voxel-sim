@@ -1,5 +1,7 @@
 # pyright: reportUnusedImport=false
 from typing import Any, cast
+
+from OpenGL.arrays.vbo import VBO
 import __init__
 import glm
 import numpy as np
@@ -10,12 +12,12 @@ from source.utils.matrices import Hierarchy, OrbitCamera
 from source.utils.misc import random_box
 from source.voxels.proxy import VoxelProxy
 from source.utils.types import int3
-from source.utils.wireframe import Wireframe, line_cube, origin
+from source.utils.wireframe import Wireframe, line_cube, origin, simplex
 from source.utils.mesh_loader import loadMeshes
 from source.utils.directory import cwd, script_dir
 from OpenGL.GL import *
 from random import random, choice
-from traceback import format_exc, format_exception
+from traceback import format_exc
 
 
 
@@ -56,8 +58,8 @@ class Voxels(Window):
             distance=1.25,
             svivel_speed=0.005,
         )
-        shape = (16, 16, 16)
-        resolution = 2**6
+        shape = (128, 128, 128)
+        resolution = 2**10
         self.voxels = VoxelProxy(shape, resolution, {
             "blue": Colors.BLUE,
             "green": Colors.GREEN,
@@ -76,6 +78,7 @@ class Voxels(Window):
         # Bone Model
         # TODO: async load
         self.bone_mesh = bone()
+        # self.bone_mesh = simplex()
         self.bone = Wireframe(
             self.bone_mesh,
             glm.vec4(0.8, 0.8, 1, 1),
@@ -87,11 +90,16 @@ class Voxels(Window):
         # Normalze Voxel grid (0 -> N) => (0.0 -> 1.0) 
         self.t_norm = glm.scale(glm.vec3(1/max(*shape)))
         self.t_bone = (
-            glm.translate(glm.vec3(0.5, 0.5, 0)) *
-            glm.scale(glm.vec3(5.67)) *
-            glm.translate(glm.vec3(0, 0, 0.4)) * 
+            glm.translate(glm.vec3(0.0, 0.5, -0.1)) *
+            glm.scale(glm.vec3(0.67)) *
+            glm.translate(glm.vec3(0, 0, 0.45)) * 
             glm.rotate(glm.pi() / 2, glm.vec3(1, 0, 0))
         )
+        """
+        self.t_bone = (
+            glm.mat4(1)
+        )
+        """
 
         # Some internal state
         self.alphas = np.power([1.0, 0.75, 0.5, 0.25, 0.0], 4)  # type: ignore
@@ -138,7 +146,9 @@ class Voxels(Window):
             t = self.matrices.ptr(t)[:3,:]
             g = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape)
             print("[VOXELS] Done")
-            self.voxels.add_box((0,0,0), g, "red")
+            # print(g)
+            # self.points = VBO(g)
+            self.voxels.add_box((0,0,0), g.astype(np.float32), "red")
         except Exception:
             print("[VOXELS] Error")
             print(format_exc())

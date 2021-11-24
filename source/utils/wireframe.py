@@ -93,6 +93,7 @@ class Wireframe:
         self.vertices.delete()
         self.indices.delete()
 
+
 def origin(size: float):
     P = +size
     M = -size
@@ -113,9 +114,10 @@ def origin(size: float):
         geometry=Geometry.Lines,
     )
 
+
 def line_cube():
     return SimpleMesh(
-        vertices=np.array([ # type: ignore
+        vertices=np.array([  # type: ignore
             [0, 0, 0],
             [1, 0, 0],
             [0, 1, 0],
@@ -125,7 +127,7 @@ def line_cube():
             [0, 1, 1],
             [1, 1, 1],
         ], np.float32),
-        indices=np.array([ # type: ignore
+        indices=np.array([  # type: ignore
             [0, 1],
             [0, 2],
             [0, 4],
@@ -140,4 +142,22 @@ def line_cube():
             [5, 1],
         ], np.uint32),
         geometry=Geometry.Lines
+    )
+
+
+def simplex():
+    return SimpleMesh(
+        vertices=np.array([  # type: ignore
+            [0, 0, 0],
+            [0.5, 1.0, 0],
+            [0.5, 0.5, 5],
+            [1.0, 0.5, 0],
+        ], np.float32),
+        indices=np.array([  # type: ignore
+            [0, 1, 2],
+            [1, 2, 3],
+            [2, 3, 0],
+            [3, 0, 1],
+        ], np.uint32),
+        geometry=Geometry.Triangles,
     )
