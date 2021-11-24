@@ -5,15 +5,17 @@ import glm
 import numpy as np
 from source.data.colors import Colors
 from source.interactive import Window
+from source.math.intersection import mesh_2_voxels
 from source.utils.matrices import Hierarchy, OrbitCamera
 from source.utils.misc import random_box
 from source.voxels.proxy import VoxelProxy
 from source.utils.types import int3
-from source.utils.wireframe import Wireframe, origin
+from source.utils.wireframe import Wireframe, line_cube, origin
 from source.utils.mesh_loader import loadMeshes
 from source.utils.directory import cwd, script_dir
 from OpenGL.GL import *
 from random import random, choice
+from traceback import format_exc, format_exception
 
 
 
@@ -32,7 +34,9 @@ TODO:
 
 @cwd(script_dir(__file__), '..', 'meshes')
 def bone():
+    print("[BONE] Loading")
     BONE, = loadMeshes('test_bone.obj')
+    print("[BONE] Loaded!")
     return BONE
 
 
@@ -53,7 +57,7 @@ class Voxels(Window):
             svivel_speed=0.005,
         )
         shape = (16, 16, 16)
-        resolution = 2**7
+        resolution = 2**6
         self.voxels = VoxelProxy(shape, resolution, {
             "blue": Colors.BLUE,
             "green": Colors.GREEN,
@@ -62,19 +66,30 @@ class Voxels(Window):
         })
 
         self.materials = self.voxels.material_list()
-        for _ in range(1):
-            self.addVoxels()
-        self.wireframe()
 
+        # 3D-crosshair for camera
         self.origin = Wireframe(origin(0.05), glm.vec4(1, 0.5, 0, 1), 1.0)
+
+        # Outline for Voxels
+        self.cube = Wireframe(line_cube(), glm.vec4(0,0,0,1), 1.0)
+
+        # Bone Model
+        # TODO: async load
+        self.bone_mesh = bone()
+        self.bone = Wireframe(
+            self.bone_mesh,
+            glm.vec4(0.8, 0.8, 1, 1),
+            2.0,
+        )
 
         # Cache transforms
 
         # Normalze Voxel grid (0 -> N) => (0.0 -> 1.0) 
         self.t_norm = glm.scale(glm.vec3(1/max(*shape)))
         self.t_bone = (
-            glm.translate(glm.vec3(0, 0, -0.35)) *
-            glm.scale(glm.vec3(0.17)) *
+            glm.translate(glm.vec3(0.5, 0.5, 0)) *
+            glm.scale(glm.vec3(5.67)) *
+            glm.translate(glm.vec3(0, 0, 0.4)) * 
             glm.rotate(glm.pi() / 2, glm.vec3(1, 0, 0))
         )
 
@@ -88,23 +103,18 @@ class Voxels(Window):
             lambda press: setattr(self, 'move_mode', press))
         self.buttons.toggle("LEFT")(
             lambda press: setattr(self, 'move_active', press))
+
         # Bind alpha controls
         self.keys.action("U")(lambda: self.alpha(True))
         self.keys.action("I")(lambda: self.alpha(False))
-        # Bind refresh controls
-        self.keys.action("R")(self.wireframe)
 
         # Bind toggle outline
         self.keys.action("O")(self.voxels.toggle_outline)
 
-        # TODO: async load
-        """
-        self.bone = Wireframe(
-            bone(),
-            glm.vec4(0.8, 0.8, 1, 1),
-            2.0,
-        )
-        """
+        # Bind other controls
+        self.keys.action("R")(self.wireframe)
+        self.keys.action("B")(self.get_bone_voxels)
+
 
     def alpha(self, up: bool):
         step = 1 if up else -1
@@ -117,12 +127,21 @@ class Voxels(Window):
         try:
             self.truss = self.voxels.get_mesh(glm.vec4(0.8, 0.8, 1, 1))
             print("[Mesh] Done")
-        except AssertionError as e:
-            print("[Mesh] Assertion")
-            print(e)
-        except Error as e:
+        except Exception:
             print("[Mesh] Error")
-            print(e)
+            print(format_exc())
+
+    def get_bone_voxels(self):
+        print("[VOXELS] Rasterizing")
+        try:
+            t = glm.affineInverse(self.t_norm) * self.t_bone
+            t = self.matrices.ptr(t)[:3,:]
+            g = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape)
+            print("[VOXELS] Done")
+            self.voxels.add_box((0,0,0), g, "red")
+        except Exception:
+            print("[VOXELS] Error")
+            print(format_exc())
 
     def resize(self, width: int, height: int):
         self.move_scale = 1 / max(width, height)
@@ -156,18 +175,23 @@ class Voxels(Window):
         M = self.matrices
         # Render Opaque first
 
+        self.cube.render(M)
+
         # Render origin when navigating
         if self.move_active:
             with M.Push(glm.translate(self.camera.center)):
                 self.origin.render(M)
 
-        # with M.Push(self.t_bone):
-        #    self.bone.render(self.matrices)
+        # Render Bone Mesh
+        with M.Push(self.t_bone):
+            self.bone.render(M)
 
+        # Render Normalized geometry
         with M.Push(self.t_norm):
 
             # Render Truss mesh
-            self.truss.render(M)
+            if hasattr(self, 'truss'):
+                self.truss.render(M)
 
             # Render Transparent last
             self.voxels.render(M)

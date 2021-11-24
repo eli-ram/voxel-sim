@@ -46,7 +46,7 @@ def x_test_range():
         print(x, y)
 
 
-def test_normal():
+def X_test_normal():
     A, B, C = np.array([ # type: ignore
         [0,0,0],
         [1,0,0],

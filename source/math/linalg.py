@@ -23,7 +23,7 @@ def coords(lx: int, hx: int, ly: int, hy: int):
     xs = np.arange(lx, hx)
     ys = np.arange(ly, hy)
     xs, ys = grid(xs, ys)
-    return np.vstack((xs.ravel(), ys.ravel()))
+    return np.vstack((xs.ravel(), ys.ravel())).transpose()
 
 
 def unpack(M: 'np.ndarray[N]') -> tuple['np.ndarray[N]', ...]:

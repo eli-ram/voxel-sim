@@ -72,9 +72,7 @@ class VoxelRenderer:
         self.outline = True
 
         # The final for the voxels Transform
-        scale = glm.scale(glm.vec3(*shape))
-        # offset = glm.translate(glm.vec3(1.0))
-        self.transform = scale # * offset
+        self.transform = glm.scale(glm.vec3(*shape))
 
         # Rendering Layer Stack
         data = np.linspace(0.0, 1.0, num=layer_count, dtype=np.float32)

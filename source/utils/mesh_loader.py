@@ -1,5 +1,5 @@
 import numpy as np
-from .wireframe import SimpleMesh
+from .wireframe import Geometry, SimpleMesh
 from pywavefront import (  # type: ignore
     wavefront as w,
     mesh as m,
@@ -28,7 +28,7 @@ def getSimpleMesh(mesh: m.Mesh):
     V, I = np.unique(stacked, return_inverse=True, axis=0)
     U: np.ndarray[np.uint16] = I.astype(np.uint16) # type: ignore
 
-    return SimpleMesh(V, U)
+    return SimpleMesh(V, U, Geometry.Triangles)
 
 
 def getVertices(material: l.Material) -> 'np.ndarray[np.float32]':

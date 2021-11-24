@@ -9,8 +9,6 @@ from .shaders import (
 )
 from .directory import cwd, script_dir
 from .matrices import Hierarchy
-
-from ctypes import c_void_p as ptr
 import numpy as np
 import glm
 
@@ -42,7 +40,7 @@ class WireframeShader(ShaderCache):
     def __init__(self):
         self.S = self.compile(
             'wireframe.vert',
-            'wireframe.geom',
+            # 'wireframe.geom',
             'wireframe.frag',
         )
         self.A = WireframeAttributes(self.S)
@@ -83,7 +81,12 @@ class Wireframe:
                 0,                  # stride    (0 => tighty packed)
                 None,               # start     (None => start at 0)
             )
-            glDrawElements(self.geometry, size, GL_UNSIGNED_INT, ptr(0))
+            glDrawElements(
+                self.geometry,      # geometry type
+                size,               # geometry count
+                GL_UNSIGNED_INT,    # index type
+                None,               # index start (None => start at 0)
+            )
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
 
     def delete(self):
@@ -108,4 +111,33 @@ def origin(size: float):
             [4, 5],
         ], np.uint32),
         geometry=Geometry.Lines,
+    )
+
+def line_cube():
+    return SimpleMesh(
+        vertices=np.array([ # type: ignore
+            [0, 0, 0],
+            [1, 0, 0],
+            [0, 1, 0],
+            [1, 1, 0],
+            [0, 0, 1],
+            [1, 0, 1],
+            [0, 1, 1],
+            [1, 1, 1],
+        ], np.float32),
+        indices=np.array([ # type: ignore
+            [0, 1],
+            [0, 2],
+            [0, 4],
+            [7, 3],
+            [7, 5],
+            [7, 6],
+            [1, 3],
+            [3, 2],
+            [2, 6],
+            [6, 4],
+            [4, 5],
+            [5, 1],
+        ], np.uint32),
+        geometry=Geometry.Lines
     )
