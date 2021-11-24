@@ -91,7 +91,7 @@ class Voxels(Window):
         self.t_norm = glm.scale(glm.vec3(1/max(*shape)))
         self.t_bone = (
             glm.translate(glm.vec3(0.0, 0.5, -0.1)) *
-            glm.scale(glm.vec3(0.67)) *
+            glm.scale(glm.vec3(0.3)) *
             glm.translate(glm.vec3(0, 0, 0.45)) * 
             glm.rotate(glm.pi() / 2, glm.vec3(1, 0, 0))
         )

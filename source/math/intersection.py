@@ -1,4 +1,5 @@
 from typing import DefaultDict
+from enum import Enum
 import numpy as np
 
 from .linalg import coordinates, unpack
@@ -16,11 +17,27 @@ Resources:
 
 """
 
-class Rasterizer_3D:
+class Raster_Direction_3D(Enum):
+    X = (1, 2, 0)
+    Y = (2, 0, 1)
+    Z = (0, 1, 2)
 
-    def __init__(self, volume: int3, swizzle: int3 = (2, 1, 0)):
+    @property
+    def swizzle(self) -> int3:
+        return self.value
+
+
+class Rasterizer_3D:
+    
+    # TODO: swizzling can be done on the outside of the raster!
+    # USE:
+    #   - vertices = vertices[:, swizzle: int3]
+    #   - np.ndarray.transpose(swizzle: int3)
+    # This will allow grids to be generated in memory direction
+
+    def __init__(self, volume: int3, dir: Raster_Direction_3D):
         # Configure swizzle
-        x, y, z = swizzle
+        x, y, z = dir.swizzle
         self.swizzle: slice = [x, y, z] # type: ignore
 
         # Configure z-buffer-hash
@@ -52,7 +69,6 @@ class Rasterizer_3D:
         """
         # Retrieve triangle XY's
         A, B, C = unpack(triangle[:, :2])
-        # print(A, B, C)
 
         # Unpack
         ax, ay = A
@@ -206,7 +222,7 @@ def mesh_2_voxels(mesh: SimpleMesh, transform: 'Array[F]', voxels: int3) -> 'Arr
     indices = mesh.indices.reshape(IS, 3)
 
     # Init rasterizer
-    rasterizer = Rasterizer_3D(voxels)
+    rasterizer = Rasterizer_3D(voxels, Raster_Direction_3D.X)
 
     print("[#] Wide Triangles")
     rasterizer.run(indices, vertices)
