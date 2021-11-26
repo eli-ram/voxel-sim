@@ -17,52 +17,54 @@ Resources:
 
 """
 
+
 class Raster_Direction_3D(Enum):
-    X = (1, 2, 0)
-    Y = (2, 0, 1)
-    Z = (0, 1, 2)
+    X = (1, 2, 0), (2, 0, 1)
+    Y = (2, 0, 1), (1, 2, 0)
+    Z = (0, 1, 2), (0, 1, 2)
 
     @property
     def swizzle(self) -> int3:
-        return self.value
+        return self.value[0]
+
+    @property
+    def transpose(self) -> int3:
+        return self.value[1]
 
 
 class Rasterizer_3D:
-    
+
     # TODO: swizzling can be done on the outside of the raster!
     # USE:
     #   - vertices = vertices[:, swizzle: int3]
     #   - np.ndarray.transpose(swizzle: int3)
     # This will allow grids to be generated in memory direction
 
-    def __init__(self, volume: int3, dir: Raster_Direction_3D):
-        # Configure swizzle
-        x, y, z = dir.swizzle
-        self.swizzle: slice = [x, y, z] # type: ignore
+    def __init__(self, shape: int3):
+        self.shape = sx, sy, sz = shape
+
+        # Store Z-height
+        self.height = sz
 
         # Configure z-buffer-hash
-        self.y_size = volume[y]
+        empty = np.zeros(0, np.float32)
+        self.stride = sx
         self.hash: dict[int, 'Array[F]'] = \
-            DefaultDict(lambda: np.zeros(0, np.float32))
+            DefaultDict(lambda: empty)
 
         # Configure xy-space
-        self.xy_min: 'Array[F]' = \
-            np.zeros(2, np.int32)
-        self.xy_max: 'Array[F]' = \
-            np.array(list(volume), np.int32)[[x, y]]  # type: ignore
-
-    def grid_index(self, x: int, y: int):
-        t = (int(x), int(y), slice(None, None, 1))
-        return (t[i] for i in self.swizzle) # type: ignore
+        self.xy_min = np.zeros(2, np.int32)
+        self.xy_max = np.zeros(2, np.int32)
+        self.xy_max[:] = [sx, sy]
 
     def get(self, I: int):
-        x = I % self.y_size
-        y = I // self.y_size
+        x = I % self.stride
+        y = I // self.stride
         z = np.unique(self.hash[I].round(4))
         return x, y, z
 
     def hit(self, triangle: 'Array[F]', P: 'Array[F]'):
-        """ Check if Points lies inside the triangle 
+        """ Check if Points lies inside the triangle
 
             Using: Barycentric Coordinates
 
@@ -125,23 +127,25 @@ class Rasterizer_3D:
 
         # Compute Z-array
         V: 'Array[F]' = np.dot(P, N[:2])  # type: ignore
-        return N[2] - V 
+        return N[2] - V
 
     def cache(self, triangle: 'Array[F]'):
         """ Cache a triangle into the Z-buffers """
-        triangle = triangle[:, self.swizzle]
-        # print("triangle")
 
         # Find triangle low bounds
-        xy_min = np.floor(np.min(triangle[:, :2], axis=0)).astype(np.int32)
+        xy_min = np.round(np.min(triangle[:, :2], axis=0)).astype(np.int32)
         if not np.all(xy_min <= self.xy_max):
             # print("min is out of bounds")
             return
 
         # Find triangle high bounds
-        xy_max = np.ceil(np.max(triangle[:, :2], axis=0) + 0.01).astype(np.int32)
+        xy_max = np.round(np.max(triangle[:, :2], axis=0)).astype(np.int32)
         if not np.all(xy_max >= self.xy_min):
             # print("max is out of bounds")
+            return
+
+        if not np.all(xy_max > xy_min):
+            # print("no space between max and min")
             return
 
         # Get coordinates & points around the triangle
@@ -170,7 +174,7 @@ class Rasterizer_3D:
         # Calculate points on the triangle plane
         P = self.proj(triangle, points)
 
-        I = coords[:, 0] + (coords[:, 1] * self.y_size)
+        I = coords[:, 0] + (coords[:, 1] * self.stride)
 
         # Fill Z-buffers
         for i, z in zip(I, P):
@@ -180,11 +184,32 @@ class Rasterizer_3D:
     def run(self, indices: 'Array[I]', vertices: 'Array[F]'):
         assert indices.shape[1] == 3, \
             " Indices must be on the form [Nx3] to represent triangles !"
+
         assert vertices.shape[1] == 3, \
             " Vertices must be on the form [Nx3] to represent vertices !"
 
         for tri in indices:
             self.cache(vertices[tri, :])
+
+    def voxels(self):
+        # Voxel Grid to fill / return
+        grid = np.zeros(self.shape, np.float32)
+
+        # Z-indexes for Z-axis
+        Z_space = np.arange(self.height, dtype=np.float32) + 0.5
+
+        for I in self.hash:
+            x, y, z = self.get(I)
+            # Find the boolean matrix for voxel-surface-ray-intersection
+            B = Z_space[:, np.newaxis] < z[np.newaxis, :]
+            # Count ray-intersections
+            C: 'np.ndarray[np.uint64]' = \
+                np.count_nonzero(B, axis=1)  # type: ignore
+            # intersection modulo 2 means that the voxel is inside the mesh
+            grid[x, y, :] = C % 2
+
+        return grid
+
 
     def points(self):
 
@@ -204,7 +229,7 @@ class Rasterizer_3D:
         return points
 
 
-def mesh_2_voxels(mesh: SimpleMesh, transform: 'Array[F]', voxels: int3) -> 'Array[F]':
+def mesh_2_voxels(mesh: SimpleMesh, transform: 'Array[F]', voxels: int3, dir: Raster_Direction_3D = Raster_Direction_3D.X) -> 'Array[F]':
     assert mesh.geometry == Geometry.Triangles, \
         " Mesh must be made up of triangles! "
 
@@ -221,8 +246,12 @@ def mesh_2_voxels(mesh: SimpleMesh, transform: 'Array[F]', voxels: int3) -> 'Arr
     IS = mesh.indices.size // 3
     indices = mesh.indices.reshape(IS, 3)
 
+    swizzle = dir.swizzle
+    vertices = vertices[:, swizzle]
+    shape: int3 = tuple(voxels[i] for i in swizzle) # type: ignore
+
     # Init rasterizer
-    rasterizer = Rasterizer_3D(voxels, Raster_Direction_3D.X)
+    rasterizer = Rasterizer_3D(shape)
 
     print("[#] Wide Triangles")
     rasterizer.run(indices, vertices)
@@ -230,25 +259,10 @@ def mesh_2_voxels(mesh: SimpleMesh, transform: 'Array[F]', voxels: int3) -> 'Arr
     # debug
     # rasterizer.points()
 
-    # Voxel Grid to fill / return
-    grid = np.zeros(shape=voxels, dtype=np.float32)
-
-    # Z-indexes for Z-axis
-    i: int = rasterizer.swizzle[2] # type: ignore
-    Z_space = np.arange(voxels[i], dtype=np.float32) + 0.5
-
     print("[#] Wide Voxels")
-
     # Potentia Parallel-For
-    for I in rasterizer.hash:
-        x, y, z = rasterizer.get(I)
-        # Find the boolean matrix for voxel-surface-ray-intersection
-        B = Z_space[:, np.newaxis] < z[np.newaxis, :]
-        # Count ray-intersections
-        C: 'np.ndarray[np.uint64]' = \
-            np.count_nonzero(B, axis=1)  # type: ignore
-        # intersection modulo 2 means that the voxel is inside the mesh
-        x, y, z = rasterizer.grid_index(x, y)
-        grid[x, y, z] = C % 2
+    grid = rasterizer.voxels()
+
+    grid: 'Array[F]' = grid.transpose(dir.transpose) # type: ignore
 
     return grid

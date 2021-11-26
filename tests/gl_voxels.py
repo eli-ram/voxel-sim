@@ -1,24 +1,35 @@
 # pyright: reportUnusedImport=false
-from typing import Any, cast
-
-from OpenGL.arrays.vbo import VBO
+from typing import Any
 import __init__
 import glm
 import numpy as np
 from source.data.colors import Colors
 from source.interactive import Window
-from source.math.intersection import mesh_2_voxels
 from source.utils.matrices import Hierarchy, OrbitCamera
 from source.utils.misc import random_box
-from source.voxels.proxy import VoxelProxy
-from source.utils.types import int3
 from source.utils.wireframe import Wireframe, line_cube, origin, simplex
 from source.utils.mesh_loader import loadMeshes
 from source.utils.directory import cwd, script_dir
+from source.math.mesh2voxels import mesh_2_voxels
+from source.voxels.proxy import VoxelProxy
 from OpenGL.GL import *
 from random import random, choice
 from traceback import format_exc
 
+
+def try_method(prefix: str):
+    def wrapper(func: Any):
+        def wrap(*args: Any, **kwargs: Any):
+            try:
+                print(f"[{prefix}] Started")
+                out = func(*args, **kwargs)
+                print(f"[{prefix}] Done")
+                return out
+            except Exception:
+                print(f"[{prefix}] Error")
+                print(format_exc())
+        return wrap
+    return wrapper
 
 
 """
@@ -35,17 +46,10 @@ TODO:
 
 
 @cwd(script_dir(__file__), '..', 'meshes')
+@try_method("BONE")
 def bone():
-    print("[BONE] Loading")
     BONE, = loadMeshes('test_bone.obj')
-    print("[BONE] Loaded!")
     return BONE
-
-
-def rescale(shape: int3) -> glm.mat4:
-    S: float = 1 / np.max(shape)  # type: ignore
-    V = glm.vec3(S, S, S)
-    return glm.scale(V)
 
 
 class Voxels(Window):
@@ -58,13 +62,13 @@ class Voxels(Window):
             distance=1.25,
             svivel_speed=0.005,
         )
-        shape = (128, 128, 128)
+        shape = (32, 32, 32)
         resolution = 2**10
         self.voxels = VoxelProxy(shape, resolution, {
             "blue": Colors.BLUE,
             "green": Colors.GREEN,
             "red": Colors.RED,
-            "gray" : Colors.GRAY,
+            "gray": Colors.GRAY,
         })
 
         self.materials = self.voxels.material_list()
@@ -73,12 +77,12 @@ class Voxels(Window):
         self.origin = Wireframe(origin(0.05), glm.vec4(1, 0.5, 0, 1), 1.0)
 
         # Outline for Voxels
-        self.cube = Wireframe(line_cube(), glm.vec4(0,0,0,1), 1.0)
+        self.cube = Wireframe(line_cube(), glm.vec4(0, 0, 0, 1), 1.0)
 
         # Bone Model
         # TODO: async load
-        self.bone_mesh = bone()
-        # self.bone_mesh = simplex()
+        # self.bone_mesh = bone()
+        self.bone_mesh = simplex()
         self.bone = Wireframe(
             self.bone_mesh,
             glm.vec4(0.8, 0.8, 1, 1),
@@ -87,8 +91,9 @@ class Voxels(Window):
 
         # Cache transforms
 
-        # Normalze Voxel grid (0 -> N) => (0.0 -> 1.0) 
+        # Normalze Voxel grid (0 -> N) => (0.0 -> 1.0)
         self.t_norm = glm.scale(glm.vec3(1/max(*shape)))
+        """
         self.t_bone = (
             glm.translate(glm.vec3(0.0, 0.5, -0.1)) *
             glm.scale(glm.vec3(0.3)) *
@@ -97,9 +102,9 @@ class Voxels(Window):
         )
         """
         self.t_bone = (
-            glm.mat4(1)
+            glm.translate(glm.vec3(0.2)) *
+            glm.scale(glm.vec3(0.8))
         )
-        """
 
         # Some internal state
         self.alphas = np.power([1.0, 0.75, 0.5, 0.25, 0.0], 4)  # type: ignore
@@ -123,35 +128,22 @@ class Voxels(Window):
         self.keys.action("R")(self.wireframe)
         self.keys.action("B")(self.get_bone_voxels)
 
-
     def alpha(self, up: bool):
         step = 1 if up else -1
         self.alphas: 'np.ndarray[np.float32]' = \
             np.roll(self.alphas, step)  # type: ignore
         self.voxels.set_alpha(self.alphas[0])
 
+    @try_method("Mesh")
     def wireframe(self):
-        print("[Mesh] Building")
-        try:
-            self.truss = self.voxels.get_mesh(glm.vec4(0.8, 0.8, 1, 1))
-            print("[Mesh] Done")
-        except Exception:
-            print("[Mesh] Error")
-            print(format_exc())
+        self.truss = self.voxels.get_mesh(glm.vec4(0.8, 0.8, 1, 1))
 
+    @try_method("Voxels")
     def get_bone_voxels(self):
-        print("[VOXELS] Rasterizing")
-        try:
-            t = glm.affineInverse(self.t_norm) * self.t_bone
-            t = self.matrices.ptr(t)[:3,:]
-            g = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape)
-            print("[VOXELS] Done")
-            # print(g)
-            # self.points = VBO(g)
-            self.voxels.add_box((0,0,0), g.astype(np.float32), "red")
-        except Exception:
-            print("[VOXELS] Error")
-            print(format_exc())
+        t = glm.affineInverse(self.t_norm) * self.t_bone
+        t = self.matrices.ptr(t)[:3, :]
+        g = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape)
+        self.voxels.add_box((0, 0, 0), g.astype(np.float32), "red")
 
     def resize(self, width: int, height: int):
         self.move_scale = 1 / max(width, height)
@@ -170,8 +162,9 @@ class Voxels(Window):
         volume, offset = random_box(voxels.data.shape, 32, 32)
         strength: Any = \
             self.rng.random(size=volume, dtype=np.float32)  # type: ignore
-        voxels.add_box(offset, strength - 0.35, choice(self.materials))  # type: ignore
-
+        material = choice(self.materials)
+        voxels.add_box(offset, strength - 0.35, material)
+        
     def update(self, time: float, delta: float):
         # Debug w random voxels
         if random() * time < 0:
@@ -227,7 +220,7 @@ if __name__ == '__main__':
     size = 900
     window = Voxels(size, size, "voxels")
     from source.debug.performance import performance, GPU
-    
+
     @window.keys.action("P")
     def perf():
         performance(GPU.NVIDIA)

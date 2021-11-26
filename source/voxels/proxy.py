@@ -54,7 +54,6 @@ class VoxelProxy:
 
     def get_mesh(self, color: glm.vec4):
         # This resets internal state !
-        self.data.invalidate()
         T = voxels2truss(self.data, exclude=['edges'])
         M = SimpleMesh(T.nodes, T.edges, Geometry.Lines)
         test(M.indices)

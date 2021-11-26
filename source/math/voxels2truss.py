@@ -65,30 +65,46 @@ class TrussBuilder:
 
     def __init__(self, voxels: Voxels):
         self.edges: 'list[np.ndarray[np.uint32]]' = []
-        self.areas: 'list[np.ndarray[np.float32]]' = []
-        self.voxels = voxels
+        # Grid Shape
+        self.shape = voxels.shape
+        # Voxel Indices
+        I = np.nonzero(voxels.grid) # type: ignore
+        # Material Grid
+        self.grid = voxels.grid
+        # Vertex Array
+        self.vertices = np.vstack(I).astype(np.float32).transpose()
+        self.vertices += np.float32(0.5)
+        # Grid => Vertex Index
+        self.index_table = np.zeros(voxels.shape, np.uint32)
+        self.index_table[I] = range(len(self.vertices))
+        # Force Per Vertex
+        self.forces = voxels.forces[I]
+        # Strength Per Vertex
+        self.strength = voxels.strength[I]
+        # Static Locks Per Vertex
+        Materials: slice = voxels.grid[I] # type: ignore
+        Mapping = voxels.static_map()
+        self.static = Mapping[Materials, :]
 
     def run(self, offsets: list[int3]):
         for offset in offsets:
             self.get_edges(offset)
 
     def get_edges(self, offset: int3):
-        V = self.voxels
-        A, B = get_ranges(V.shape, offset)
-        connectivity = V.grid[A] & V.grid[B]
+        A, B = get_ranges(self.shape, offset)
+        connectivity = self.grid[A] & self.grid[B]
         connections = np.nonzero(connectivity)  # type: ignore
-        a_vertices = V.index_table[A][connections]
-        b_vertices = V.index_table[B][connections]
-        a_strength = V.strength[A][connections]
-        b_strength = V.strength[B][connections]
+        a_vertices = self.index_table[A][connections]
+        b_vertices = self.index_table[B][connections]
         self.edges.append(np.vstack([a_vertices, b_vertices]).T)
-        self.areas.append((a_strength + b_strength) / 2)
 
     def output(self) -> Truss:
+        edges = np.vstack(self.edges)
+        areas = np.sum(self.strength[edges], axis=0) / 2
         return Truss(
-            nodes=self.voxels.vertices,
-            forces=self.voxels.force_array(),
-            static=self.voxels.static_array(),
-            edges=np.vstack(self.edges),
-            areas=np.hstack(self.areas),
+            nodes=self.vertices,
+            forces=self.forces,
+            static=self.static,
+            edges=edges,
+            areas=areas,
         )

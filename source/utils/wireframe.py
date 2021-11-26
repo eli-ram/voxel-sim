@@ -150,7 +150,7 @@ def simplex():
         vertices=np.array([  # type: ignore
             [0, 0, 0],
             [0.5, 1.0, 0],
-            [0.5, 0.5, 5],
+            [0.5, 0.5, 1],
             [1.0, 0.5, 0],
         ], np.float32),
         indices=np.array([  # type: ignore
