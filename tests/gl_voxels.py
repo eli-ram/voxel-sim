@@ -62,8 +62,8 @@ class Voxels(Window):
             distance=1.25,
             svivel_speed=0.005,
         )
-        shape = (32, 32, 32)
-        resolution = 2**10
+        shape = (128, 128, 128)
+        resolution = 2**11
         self.voxels = VoxelProxy(shape, resolution, {
             "blue": Colors.BLUE,
             "green": Colors.GREEN,
@@ -81,8 +81,8 @@ class Voxels(Window):
 
         # Bone Model
         # TODO: async load
-        # self.bone_mesh = bone()
-        self.bone_mesh = simplex()
+        self.bone_mesh = bone()
+        # self.bone_mesh = simplex()
         self.bone = Wireframe(
             self.bone_mesh,
             glm.vec4(0.8, 0.8, 1, 1),
@@ -93,11 +93,10 @@ class Voxels(Window):
 
         # Normalze Voxel grid (0 -> N) => (0.0 -> 1.0)
         self.t_norm = glm.scale(glm.vec3(1/max(*shape)))
-        """
         self.t_bone = (
-            glm.translate(glm.vec3(0.0, 0.5, -0.1)) *
+            glm.translate(glm.vec3(0.5, 0.5, -0.5)) *
             glm.scale(glm.vec3(0.3)) *
-            glm.translate(glm.vec3(0, 0, 0.45)) * 
+            glm.translate(glm.vec3(0, 0, 0.1)) * 
             glm.rotate(glm.pi() / 2, glm.vec3(1, 0, 0))
         )
         """
@@ -105,11 +104,16 @@ class Voxels(Window):
             glm.translate(glm.vec3(0.2)) *
             glm.scale(glm.vec3(0.8))
         )
+        """
 
         # Some internal state
         self.alphas = np.power([1.0, 0.75, 0.5, 0.25, 0.0], 4)  # type: ignore
         self.move_mode = False
         self.move_active = False
+        self.show_bone = True
+
+        # Toggle Bone
+        self.keys.action("H")(lambda: setattr(self, 'show_bone', not self.show_bone))
 
         # Bind camera controls
         self.keys.toggle("LEFT_CONTROL")(
@@ -142,7 +146,7 @@ class Voxels(Window):
     def get_bone_voxels(self):
         t = glm.affineInverse(self.t_norm) * self.t_bone
         t = self.matrices.ptr(t)[:3, :]
-        g = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape)
+        g = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape, "Y")
         self.voxels.add_box((0, 0, 0), g.astype(np.float32), "red")
 
     def resize(self, width: int, height: int):
@@ -186,8 +190,9 @@ class Voxels(Window):
                 self.origin.render(M)
 
         # Render Bone Mesh
-        with M.Push(self.t_bone):
-            self.bone.render(M)
+        if self.show_bone:
+            with M.Push(self.t_bone):
+                self.bone.render(M)
 
         # Render Normalized geometry
         with M.Push(self.t_norm):

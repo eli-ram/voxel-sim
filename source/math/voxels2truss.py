@@ -94,9 +94,9 @@ class TrussBuilder:
         A, B = get_ranges(self.shape, offset)
         connectivity = self.grid[A] & self.grid[B]
         connections = np.nonzero(connectivity)  # type: ignore
-        a_vertices = self.index_table[A][connections]
-        b_vertices = self.index_table[B][connections]
-        self.edges.append(np.vstack([a_vertices, b_vertices]).T)
+        a = self.index_table[A][connections]
+        b = self.index_table[B][connections]
+        self.edges.append(np.vstack([a, b]).T)
 
     def output(self) -> Truss:
         edges = np.vstack(self.edges)

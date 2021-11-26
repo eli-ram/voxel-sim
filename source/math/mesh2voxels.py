@@ -31,6 +31,10 @@ class Raster_Direction_3D(Enum):
     def transpose(self) -> int3:
         return self.value[1]
 
+    def reshape(self, shape: int3) -> int3:
+        S = [shape[i] for i in self.swizzle]
+        return tuple(S) # type: ignore
+
 
 class Rasterizer_3D:
 
@@ -47,10 +51,10 @@ class Rasterizer_3D:
         self.height = sz
 
         # Configure z-buffer-hash
-        empty = np.zeros(0, np.float32)
+        self.empty = np.zeros(0, np.float32)
         self.stride = sx
         self.hash: dict[int, 'Array[F]'] = \
-            DefaultDict(lambda: empty)
+            DefaultDict(lambda: self.empty)
 
         # Configure xy-space
         self.xy_min = np.zeros(2, np.int32)
@@ -60,7 +64,7 @@ class Rasterizer_3D:
     def get(self, I: int):
         x = I % self.stride
         y = I // self.stride
-        z = np.unique(self.hash[I].round(4))
+        z = np.unique(self.hash[I])
         return x, y, z
 
     def hit(self, triangle: 'Array[F]', P: 'Array[F]'):
@@ -196,14 +200,18 @@ class Rasterizer_3D:
         grid = np.zeros(self.shape, np.float32)
 
         # Z-indexes for Z-axis
-        Z_space = np.arange(self.height, dtype=np.float32) + 0.5
+        s = np.arange(self.height, dtype=np.float32) + 0.5
 
-        for I in self.hash:
-            x, y, z = self.get(I)
+        for i in self.hash:
+            x, y, z = self.get(i)
+            # Cull non-watertight
+            if z.size < 2:
+                # print("Culled Watertight", z)
+                continue
             # Find the boolean matrix for voxel-surface-ray-intersection
-            B = Z_space[:, np.newaxis] < z[np.newaxis, :]
+            B = s[:, np.newaxis] <= z[np.newaxis, :]
             # Count ray-intersections
-            C: 'np.ndarray[np.uint64]' = \
+            C: 'Array[I]' = \
                 np.count_nonzero(B, axis=1)  # type: ignore
             # intersection modulo 2 means that the voxel is inside the mesh
             grid[x, y, :] = C % 2
@@ -229,12 +237,14 @@ class Rasterizer_3D:
         return points
 
 
-def mesh_2_voxels(mesh: SimpleMesh, transform: 'Array[F]', voxels: int3, dir: Raster_Direction_3D = Raster_Direction_3D.X) -> 'Array[F]':
+def mesh_2_voxels(mesh: SimpleMesh, transform: 'Array[F]', voxels: int3, direction: str = "Z") -> 'Array[F]':
     assert mesh.geometry == Geometry.Triangles, \
         " Mesh must be made up of triangles! "
 
     assert transform.shape == (3, 4), \
         " Expected [3x4] affine transform matrix "
+
+    D = Raster_Direction_3D[direction]
 
     # Get Triangles from mesh
     print("[#] Transform")
@@ -246,23 +256,24 @@ def mesh_2_voxels(mesh: SimpleMesh, transform: 'Array[F]', voxels: int3, dir: Ra
     IS = mesh.indices.size // 3
     indices = mesh.indices.reshape(IS, 3)
 
-    swizzle = dir.swizzle
-    vertices = vertices[:, swizzle]
-    shape: int3 = tuple(voxels[i] for i in swizzle) # type: ignore
+    # Swizzle coordinates
+    vertices = vertices[:, D.swizzle]
 
     # Init rasterizer
-    rasterizer = Rasterizer_3D(shape)
+    rasterizer = Rasterizer_3D(D.reshape(voxels))
 
     print("[#] Wide Triangles")
+    # Potential Parallel-For
     rasterizer.run(indices, vertices)
 
     # debug
     # rasterizer.points()
 
     print("[#] Wide Voxels")
-    # Potentia Parallel-For
+    # Potential Parallel-For
     grid = rasterizer.voxels()
 
-    grid: 'Array[F]' = grid.transpose(dir.transpose) # type: ignore
+    # Restore grid from swizzling
+    grid: 'Array[F]' = grid.transpose(D.transpose) # type: ignore
 
     return grid
