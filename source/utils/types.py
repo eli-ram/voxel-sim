@@ -7,6 +7,12 @@ int2 = Tuple[int, int]
 int3 = Tuple[int, int, int]
 intN = Tuple[int, ...]
 
+# Grouped Floats
+float1 = Tuple[float]
+float2 = Tuple[float, float]
+float3 = Tuple[float, float, float]
+floatN = Tuple[float, ...]
+
 # Grouped Bools
 bool3 = Tuple[bool, bool, bool]
 

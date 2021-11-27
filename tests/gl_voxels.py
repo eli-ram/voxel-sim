@@ -4,6 +4,7 @@ import __init__
 import glm
 import numpy as np
 from source.data.colors import Colors
+from source.debug.time import time
 from source.interactive import Window
 from source.utils.matrices import Hierarchy, OrbitCamera
 from source.utils.misc import random_box
@@ -14,22 +15,6 @@ from source.math.mesh2voxels import mesh_2_voxels
 from source.voxels.proxy import VoxelProxy
 from OpenGL.GL import *
 from random import random, choice
-from traceback import format_exc
-
-
-def try_method(prefix: str):
-    def wrapper(func: Any):
-        def wrap(*args: Any, **kwargs: Any):
-            try:
-                print(f"[{prefix}] Started")
-                out = func(*args, **kwargs)
-                print(f"[{prefix}] Done")
-                return out
-            except Exception:
-                print(f"[{prefix}] Error")
-                print(format_exc())
-        return wrap
-    return wrapper
 
 
 """
@@ -46,7 +31,7 @@ TODO:
 
 
 @cwd(script_dir(__file__), '..', 'meshes')
-@try_method("BONE")
+@time("BONE")
 def bone():
     BONE, = loadMeshes('test_bone.obj')
     return BONE
@@ -138,11 +123,11 @@ class Voxels(Window):
             np.roll(self.alphas, step)  # type: ignore
         self.voxels.set_alpha(self.alphas[0])
 
-    @try_method("Mesh")
+    @time("Mesh")
     def wireframe(self):
         self.truss = self.voxels.get_mesh(glm.vec4(0.8, 0.8, 1, 1))
 
-    @try_method("Voxels")
+    @time("Voxels")
     def get_bone_voxels(self):
         t = glm.affineInverse(self.t_norm) * self.t_bone
         t = self.matrices.ptr(t)[:3, :]

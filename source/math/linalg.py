@@ -1,14 +1,15 @@
-from typing import TypeVar
+from typing import Union
 import numpy as np
+from ..utils.types import Array, F, I, U
 
-N = TypeVar('N', np.float32, np.float64)
+N = Union[F, I, U]
 
 
-def normalize(V: 'np.ndarray[N]') -> 'np.ndarray[N]':
+def normalize(V: 'Array[N]') -> 'Array[F]':
     return V / np.linalg.norm(V)  # type: ignore
 
 
-def grid(*R: 'np.ndarray[N]') -> tuple['np.ndarray[N]', ...]:
+def grid(*R: 'Array[N]') -> tuple['Array[N]', ...]:
     return np.meshgrid(*R)  # type: ignore
 
 
@@ -19,6 +20,8 @@ def coordinates(lx: int, hx: int, ly: int, hy: int):
     return np.vstack((xs.ravel(), ys.ravel())).transpose()
 
 
-def unpack(M: 'np.ndarray[N]') -> tuple['np.ndarray[N]', ...]:
+def unpack(M: 'Array[N]') -> tuple['Array[N]', ...]:
     return M  # type: ignore
 
+def lexsort(*arrays: 'Array[N]') -> slice:
+    return np.lexsort(arrays) # type: ignore

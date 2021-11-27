@@ -1,5 +1,5 @@
 
-from typing import Any
+from typing import Any, TypeVar
 from contextlib import contextmanager
 import os
 
@@ -13,17 +13,14 @@ def directory(base: str, *extra: str):
     finally:
         os.chdir(prev)
 
+Func = TypeVar('Func')
+
 def cwd(base: str, *extra: str):
-    path = os.path.join(base, *extra)
-    def capture(func: Any):
-        def wrap(*args: Any, **kwargs: Any):
-            prv = os.getcwd()
-            os.chdir(path)
-            try:
-                return func(*args, **kwargs)
-            finally:
-                os.chdir(prv)
-        return wrap
+    def capture(func: Func) -> Func:
+        def wrap(*args: Any, **kwargs: Any) -> Any:
+            with directory(base, *extra):
+                return func(*args, **kwargs) # type: ignore
+        return wrap # type: ignore
     return capture
 
 def script_dir(__file__: str):

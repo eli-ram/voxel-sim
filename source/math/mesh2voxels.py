@@ -246,15 +246,15 @@ def mesh_2_voxels(mesh: SimpleMesh, transform: 'Array[F]', voxels: int3, directi
 
     D = Raster_Direction_3D[direction]
 
+    # Assure that arrays are formatted correctly
+    vertices = mesh.vertices.reshape(-1, 3)
+    indices = mesh.indices.reshape(-1, 3)
+
     # Get Triangles from mesh
     print("[#] Transform")
     M = transform[:, :3]
     V = transform[:, 3]
-    VS = mesh.vertices.size // 3
-    vertices = mesh.vertices.reshape(VS, 3)
     vertices = (M @ vertices.T).T + V
-    IS = mesh.indices.size // 3
-    indices = mesh.indices.reshape(IS, 3)
 
     # Swizzle coordinates
     vertices = vertices[:, D.swizzle]
