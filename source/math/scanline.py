@@ -2,7 +2,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, cast
 
-from ..utils.types import int2
+from ..utils.types import int2, float3
 
 
 Point = TypeVar('Point')
@@ -79,23 +79,38 @@ class Rasterizer(Generic[Point, Slope], ABC):
                 self.scanline(s1, s2, y)
 
 
-class IntRasterizer(Rasterizer[int2, list[float]]):
+class IntSlope:
+
+    def __init__(self, l: float, h: float, steps: int):
+        self.value = l
+        self.slope = (h - l) / steps
+
+    def floor(self):
+        return int(self.value)
+
+    def step(self):
+        self.value += self.slope
+
+class IntRasterizer(Rasterizer[float3, list[IntSlope]]):
 
     def __init__(self, size: int2):
         sx, sy = size
         self.sx = sx
         self.sy = sy
-        self.raster = np.zeros(size, np.uint8)
+        self.raster = np.zeros(size, np.float32)
 
     def text(self) -> str:
         setup = np.array(['.', *map(str, range(9)), 'x']) # type: ignore
-        self.raster[self.raster > 10] = 10
-        chars = setup[self.raster]
+        out = self.raster
+        out[out < 0] = 0.0
+        out = out * (10 / out.max())
+        chars = setup[out.astype(np.uint8)]
         lines = (" ".join(line) for line in chars)
         return "\n".join(lines)
 
-    def plot(self, x: int, y: int):
-        self.raster[x, y] += 1
+    def plot(self, x: int, y: int, z: float):
+        if (self.raster[x, y] < z):
+            self.raster[x, y] = z
 
     def y_range(self, y0: int, y1: int):
         return range(max(y0, 0), min(y1, self.sy))
@@ -103,15 +118,25 @@ class IntRasterizer(Rasterizer[int2, list[float]]):
     def x_range(self, x0: int, x1: int):
         return range(max(x0, 0), min(x1, self.sx))
 
-    def xy(self, p: int2) -> int2:
-        return p
+    def xy(self, p: float3) -> int2:
+        x, y, _ = p
+        return int(x), int(y)
 
-    def slope(self, p0: int2, p1: int2, steps: int) -> list[float]:
-        begin, end = p0[0], p1[0]
-        return [begin, (end - begin) / steps]
+    def slope(self, p0: float3, p1: float3, steps: int) -> list[IntSlope]:
+        x0, _, z0 = p0 
+        x1, _, z1 = p1 
+        return [
+            IntSlope(x0, x1, steps),
+            IntSlope(z0, z1, steps),
+        ]
 
-    def scanline(self, s0: list[float], s1: list[float], y: int) -> None:
-        for x in self.x_range(int(s0[0]), int(s1[0])):
-            self.plot(x, y)
-        s0[0] += s0[1]
-        s1[0] += s1[1]
+    def scanline(self, s0: list[IntSlope], s1: list[IntSlope], y: int) -> None:
+        x0, z0 = s0
+        x1, z1 = s1
+        lx, hx = x0.floor(), x1.floor()
+        z = IntSlope(z0.value, z1.value, hx - lx)
+        for x in self.x_range(x0.floor(), x1.floor()):
+            self.plot(x, y, z.value)
+            z.step()
+        for s in s0 + s1:
+            s.step()

@@ -1,4 +1,5 @@
 import __init__
+from source.math.linalg import unpack
 from source.math.scanline import IntRasterizer
 from timeit import default_timer as tick
 
@@ -7,16 +8,15 @@ from source.utils.wireframe import SimpleMesh
 bone: SimpleMesh = get_bone()
 
 I = bone.indices.reshape(-1, 3)
-vertices = bone.vertices * 100 + 30
-vertices = vertices.astype(int).reshape(-1, 3)
-vertices = vertices[:, ::2]
+vertices = bone.vertices * 45 + 37
+vertices = vertices.astype(float).reshape(-1, 3)
 
 start = tick()
-size = (90, 90)
+size = (60, 60)
 raster = IntRasterizer(size)
 for tri in I:
-    a, b, c, d, e, f = vertices[tri, :].flatten()
-    raster.rasterize((a, b), (c, d), (e, f))
+    A, B, C = unpack(vertices[tri, :])
+    raster.rasterize(A, B, C)
 stop = tick()
 
 total = stop - start
