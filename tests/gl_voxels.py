@@ -131,7 +131,18 @@ class Voxels(Window):
     def get_bone_voxels(self):
         t = glm.affineInverse(self.t_norm) * self.t_bone
         t = self.matrices.ptr(t)[:3, :]
-        g = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape, "Y")
+
+        gx = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape, "X")
+        gy = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape, "Y")
+        gz = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape, "Z")
+
+
+        g = gx + gy + gz
+
+        I, C = np.unique(g, return_counts=True)
+        for i, c in zip(I, C):
+            print(f"{i} => {c}")
+
         self.voxels.add_box((0, 0, 0), g.astype(np.float32), "red")
 
     def resize(self, width: int, height: int):

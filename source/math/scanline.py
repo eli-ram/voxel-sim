@@ -134,9 +134,13 @@ class IntRasterizer(Rasterizer[float3, list[IntSlope]]):
         x0, z0 = s0
         x1, z1 = s1
         lx, hx = x0.floor(), x1.floor()
+        if lx == hx:
+            return
         z = IntSlope(z0.value, z1.value, hx - lx)
         for x in self.x_range(x0.floor(), x1.floor()):
             self.plot(x, y, z.value)
             z.step()
-        for s in s0 + s1:
-            s.step()
+        x0.step()
+        x1.step()
+        z0.step()
+        z1.step()

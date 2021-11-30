@@ -1,11 +1,15 @@
 from typing import DefaultDict
 from enum import Enum
 import numpy as np
+from source.math.np_raster import Z_Hash_Rasterizer
+
+from source.math.scanline import IntRasterizer
 
 from .linalg import coordinates, unpack
 
 from ..utils.wireframe import Geometry, SimpleMesh
 from ..utils.types import int3,  Array, F, I
+from ..debug.time import time
 
 """
 This is basically a (black/white) software-rasterizer.
@@ -36,13 +40,66 @@ class Raster_Direction_3D(Enum):
         return tuple(S) # type: ignore
 
 
-class Rasterizer_3D:
+class Z_Raster(IntRasterizer):
 
-    # TODO: swizzling can be done on the outside of the raster!
-    # USE:
-    #   - vertices = vertices[:, swizzle: int3]
-    #   - np.ndarray.transpose(swizzle: int3)
-    # This will allow grids to be generated in memory direction
+    def __init__(self, shape: int3):
+        super().__init__(shape[:2])
+        self.shape = shape
+        self.stride = shape[0]
+        self.empty = np.zeros(0, np.float32)
+        self.zhash: dict[int, 'Array[F]'] = \
+            DefaultDict(lambda:self.empty)
+        self.height = shape[2]
+
+    def plot(self, x: int, y: int, z: float):
+        I = x + y * self.stride
+        self.zhash[I] = np.append(self.zhash[I], z) # type: ignore
+
+    def get(self, I: int):
+        x = I % self.stride
+        y = I // self.stride
+        z = np.unique(self.zhash[I])
+        return x, y, z
+
+    @time("z-raster-run")
+    def run(self, indices: 'Array[I]', vertices: 'Array[F]'):
+        assert indices.shape[1] == 3, \
+            " Indices must be on the form [Nx3] to represent triangles !"
+
+        assert vertices.shape[1] == 3, \
+            " Vertices must be on the form [Nx3] to represent vertices !"
+
+        for tri in indices:
+            A, B, C = vertices[tri, :]
+            self.rasterize(A, B, C) # type: ignore
+
+    def voxels(self):
+        # Voxel Grid to fill / return
+        grid = np.zeros(self.shape, np.float32)
+
+        # Z-indexes for Z-axis
+        s = np.arange(self.height, dtype=np.float32) + 0.5
+
+        for i in self.zhash:
+            x, y, z = self.get(i)
+            # Cull non-watertight
+            if z.size < 2:
+                # print("Culled Watertight", z)
+                continue
+            # Find the boolean matrix for voxel-surface-ray-intersection
+            B = s[:, np.newaxis] <= z[np.newaxis, :]
+            # Count ray-intersections
+            C: 'Array[I]' = \
+                np.count_nonzero(B, axis=1)  # type: ignore
+            # intersection modulo 2 means that the voxel is inside the mesh
+            grid[x, y, :] = C % 2
+
+        return grid
+
+
+
+
+class Rasterizer_3D:
 
     def __init__(self, shape: int3):
         self.shape = sx, sy, sz = shape
@@ -91,6 +148,7 @@ class Rasterizer_3D:
             - (bx * ay)
             - (cx * by)
         )
+
         # Avoid dividing by 0
         if area == 0.0:
             return
@@ -100,17 +158,15 @@ class Rasterizer_3D:
 
         # barycentric coords
         s = area * (
-            + (ay * cx)
-            - (ax * cy)
             + (cy - ay) * px
             + (ax - cx) * py
+            + (ay * cx) - (ax * cy)
         )
 
         t = area * (
-            + (ax * by)
-            - (ay * bx)
             + (ay - by) * px
             + (bx - ax) * py
+            + (ax * by) - (ay * bx)
         )
 
         return (s >= 0) & (t >= 0) & (1-s-t >= 0)
@@ -133,7 +189,7 @@ class Rasterizer_3D:
         V: 'Array[F]' = np.dot(P, N[:2])  # type: ignore
         return N[2] - V
 
-    def cache(self, triangle: 'Array[F]'):
+    def rasterize(self, triangle: 'Array[F]'):
         """ Cache a triangle into the Z-buffers """
 
         # Find triangle low bounds
@@ -185,6 +241,7 @@ class Rasterizer_3D:
             # i = int(i)
             self.hash[i] = np.append(self.hash[i], z)  # type: ignore
 
+    @time("3D-raster-run")
     def run(self, indices: 'Array[I]', vertices: 'Array[F]'):
         assert indices.shape[1] == 3, \
             " Indices must be on the form [Nx3] to represent triangles !"
@@ -193,7 +250,7 @@ class Rasterizer_3D:
             " Vertices must be on the form [Nx3] to represent vertices !"
 
         for tri in indices:
-            self.cache(vertices[tri, :])
+            self.rasterize(vertices[tri, :])
 
     def voxels(self):
         # Voxel Grid to fill / return
@@ -217,7 +274,6 @@ class Rasterizer_3D:
             grid[x, y, :] = C % 2
 
         return grid
-
 
     def points(self):
 
@@ -260,7 +316,9 @@ def mesh_2_voxels(mesh: SimpleMesh, transform: 'Array[F]', voxels: int3, directi
     vertices = vertices[:, D.swizzle]
 
     # Init rasterizer
-    rasterizer = Rasterizer_3D(D.reshape(voxels))
+    # rasterizer = Rasterizer_3D(D.reshape(voxels))
+    # rasterizer = Z_Raster(D.reshape(voxels))
+    rasterizer = Z_Hash_Rasterizer(D.reshape(voxels))
 
     print("[#] Wide Triangles")
     # Potential Parallel-For
