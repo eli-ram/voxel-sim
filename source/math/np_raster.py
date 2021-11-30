@@ -31,45 +31,47 @@ class Z_Hash_Rasterizer:
         z = np.unique(self.zhash[I])
         return x, y, z
 
-    def rasterize(self, triangle: 'Array[F]'):
-        xy_min = np.floor(np.min(triangle[:, :2], axis=0)).astype(np.int32)
-        if not np.all(xy_min <= self.xy_max):
+    def rasterize(self, X: 'Array[F]', Y: 'Array[F]', Z: 'Array[F]'):
+        x, y, _ = self.shape
+
+        lx, hx = minmax(X, x)
+        if lx == hx:
             return
-        xy_max = np.ceil(np.max(triangle[:, :2], axis=0)).astype(np.int32)
-        if not np.all(xy_max >= self.xy_min):
+
+        ly, hy = minmax(Y, y)
+        if ly == hy:
             return
-        if not np.all(xy_min < xy_max):
-            return
-        lx, ly = np.maximum(xy_min, self.xy_min)
-        hx, hy = np.minimum(xy_max, self.xy_max)
 
         try:
-            B, Bx, By = barycentric(triangle)
+            B, BX, BY = barycentric(X, Y)
         except ZeroDivisionError:
-            # There was no area
-            return
-
-        Z = glm.vec3(*triangle[:, 2])
+            return 
+            
+        bz = glm.vec3(Z[0], Z[1], Z[2])
 
         # Setup barycentric coord in (lx, ly)
-        b_y = B + By * (ly + 0.5) + Bx * (lx + 0.5)
+        by = B + BY * (ly + 0.5) + BX * (lx + 0.5)
 
         # Iterate y
         for y in range(ly, hy):
             # Get Barycentric coord for (lx, y)
-            b_x = b_y + 0.0 # type: ignore
+            bx = by
             # Iterate x
             for x in range(lx, hx):
+                b = bx
                 # Check if inside triangle
-                if b_x.x >= 0 and b_x.y >= 0 and b_x.z >= 0: # type: ignore
+                if b.x >= 0 and b.y >= 0 and b.z >= 0:
                     # Compute interpolated z
-                    z: float = glm.dot(b_x, Z)
+                    z = glm.dot(b, bz)
                     # Store z
                     self.plot(x, y, z)
+
                 # Iterate Barycentric coord over x
-                b_x += Bx
+                bx = bx + BX
+
             # Iterate Barycentric coord over y
-            b_y += By
+            by = by + BY
+
 
     @time("np-raster-run")
     def run(self, indices: 'Array[I]', vertices: 'Array[F]'):
@@ -80,7 +82,8 @@ class Z_Hash_Rasterizer:
             " Vertices must be on the form [Nx3] to represent vertices !"
 
         for tri in indices:
-            self.rasterize(vertices[tri, :])
+            X, Y, Z = unpack(vertices[tri, :].transpose())
+            self.rasterize(X, Y, Z)
 
     def voxels(self):
         # Voxel Grid to fill / return
@@ -91,11 +94,6 @@ class Z_Hash_Rasterizer:
 
         for i in self.zhash:
             x, y, z = self.get(i)
-            print(x, y, z)
-            # Cull non-watertight
-            if z.size < 2:
-                # print("Culled Watertight", z)
-                continue
             # Find the boolean matrix for voxel-surface-ray-intersection
             B = s[:, np.newaxis] <= z[np.newaxis, :]
             # Count ray-intersections
@@ -106,8 +104,12 @@ class Z_Hash_Rasterizer:
 
         return grid
 
+def minmax(V: 'Array[F]', h: int):
+    lv = max(round(V.min()), 0)
+    hv = min(round(V.max()), h)
+    return lv, hv
 
-def barycentric(convex: 'Array[F]'):
+def barycentric(X: 'Array[F]', Y: 'Array[F]'):
     """ Compute the Barycentric linear set for any convex polygon
 
     To get the Barycentric coordinate for (x,y):
@@ -123,7 +125,7 @@ def barycentric(convex: 'Array[F]'):
         # NOTE: this does not take perspective transforms into account!
 
     Args:
-        ::convex => list[(x, y, ...)]
+        ::XY => [x[], y[]]
 
     Returns:
         ::B => barycentric Origin
@@ -132,31 +134,33 @@ def barycentric(convex: 'Array[F]'):
     """
 
     # Get X, Y Arrays
-    (x0, y0), (x1, y1), (x2, y2) = unpack(convex[:, :2])
-    X0 = glm.vec3(x0, x1, x2)
-    X1 = glm.vec3(x1, x2, x0)
-    Y0 = glm.vec3(y0, y1, y2)
-    Y1 = glm.vec3(y1, y2, y0)
+    x0, x1, x2 = X
+    y0, y1, y2 = Y
+    X0 = glm.vec3(x1, x2, x0)
+    X1 = glm.vec3(x2, x0, x1)
+    Y0 = glm.vec3(y1, y2, y0)
+    Y1 = glm.vec3(y2, y0, y1)
     
     # Calculate doubled signed area
     area = glm.dot(X0, Y1) - glm.dot(Y0, X1)
+    # print(area)
 
     # Require area
     if area == 0.0:
         raise ZeroDivisionError("Cannot compute for zero area!")
 
     # Inverted signed area
-    area = 1 / area
+    area = 1.0 / area
 
     # Barycentric Base
-    B: glm.vec3 = glm.mul(area, X0 * Y1 - Y0 * X1)
+    B = (X0 * Y1 - Y0 * X1) * area
 
     # Barycentric X
-    Bx: glm.vec3 = glm.mul(area, Y1 - Y0)
+    BX = (Y0 - Y1) * area
 
     # Barycentric Y
-    By: glm.vec3 = glm.mul(area, X0 - X1)
+    BY = (X1 - X0) * area
 
     # Return Linear set
-    return B, Bx, By
+    return B, BX, BY
 

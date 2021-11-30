@@ -66,8 +66,8 @@ class Voxels(Window):
 
         # Bone Model
         # TODO: async load
-        self.bone_mesh = bone()
-        # self.bone_mesh = simplex()
+        # self.bone_mesh = bone()
+        self.bone_mesh = simplex()
         self.bone = Wireframe(
             self.bone_mesh,
             glm.vec4(0.8, 0.8, 1, 1),
@@ -78,6 +78,7 @@ class Voxels(Window):
 
         # Normalze Voxel grid (0 -> N) => (0.0 -> 1.0)
         self.t_norm = glm.scale(glm.vec3(1/max(*shape)))
+        """
         self.t_bone = (
             glm.translate(glm.vec3(0.5, 0.5, -0.5)) *
             glm.scale(glm.vec3(0.3)) *
@@ -89,7 +90,6 @@ class Voxels(Window):
             glm.translate(glm.vec3(0.2)) *
             glm.scale(glm.vec3(0.8))
         )
-        """
 
         # Some internal state
         self.alphas = np.power([1.0, 0.75, 0.5, 0.25, 0.0], 4)  # type: ignore
@@ -136,13 +136,12 @@ class Voxels(Window):
         gy = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape, "Y")
         gz = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape, "Z")
 
-
         g = gx + gy + gz
 
         I, C = np.unique(g, return_counts=True)
         for i, c in zip(I, C):
             print(f"{i} => {c}")
-
+        
         self.voxels.add_box((0, 0, 0), g.astype(np.float32), "red")
 
     def resize(self, width: int, height: int):
