@@ -94,6 +94,9 @@ class Z_Hash_Rasterizer:
 
         for i in self.zhash:
             x, y, z = self.get(i)
+            if z.size == 1:
+                print("cut")
+                continue
             # Find the boolean matrix for voxel-surface-ray-intersection
             B = s[:, np.newaxis] <= z[np.newaxis, :]
             # Count ray-intersections
