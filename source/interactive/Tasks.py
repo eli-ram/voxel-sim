@@ -11,24 +11,27 @@ Func = Callable[..., T]
 class Tasks:
 
     def __init__(self):
-        self._executor = ThreadPoolExecutor()
-        self._loop = asyncio.get_event_loop()
+        self.loop = asyncio.get_event_loop()
+        self.pool = ThreadPoolExecutor()
+        print("Workers:", self.pool._max_workers)
 
-    def parallel_map(self, func: Func[T], *iterables: Iterable[Any]) -> Iterator[Future[T]]:
+    def parallel_for(self, func: Func[T], *iterables: Iterable[Any]) -> Iterator[Future[T]]:
         futures = [self.parallel(func, *args) for args in zip(*iterables)]
-        return asyncio.as_completed(futures, loop=self._loop)
+        return asyncio.as_completed(futures)
 
     def parallel(self, func: Func[T], *args: Any) -> Future[T]:
-        return self._loop.run_in_executor(self._executor, func, *args)
+        return self.loop.run_in_executor(self.pool, func, *args)
 
-    def task(self, coroutine: Coroutine[Any, None, T]) -> Task[T]:
-        return self._loop.create_task(coroutine)
+    def run(self, coroutine: Coroutine[Any, Any, T]) -> Task[T]:
+        return self.loop.create_task(coroutine)
 
-    def run(self, coroutine: Coroutine[Any, None, T]) -> T:
-        return self._loop.run_until_complete(coroutine)
+    def run_main_loop(self, coroutine: Coroutine[Any, None, T]) -> T:
+        return self.loop.run_until_complete(coroutine)
 
+    async def poll(self):
+        await asyncio.sleep(0)
 
-def test():
+def m_test():
     from itertools import repeat
     from time import sleep
     from random import randint
@@ -49,13 +52,13 @@ def test():
 
     async def main(name: str):
 
-        t.task(ticks())
+        t.run(ticks())
 
         names = repeat(name)
         times = range(10)
 
-        for result in t.parallel_map(p, names, times):
+        for result in t.parallel_for(p, names, times):
             print("Async", await result)
 
 
-    t.run(main("elias"))
+    t.run_main_loop(main("elias"))

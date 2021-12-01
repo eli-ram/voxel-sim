@@ -129,4 +129,4 @@ def generateTexture():
 
 if __name__ == '__main__':
     window = GL_Window(800, 800, "OpenGL_Window")
-    window.spin()
+    window.start()

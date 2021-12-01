@@ -14,8 +14,8 @@ class NotAKey(Exception):
         return key
 
 
-ToggleCallback = Callable[[bool], None]
-ActionCallback = Callable[[], None]
+ToggleCallback = Callable[[bool], Any]
+ActionCallback = Callable[[], Any]
 
 
 class Keys:

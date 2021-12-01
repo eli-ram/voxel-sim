@@ -95,4 +95,4 @@ if __name__ == '__main__':
     def dec_decay():
         window.decay.dec()
 
-    window.spin()
+    window.start()

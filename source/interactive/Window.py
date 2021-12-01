@@ -2,13 +2,14 @@
 from typing import Any
 
 from source.interactive.Buttons import Buttons
+from source.interactive.Tasks import Tasks
 from .Context import glfw, UninitializedException
 from .Keys import Keys
 from dataclasses import dataclass
 
 def callback(func: Any) -> None:  
     def wrap(cls: Any, window: Any, *args: Any):
-        self: Any = glfw.get_window_user_pointer(window)
+        self: Window = glfw.get_window_user_pointer(window)
         func(self, *args)
     return wrap # type: ignore
 
@@ -26,6 +27,7 @@ class Window:
         UninitializedException.check(self.window, "window")
         self.keys = k = Keys()
         self.buttons = Buttons()
+        self.tasks = Tasks()
 
         # Binding some default actions
         k.action("ESCAPE")(self.close)
@@ -73,7 +75,10 @@ class Window:
     def scroll(self, value: float):
         pass
 
-    def spin(self):
+    def start(self):
+        self.tasks.run_main_loop(self.spin())
+
+    async def spin(self):
         window = self.window
 
         glfw.make_context_current(window)
@@ -86,6 +91,7 @@ class Window:
         while not glfw.window_should_close(window):
             self.frame()
             glfw.poll_events()
+            await self.tasks.poll()
 
     def frame(self):
         now = glfw.get_time()
@@ -165,4 +171,4 @@ class Window:
 
 if __name__ == '__main__':
     window = Window(800, 800, "Test-Window")
-    window.spin()
+    window.start()

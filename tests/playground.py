@@ -2,10 +2,10 @@ import __init__
 from inspect import getmembers, isfunction
 import sys
 
-from source.interactive import Tasks
+from source.interactive.Tasks import m_test
 
 def test_tasks():
-    Tasks.test()
+    m_test()
 
 
 # Run all Test functions

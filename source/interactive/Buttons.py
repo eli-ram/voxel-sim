@@ -12,8 +12,8 @@ class NotAButton(Exception):
             raise cls(b)
         return button
 
-ToggleCallback = Callable[[bool], None]
-ActionCallback = Callable[[], None]
+ToggleCallback = Callable[[bool], Any]
+ActionCallback = Callable[[], Any]
 
 
 class Buttons:

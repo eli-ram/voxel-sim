@@ -1,5 +1,6 @@
 # pyright: reportUnusedImport=false, reportUnusedFunction=false
-from typing import Any, Callable
+import asyncio
+from typing import Any
 import __init__
 import glm
 import numpy as np
@@ -15,7 +16,6 @@ from source.math.mesh2voxels import mesh_2_voxels, transform
 from source.voxels.proxy import VoxelProxy
 from OpenGL.GL import *
 from random import random, choice
-from queue import SimpleQueue
 
 
 """
@@ -43,28 +43,6 @@ def bone():
     BONE, = loadMeshes('test_bone.obj')
     return BONE
 
-Task = Callable[[], None]
-
-class Tasks:
-    _tasks: SimpleQueue[Task]
-
-    def __init__(self, modulo: int = 1):
-        self._tasks = SimpleQueue()
-        self._frame = 0
-        self._skips = modulo
-
-    def add(self, task: Task):
-        self._tasks.put(task)
-
-    def do(self):
-        if self._tasks.empty():
-            return
-
-        self._frame += 1
-        if self._frame >= self._skips:
-            self._tasks.get()()
-            self._frame = 0
-        
 
 class Voxels(Window):
 
@@ -84,8 +62,6 @@ class Voxels(Window):
             "red": Colors.RED,
             "gray": Colors.GRAY,
         })
-
-        self.tasks = Tasks(160)
 
         self.materials = self.voxels.material_list()
 
@@ -112,7 +88,7 @@ class Voxels(Window):
         self.t_bone = (
             glm.translate(glm.vec3(0.5, 0.5, -1.8)) *
             glm.scale(glm.vec3(0.5)) *
-            glm.translate(glm.vec3(0, 0, -0.01)) * 
+            glm.translate(glm.vec3(0, 0, -0.01)) *
             glm.rotate(glm.pi() / 2, glm.vec3(1, 0, 0))
         )
         """
@@ -128,25 +104,29 @@ class Voxels(Window):
         self.move_active = False
         self.show_bone = True
 
+        # Getting Vars
+        K = self.keys
+        B = self.buttons
+        T = self.tasks
+
         # Toggle Bone
-        self.keys.action("H")(lambda: setattr(self, 'show_bone', not self.show_bone))
+        K.action("H")(lambda: setattr(self, 'show_bone', not self.show_bone))
 
         # Bind camera controls
-        self.keys.toggle("LEFT_CONTROL")(
+        K.toggle("LEFT_CONTROL")(
             lambda press: setattr(self, 'move_mode', press))
-        self.buttons.toggle("LEFT")(
-            lambda press: setattr(self, 'move_active', press))
+        B.toggle("LEFT")(lambda press: setattr(self, 'move_active', press))
 
         # Bind alpha controls
-        self.keys.action("U")(lambda: self.alpha(True))
-        self.keys.action("I")(lambda: self.alpha(False))
+        K.action("U")(lambda: self.alpha(True))
+        K.action("I")(lambda: self.alpha(False))
 
         # Bind toggle outline
-        self.keys.action("O")(self.voxels.toggle_outline)
+        K.action("O")(self.voxels.toggle_outline)
 
         # Bind other controls
-        self.keys.action("R")(self.wireframe)
-        self.keys.action("B")(self.get_bone_voxels)
+        K.action("R")(lambda: T.run(self.wireframe()))
+        K.action("B")(lambda: T.run(self.get_bone_voxels()))
 
     def alpha(self, up: bool):
         step = 1 if up else -1
@@ -154,37 +134,34 @@ class Voxels(Window):
             np.roll(self.alphas, step)  # type: ignore
         self.voxels.set_alpha(self.alphas[0])
 
-    @time("Mesh")
-    def wireframe(self):
-        self.truss = self.voxels.get_mesh(glm.vec4(0.8, 0.8, 1, 1))
+    async def wireframe(self):
+        color = glm.vec4(0.8, 0.8, 1, 1)
+        self.truss = await self.tasks.parallel(self.voxels.get_mesh, color)
 
-    @time("Voxels")
-    def get_bone_voxels(self):
+    async def get_bone_voxels(self):
+        print("get-bone-voxels")
         import numpy as np
         t = glm.affineInverse(self.t_norm) * self.t_bone
         t = self.matrices.ptr(t)[:3, :]
+        T = self.tasks
         S = self.voxels.data.shape
-        V, I = transform(self.bone_mesh, t)
-        self.g = np.ones(S, np.bool_)
+        V, I = await T.parallel(transform, self.bone_mesh, np.copy(t))
 
-        def add(G: 'np.ndarray[np.bool_]', M: str):
-            self.voxels.add_box((0,0,0), G.astype(np.float32), M)
-            self.g &= G
+        async def grid(D: str, M: str):
+            print("Computing", D, '->', M)
+            G = await T.parallel(mesh_2_voxels, V, I, S, D)
+            print("Rendering", D , '->', M)
+            self.voxels.add_box((0, 0, 0), G.astype(np.float32), M)
+            print("Finished", D, '->', M)
+            return G
 
-        def func(D: str, M: str):
-            "Stupid python"
-            @time(f"Direction {D} -> {M}")
-            def direction():
-                add(mesh_2_voxels(V, I, S, D), M)
-            return direction
+        gx = await grid("X", "red")
+        gy = await grid("Y", "blue")
+        gz = await grid("Z", "green")
 
-        for d, m in [("X", "red"), ("Y", "blue"), ("Z", "green")]:
-            self.tasks.add(func(d, m))
-
-        @self.tasks.add
-        @time("Joined Grid")
-        def grid():
-            add(self.g, "gray")
+        print("Adding gray inners")
+        g = gx & gy & gz
+        self.voxels.add_box((0, 0, 0), g.astype(np.float32), "gray")
 
     def resize(self, width: int, height: int):
         self.move_scale = 1 / max(width, height)
@@ -205,14 +182,11 @@ class Voxels(Window):
             self.rng.random(size=volume, dtype=np.float32)  # type: ignore
         material = choice(self.materials)
         voxels.add_box(offset, strength - 0.35, material)
-        
+
     def update(self, time: float, delta: float):
         # Debug w random voxels
         if random() * time < 0:
             self.addVoxels()
-
-        # Pull Task
-        self.tasks.do()
 
         # Update Camera Matrix
         self.matrices.V = self.camera.Compute()
@@ -270,4 +244,4 @@ if __name__ == '__main__':
     def perf():
         performance(GPU.NVIDIA)
 
-    window.spin()
+    window.start()
