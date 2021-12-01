@@ -20,13 +20,19 @@ from random import random, choice
 """
 TODO:
 
-1. Triangle intersection:
+- Stiffness Matrix
+    https://www.youtube.com/watch?v=3uzf_938V4c
 
-2. Mesh Loader
-    use .obj to load
+        > T = Local To Global
+        > T.T = Global To Local
+        > C = Connectivity
+        > Strength = Area * Elasticity / Length
+        > Stiffness = Strengh * T.T * C * T
+        # linear system
+        > F = Stiffness * V 
 
-3. Mesh to Voxels
-
+- Imitate Matlab Behavoiur 
+    https://se.mathworks.com/matlabcentral/answers/348024-summing-values-for-duplicate-rows-and-columns
 """
 
 
@@ -47,7 +53,7 @@ class Voxels(Window):
             distance=1.25,
             svivel_speed=0.005,
         )
-        shape = (128, 128, 128)
+        shape = (512, 512, 512)
         resolution = 2**11
         self.voxels = VoxelProxy(shape, resolution, {
             "blue": Colors.BLUE,
@@ -79,9 +85,9 @@ class Voxels(Window):
         # Normalze Voxel grid (0 -> N) => (0.0 -> 1.0)
         self.t_norm = glm.scale(glm.vec3(1/max(*shape)))
         self.t_bone = (
-            glm.translate(glm.vec3(0.5, 0.5, -0.5)) *
-            glm.scale(glm.vec3(0.3)) *
-            glm.translate(glm.vec3(0, 0, 0.1)) * 
+            glm.translate(glm.vec3(0.5, 0.5, -1.8)) *
+            glm.scale(glm.vec3(0.5)) *
+            glm.translate(glm.vec3(0, 0, -0.01)) * 
             glm.rotate(glm.pi() / 2, glm.vec3(1, 0, 0))
         )
         """
@@ -131,10 +137,14 @@ class Voxels(Window):
     def get_bone_voxels(self):
         t = glm.affineInverse(self.t_norm) * self.t_bone
         t = self.matrices.ptr(t)[:3, :]
+        
+        gx = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape, "X")
+        gy = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape, "Y")
+        gz = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape, "Z")
 
-        for d, n in [("X", "red"), ("Y", "green"), ("Z", "blue")]:
-            g = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape, d)
-            self.voxels.add_box((0, 0, 0), g.astype(np.float32), n)        
+        g = gx * gy * gz
+
+        self.voxels.add_box((0, 0, 0), g.astype(np.float32), "red")        
 
     def resize(self, width: int, height: int):
         self.move_scale = 1 / max(width, height)
