@@ -87,7 +87,7 @@ class Z_Hash_Rasterizer:
 
     def voxels(self):
         # Voxel Grid to fill / return
-        grid = np.zeros(self.shape, np.float32)
+        grid = np.zeros(self.shape, np.bool_)
 
         # Z-indexes for Z-axis
         s = np.arange(self.height, dtype=np.float32) + 0.5

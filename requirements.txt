@@ -1,4 +1,5 @@
 wheel
+asyncio==3.4.3
 autopep8==1.5.7
 data-science-types==0.2.23
 glfw==2.1.0

@@ -1,5 +1,5 @@
-# pyright: reportUnusedImport=false
-from typing import Any
+# pyright: reportUnusedImport=false, reportUnusedFunction=false
+from typing import Any, Callable
 import __init__
 import glm
 import numpy as np
@@ -11,10 +11,11 @@ from source.utils.misc import random_box
 from source.utils.wireframe import Wireframe, line_cube, origin, simplex
 from source.utils.mesh_loader import loadMeshes
 from source.utils.directory import cwd, script_dir
-from source.math.mesh2voxels import mesh_2_voxels
+from source.math.mesh2voxels import mesh_2_voxels, transform
 from source.voxels.proxy import VoxelProxy
 from OpenGL.GL import *
 from random import random, choice
+from queue import SimpleQueue
 
 
 """
@@ -42,6 +43,28 @@ def bone():
     BONE, = loadMeshes('test_bone.obj')
     return BONE
 
+Task = Callable[[], None]
+
+class Tasks:
+    _tasks: SimpleQueue[Task]
+
+    def __init__(self, modulo: int = 1):
+        self._tasks = SimpleQueue()
+        self._frame = 0
+        self._skips = modulo
+
+    def add(self, task: Task):
+        self._tasks.put(task)
+
+    def do(self):
+        if self._tasks.empty():
+            return
+
+        self._frame += 1
+        if self._frame >= self._skips:
+            self._tasks.get()()
+            self._frame = 0
+        
 
 class Voxels(Window):
 
@@ -61,6 +84,8 @@ class Voxels(Window):
             "red": Colors.RED,
             "gray": Colors.GRAY,
         })
+
+        self.tasks = Tasks(160)
 
         self.materials = self.voxels.material_list()
 
@@ -98,7 +123,7 @@ class Voxels(Window):
         """
 
         # Some internal state
-        self.alphas = np.power([1.0, 0.75, 0.5, 0.25, 0.0], 4)  # type: ignore
+        self.alphas = np.power(np.linspace(1.0, 0.0, 6), 3)  # type: ignore
         self.move_mode = False
         self.move_active = False
         self.show_bone = True
@@ -135,16 +160,31 @@ class Voxels(Window):
 
     @time("Voxels")
     def get_bone_voxels(self):
+        import numpy as np
         t = glm.affineInverse(self.t_norm) * self.t_bone
         t = self.matrices.ptr(t)[:3, :]
-        
-        gx = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape, "X")
-        gy = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape, "Y")
-        gz = mesh_2_voxels(self.bone_mesh, t, self.voxels.data.shape, "Z")
+        S = self.voxels.data.shape
+        V, I = transform(self.bone_mesh, t)
+        self.g = np.ones(S, np.bool_)
 
-        g = gx * gy * gz
+        def add(G: 'np.ndarray[np.bool_]', M: str):
+            self.voxels.add_box((0,0,0), G.astype(np.float32), M)
+            self.g &= G
 
-        self.voxels.add_box((0, 0, 0), g.astype(np.float32), "red")        
+        def func(D: str, M: str):
+            "Stupid python"
+            @time(f"Direction {D} -> {M}")
+            def direction():
+                add(mesh_2_voxels(V, I, S, D), M)
+            return direction
+
+        for d, m in [("X", "red"), ("Y", "blue"), ("Z", "green")]:
+            self.tasks.add(func(d, m))
+
+        @self.tasks.add
+        @time("Joined Grid")
+        def grid():
+            add(self.g, "gray")
 
     def resize(self, width: int, height: int):
         self.move_scale = 1 / max(width, height)
@@ -170,6 +210,9 @@ class Voxels(Window):
         # Debug w random voxels
         if random() * time < 0:
             self.addVoxels()
+
+        # Pull Task
+        self.tasks.do()
 
         # Update Camera Matrix
         self.matrices.V = self.camera.Compute()

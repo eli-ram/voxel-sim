@@ -28,7 +28,7 @@ class Raster_Direction_3D(Enum):
     Z = (0, 1, 2), (0, 1, 2)
 
     @property
-    def swizzle(self) -> int3:
+    def swizzle(self) -> slice:
         return self.value[0]
 
     @property
@@ -36,7 +36,7 @@ class Raster_Direction_3D(Enum):
         return self.value[1]
 
     def reshape(self, shape: int3) -> int3:
-        S = [shape[i] for i in self.swizzle]
+        S = [shape[i] for i in self.value[0]]
         return tuple(S) # type: ignore
 
 
@@ -254,7 +254,7 @@ class Rasterizer_3D:
 
     def voxels(self):
         # Voxel Grid to fill / return
-        grid = np.zeros(self.shape, np.float32)
+        grid = np.zeros(self.shape, np.bool_)
 
         # Z-indexes for Z-axis
         s = np.arange(self.height, dtype=np.float32) + 0.5
@@ -293,27 +293,27 @@ class Rasterizer_3D:
         return points
 
 
-def mesh_2_voxels(mesh: SimpleMesh, transform: 'Array[F]', voxels: int3, direction: str = "Z") -> 'Array[F]':
+def transform(mesh: SimpleMesh, transform: 'Array[F]'):
     assert mesh.geometry == Geometry.Triangles, \
         " Mesh must be made up of triangles! "
 
     assert transform.shape == (3, 4), \
         " Expected [3x4] affine transform matrix "
 
-    D = Raster_Direction_3D[direction]
-
     # Assure that arrays are formatted correctly
     vertices = mesh.vertices.reshape(-1, 3)
     indices = mesh.indices.reshape(-1, 3)
 
-    # Get Triangles from mesh
-    print("[#] Transform")
     M = transform[:, :3]
     V = transform[:, 3]
     vertices = (M @ vertices.T).T + V
 
-    # Swizzle coordinates
-    vertices = vertices[:, D.swizzle]
+    return vertices, indices
+
+
+
+def mesh_2_voxels(vertices: 'Array[F]', indices: 'Array[I]', voxels: int3, direction: str = "Z") -> 'Array[np.bool_]':
+    D = Raster_Direction_3D[direction]
 
     # Init rasterizer
     # rasterizer = Rasterizer_3D(D.reshape(voxels))
@@ -322,10 +322,8 @@ def mesh_2_voxels(mesh: SimpleMesh, transform: 'Array[F]', voxels: int3, directi
 
     print("[#] Wide Triangles")
     # Potential Parallel-For
-    rasterizer.run(indices, vertices)
-
-    # debug
-    # rasterizer.points()
+    # Swizzle coordinates
+    rasterizer.run(indices, vertices[:, D.swizzle])
 
     print("[#] Wide Voxels")
     # Potential Parallel-For
