@@ -2,17 +2,17 @@
 from typing import Union
 from ..utils.types import Array, F, I
 from ..data.truss import Truss
+from scipy.sparse import (
+    csr_matrix as sparse,
+    csc_matrix as vector,
+    linalg,
+)
 import numpy as np
 
-"""
-    Q = np.outer(C, C).reshape(len(E), -1)
 
-    I = np.arange(len(N))
-    S_N_0 = I[:, np.newaxis] == E[np.newaxis, :, 0]
-    S_N_1 = I[:, np.newaxis] == E[np.newaxis, :, 1]
-    S_N_I = node stiffness indices = S_N_0 | S_N_1
-    S_N = node stiffness = np.sum(Q, where=S_N_I)
-"""
+def solve(M: sparse, F: vector) -> vector:
+    # Solve: Ax = b
+    return linalg.spsolve(M, F)  # type: ignore
 
 
 def outer_rows(V: 'Array[F]') -> 'Array[F]':
@@ -43,7 +43,7 @@ def accumulate_rows(C: 'Array[F]', E0: 'Array[I]', E1: 'Array[I]', Q: 'Array[F]'
     # par-for <per-node>
     for i in range(C.shape[0]):
         I = (E0 == i) | (E1 == i)
-        np.sum(Q[I, :], axis=0, out=C[i, :]) # type: ignore
+        np.sum(Q[I, :], axis=0, out=C[i, :])  # type: ignore
 
 
 def accumulate_columns(C: 'Array[F]', E0: 'Array[I]', E1: 'Array[I]', Q: 'Array[F]'):
@@ -55,10 +55,20 @@ def accumulate_columns(C: 'Array[F]', E0: 'Array[I]', E1: 'Array[I]', Q: 'Array[
         inplace_accumulate(C[:, col], E1, Q[:, col])
 
 
+def flat_join(*arrays: 'Array[F]') -> 'Array[F]':
+    return np.concatenate([a.flatten() for a in arrays])
+
+
 def stress_matrix(truss: Truss, elasticity: float = 1E-5):
-    E = truss.edges
-    N = truss.nodes
+    # Upack needed parts of truss
+    S = truss.static
     A = truss.areas
+    N = truss.nodes
+    E = truss.edges
+
+    # Node Count * Degree of freedom
+    L, DOF = N.shape
+    N_DOF = L * DOF
 
     # Edge from <-> to
     E0 = E[:, 0]
@@ -87,27 +97,53 @@ def stress_matrix(truss: Truss, elasticity: float = 1E-5):
     # negate edge kernels
     inplace_negate(Q)
 
-    # Todo node-kernel-indices
-    # Todo edge-kernel-indices
-    # Todo concat indices
-    # Todo concat kernels
-    # Todo sparse matrix
+    # Genereate Diagonal Indices
+    ID = np.arange(N_DOF, np.int32).reshape(N.shape)
+
+    # Register Static Axes
+    ID[S] = -1
+
+    # Values
+    V = flat_join(C, Q, Q)
+
+    # Column indices
+    CI: 'Array[F]' = np.tile(ID, 3)  # type: ignore
+    I = flat_join(CI, CI[E0, :], CI[E1, :])
+
+    # Row indices per half-edge
+    CJ: 'Array[F]' = np.repeat(ID, 3, axis=1)  # type: ignore
+    J = flat_join(CJ, CJ[E1, :], CJ[E0, :])
+
+    # Destroy Statically Locked Node Axes
+    KEEP = (J != -1) & (I != -1)
+    V = V[KEEP]
+    I = I[KEEP]
+    J = J[KEEP]
+
+    # Build sparse matrix
+    M = sparse((V, (I, J)), shape=(N_DOF, N_DOF))
+
+    return M
 
 
-    # Remove grounded nodes
-    """
-	log("Removing rows & columns with locked bounds\n");
-    # locked indices
-	c = find(extC==0);
-    # destroy columns
-	KK(c,:)=[];
-    # destroy rows
-	KK(:,c)=[];
-    # destroy forces
-	extF(c,:)=[]; % forces on grounded nodes has no effect!
-    """
+def force_vector(truss: Truss):
+    F = truss.forces
+    S = truss.static
+    # Remove force on static
+    F[S] = 0.0
+    # Convert to Sparse
+    return vector(F.flatten())
 
-    # Solve
-    # U = KK \ extF
-    # => KK @ U = extF ?
-    # U = s.spsolve(KK, extF)
+
+class Solver:
+
+    def __init__(self, truss: Truss):
+        M = stress_matrix(truss)
+        F = force_vector(truss)
+        self.U = solve(M, F)
+
+    def displacement(self):
+        pass
+
+    def compression(self):
+        pass
