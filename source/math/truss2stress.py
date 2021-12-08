@@ -92,3 +92,22 @@ def stress_matrix(truss: Truss, elasticity: float = 1E-5):
     # Todo concat indices
     # Todo concat kernels
     # Todo sparse matrix
+
+
+    # Remove grounded nodes
+    """
+	log("Removing rows & columns with locked bounds\n");
+    # locked indices
+	c = find(extC==0);
+    # destroy columns
+	KK(c,:)=[];
+    # destroy rows
+	KK(:,c)=[];
+    # destroy forces
+	extF(c,:)=[]; % forces on grounded nodes has no effect!
+    """
+
+    # Solve
+    # U = KK \ extF
+    # => KK @ U = extF ?
+    # U = s.spsolve(KK, extF)
