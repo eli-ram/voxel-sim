@@ -1,5 +1,5 @@
 # pyright: reportConstantRedefinition=false
-from typing import Union
+from typing import Union, Any
 from ..utils.types import Array, F, I
 from ..data.truss import Truss
 from scipy.sparse import (
@@ -8,6 +8,10 @@ from scipy.sparse import (
     linalg,
 )
 import numpy as np
+
+
+def sh(V: 'Array[Any]', name: str = ""):
+    print(name, V.shape)
 
 
 def solve(M: sparse, F: vector) -> vector:
@@ -20,7 +24,7 @@ def outer_rows(V: 'Array[F]') -> 'Array[F]':
 
 
 def inverse_length_rows(D: 'Array[F]') -> 'Array[F]':
-    l = np.linalg.norm(D, axis=0)  # type: ignore
+    l = np.linalg.norm(D, axis=1)  # type: ignore
     return np.reciprocal(l, out=l)  # type: ignore
 
 
@@ -59,10 +63,10 @@ def flat_join(*arrays: 'Array[F]') -> 'Array[F]':
     return np.concatenate([a.flatten() for a in arrays])
 
 
-def stress_matrix(truss: Truss, elasticity: float = 1E-5):
+def stress_matrix(truss: Truss, elasticity: float = 2E9):
     # Upack needed parts of truss
     S = truss.static
-    A = truss.areas
+    A = truss.areas[:, None]
     N = truss.nodes
     E = truss.edges
 
@@ -78,7 +82,7 @@ def stress_matrix(truss: Truss, elasticity: float = 1E-5):
     D = N[E0, :] - N[E1, :]
 
     # inverse edge lengths
-    L = inverse_length_rows(D)
+    L = inverse_length_rows(D)[:, None]
 
     # cosinus thetas for force distribution
     inplace_multiply(D, L)
@@ -98,20 +102,27 @@ def stress_matrix(truss: Truss, elasticity: float = 1E-5):
     inplace_negate(Q)
 
     # Genereate Diagonal Indices
-    ID = np.arange(N_DOF, np.int32).reshape(N.shape)
+    ID = np.empty(N.shape, dtype=np.int32)
 
     # Register Static Axes
     ID[S] = -1
+
+    # Matrix size loss
+    L_DOF = N_DOF - np.sum(S)
+
+    # Index recalculation
+    # obs, this may be slow ?
+    ID[~S] = range(L_DOF)
 
     # Values
     V = flat_join(C, Q, Q)
 
     # Column indices
-    CI: 'Array[F]' = np.tile(ID, 3)  # type: ignore
+    CI: 'Array[F]' = np.tile(ID, DOF)  # type: ignore
     I = flat_join(CI, CI[E0, :], CI[E1, :])
 
     # Row indices per half-edge
-    CJ: 'Array[F]' = np.repeat(ID, 3, axis=1)  # type: ignore
+    CJ: 'Array[F]' = np.repeat(ID, DOF, axis=1)  # type: ignore
     J = flat_join(CJ, CJ[E1, :], CJ[E0, :])
 
     # Destroy Statically Locked Node Axes
@@ -121,7 +132,7 @@ def stress_matrix(truss: Truss, elasticity: float = 1E-5):
     J = J[KEEP]
 
     # Build sparse matrix
-    M = sparse((V, (I, J)), shape=(N_DOF, N_DOF))
+    M = sparse((V, (I, J)), shape=(L_DOF, L_DOF))
 
     return M
 
@@ -130,9 +141,7 @@ def force_vector(truss: Truss):
     F = truss.forces
     S = truss.static
     # Remove force on static
-    F[S] = 0.0
-    # Convert to Sparse
-    return vector(F.flatten())
+    return vector(F[~S, None])
 
 
 class Solver:
