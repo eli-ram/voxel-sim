@@ -3,7 +3,7 @@ from inspect import getmembers, isfunction
 import sys
 
 import numpy as np
-from source.math.truss2stress import Solver, stress_matrix
+from source.math.truss2stress import fem_simulate, stress_matrix
 from source.data.truss import Truss
 
 
@@ -55,15 +55,13 @@ def test_sparse():
         ], np.float32),
     )
 
-    M = stress_matrix(T)
+    # this is validated to be exactly equal matlab !
 
-    R = np.round(M.todense(), 2)
+    M = stress_matrix(T, 1E1) # type: ignore
+    print(M)
 
-    print(R)
-
-    S = Solver(T)
-
-    print(S.U)
+    D = fem_simulate(T, 1E1)
+    print(D.round(4))
 
 
 # Run all Test functions

@@ -126,7 +126,7 @@ def stress_matrix(truss: Truss, elasticity: float = 2E9):
     J = flat_join(CJ, CJ[E1, :], CJ[E0, :])
 
     # Destroy Statically Locked Node Axes
-    KEEP = (J != -1) & (I != -1)
+    KEEP = (J != -1) & (I != -1) & (V != 0.0)
     V = V[KEEP]
     I = I[KEEP]
     J = J[KEEP]
@@ -144,15 +144,22 @@ def force_vector(truss: Truss):
     return vector(F[~S, None])
 
 
-class Solver:
+def displacements(truss: Truss, U: vector):
+    S = truss.static
+    D = np.zeros(S.shape, np.float32)
+    # Fill non static with deplacement 
+    D[~S] = U
+    return D
 
-    def __init__(self, truss: Truss):
-        M = stress_matrix(truss)
-        F = force_vector(truss)
-        self.U = solve(M, F)
+def edge_stress(truss: Truss, D: 'Array[F]'):
+    E = truss.edges
+    S = np.zeros(E.shape[0], np.float32)
 
-    def displacement(self):
-        pass
+    return S
 
-    def compression(self):
-        pass
+def fem_simulate(truss: Truss, elasticity: float = 1E9):
+    M = stress_matrix(truss, elasticity)
+    F = force_vector(truss)
+    U = solve(M, F)
+    D = displacements(truss, U)
+    return D
