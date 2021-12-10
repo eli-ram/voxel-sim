@@ -60,8 +60,9 @@ def test_sparse():
     M = stress_matrix(T, 1E1) # type: ignore
     print(M)
 
-    D = fem_simulate(T, 1E1)
+    D, E = fem_simulate(T, 1E1)
     print(D.round(4))
+    print(E.round(4))
 
 
 # Run all Test functions

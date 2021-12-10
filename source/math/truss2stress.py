@@ -66,7 +66,7 @@ def flat_join(*arrays: 'Array[F]') -> 'Array[F]':
 def stress_matrix(truss: Truss, elasticity: float = 2E9):
     # Upack needed parts of truss
     S = truss.static
-    A = truss.areas[:, None]
+    A = truss.areas
     N = truss.nodes
     E = truss.edges
 
@@ -82,15 +82,17 @@ def stress_matrix(truss: Truss, elasticity: float = 2E9):
     D = N[E0, :] - N[E1, :]
 
     # inverse edge lengths
-    L = inverse_length_rows(D)[:, None]
+    L = inverse_length_rows(D)
 
     # cosinus thetas for force distribution
-    inplace_multiply(D, L)
+    inplace_multiply(D, L[:, None])
 
     # Row wise outer product
     # to obtain stress kernels
     Q = outer_rows(D).reshape(D.shape[0], -1)
-    inplace_multiply(Q, L * A * elasticity)
+    inplace_multiply(L, A)
+    inplace_multiply(L, elasticity)
+    inplace_multiply(Q, L[:, None])
 
     # Accumulate node stress kernels
     C = np.zeros((N.shape[0], Q.shape[1]), np.float32)
@@ -151,9 +153,31 @@ def displacements(truss: Truss, U: vector):
     D[~S] = U
     return D
 
-def edge_stress(truss: Truss, D: 'Array[F]'):
+def edge_stress(truss: Truss, DU: 'Array[F]', elasticity: float = 1E9):
     E = truss.edges
-    S = np.zeros(E.shape[0], np.float32)
+    N = truss.nodes
+
+    # Edge from <-> to
+    E0 = E[:, 0]
+    E1 = E[:, 1]
+
+    # edge vectors
+    D = N[E0, :] - N[E1, :]
+
+    # inverse edge lengths
+    L = inverse_length_rows(D)
+
+    # cosinus thetas for force distribution
+    inplace_multiply(D, L[:, None])
+
+    # Compute global compression
+    C = DU[E0, :] - DU[E1, :]
+    inplace_multiply(C, D)
+
+    # Sum rows to local compression
+    S = np.sum(C, axis=1)
+    inplace_multiply(S, L)
+    inplace_multiply(S, elasticity)
 
     return S
 
@@ -162,4 +186,5 @@ def fem_simulate(truss: Truss, elasticity: float = 1E9):
     F = force_vector(truss)
     U = solve(M, F)
     D = displacements(truss, U)
-    return D
+    E = edge_stress(truss, D, elasticity)
+    return D, E
