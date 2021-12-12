@@ -1,4 +1,4 @@
-from typing import Any, Callable, Type, TypeVar, cast
+from typing import Any, Callable, Generic, Type, TypeVar, cast
 from OpenGL.GL import *  # type: ignore
 from OpenGL.GL.shaders import (  # type: ignore
     ShaderProgram,
@@ -6,8 +6,10 @@ from OpenGL.GL.shaders import (  # type: ignore
     compileShader,
     compileProgram,
 )
+from .directory import script_dir, directory
 from os.path import splitext
 from functools import wraps
+
 
 def shaderprune(func: Any):
     def print_source(source: bytes):
@@ -46,6 +48,7 @@ def shader(*files: str):
 
     return compileProgram(*(compile(file) for file in files))
 
+
 def bind(shader: ShaderProgram):
     def wrapper(func: Any):
         @wraps(func)
@@ -55,12 +58,14 @@ def bind(shader: ShaderProgram):
         return wrap
     return wrapper
 
+
 Binding = Callable[[int, str], int]
+
 
 class ShaderBindings:
 
     def __new__(cls, *args: Any, **kwargs: Any):
-        annotations = cls.__annotations__
+        annotations = getattr(cls, '__annotations__', {})
         cls = super().__new__(cls)
         cls._fields = annotations.keys()
         return cls
@@ -78,40 +83,59 @@ class ShaderBindings:
         binds = (f"{field}={getattr(self, field)}" for field in self._fields)
         return f"{self.__class__.__name__}({', '.join(binds)})"
 
-    def __call__(self):
-        print(self)
-        return self
 
 class ShaderUniforms(ShaderBindings):
 
     def __init__(self, shader: ShaderProgram):
         super().__init__(shader, glGetUniformLocation)
-    
+
+
 class ShaderAttributes(ShaderBindings):
 
     def __init__(self, shader: ShaderProgram):
         super().__init__(shader, glGetAttribLocation)
 
-    def __enter__(self):
-        for i in self:
-            glEnableVertexAttribArray(i)
 
-    def __exit__(self, type: Any, value: Any, traceback: Any):
-        for i in self:
-            glDisableVertexAttribArray(i)
+S = TypeVar('S', bound='ShaderCache[Any, Any]')
+A = TypeVar('A', bound=ShaderAttributes)
+U = TypeVar('U', bound=ShaderUniforms)
 
-T = TypeVar('T', bound='ShaderCache')
 
-class ShaderCache:
-        
+class ShaderCache(Generic[A, U]):
+    FILE: str
+    CODE: list[str]
+    DEBUG = False
+
+    def __init__(self):
+        self.S = self.compile()
+        base, = self.__orig_bases__ # type: ignore
+        acls, ucls = base.__args__ # type: ignore
+        self.A: A = acls(self.S)
+        self.U: U = ucls(self.S)
+        if self.DEBUG:
+            print(self.A)
+            print(self.U)
+
     @classmethod
-    def compile(cls, *files: str):
+    def compile(cls):
         assert not hasattr(cls, '__cache__'), \
             f"Cache for {cls.__name__} was reinitialized!"
-        return shader(*files)
+        with directory(script_dir(cls.FILE)):
+            return shader(*cls.CODE)
 
     @classmethod
-    def get(cls: Type[T]) -> T:
+    def get(cls: Type[S]) -> S:
         if not hasattr(cls, '__cache__'):
-            setattr(cls, '__cache__', cls())
+            setattr(cls, '__cache__', cls())  # type: ignore
         return getattr(cls, '__cache__')
+
+    def __enter__(self):
+        self.S.__enter__()
+        for i in self.A:
+            glEnableVertexAttribArray(i)
+        return (self.A, self.U)
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
+        for i in self.A:
+            glDisableVertexAttribArray(i)
+        self.S.__exit__(exc_type, exc_val, exc_tb)  # type: ignore

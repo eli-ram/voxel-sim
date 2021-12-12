@@ -1,5 +1,4 @@
 # pyright: reportUnusedImport=false, reportUnusedFunction=false
-import asyncio
 from typing import Any
 import __init__
 import glm
@@ -9,33 +8,15 @@ from source.debug.time import time
 from source.interactive import Window
 from source.utils.matrices import Hierarchy, OrbitCamera
 from source.utils.misc import random_box
-from source.utils.wireframe import Wireframe, line_cube, origin, simplex
+from source.utils.wireframe.deformation import test_case
+from source.utils.wireframe.wireframe import Wireframe
+from source.utils.mesh.shapes import line_cube, origin, simplex
 from source.utils.mesh_loader import loadMeshes
 from source.utils.directory import cwd, script_dir
 from source.math.mesh2voxels import mesh_2_voxels, transform
 from source.voxels.proxy import VoxelProxy
 from OpenGL.GL import *
 from random import random, choice
-
-
-"""
-TODO:
-
-- Stiffness Matrix
-    https://www.youtube.com/watch?v=3uzf_938V4c
-
-        > T = Local To Global
-        > T.T = Global To Local
-        > C = Connectivity
-        > Strength = Area * Elasticity / Length
-        > Stiffness = Strengh * T.T * C * T
-        # linear system
-        > F = Stiffness * V 
-
-- Imitate Matlab Behavoiur 
-    https://se.mathworks.com/matlabcentral/answers/348024-summing-values-for-duplicate-rows-and-columns
-"""
-
 
 @cwd(script_dir(__file__), '..', 'meshes')
 @time("BONE")
@@ -80,6 +61,8 @@ class Voxels(Window):
             glm.vec4(0.8, 0.8, 1, 1),
             2.0,
         )
+
+        self.deformation = test_case()
 
         # Cache transforms
 
@@ -142,11 +125,11 @@ class Voxels(Window):
         print("get-bone-voxels")
         import numpy as np
         t = glm.affineInverse(self.t_norm) * self.t_bone
-        t = self.matrices.ptr(t)[:3, :]
+        t = self.matrices.copy(t)[:3, :]
         T = self.tasks
         S = self.voxels.data.shape
-        V, I = await T.parallel(transform, self.bone_mesh, np.copy(t))
-
+        V, I = await T.parallel(transform, self.bone_mesh, t)
+        
         async def grid(D: str, M: str):
             print("Computing", D, '->', M)
             G = await T.parallel(mesh_2_voxels, V, I, S, D)
@@ -191,17 +174,25 @@ class Voxels(Window):
         # Update Camera Matrix
         self.matrices.V = self.camera.Compute()
 
+        # Change deformation
+        D = (time % 30 - 5) / 20
+        self.deformation.deformation = max(min(D, 1), 0)
+
     def render(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)  # type: ignore
         M = self.matrices
         # Render Opaque first
 
-        self.cube.render(M)
+        # self.cube.render(M)
 
         # Render origin when navigating
         if self.move_active:
             with M.Push(glm.translate(self.camera.center)):
                 self.origin.render(M)
+
+        self.deformation.render(M)
+
+        return
 
         # Render Bone Mesh
         if self.show_bone:

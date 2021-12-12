@@ -1,8 +1,10 @@
+from ..utils.types import Array, U
 from ..data.colors import Color
 from ..data.voxels import Voxels, MaterialStore, int3, bool3
 from ..math.voxels2truss import voxels2truss
 from ..utils.matrices import Hierarchy
-from ..utils.wireframe import Geometry, SimpleMesh, Wireframe
+from ..utils.wireframe.wireframe import Wireframe
+from ..utils.mesh.simplemesh import Geometry, SimpleMesh
 from .render import VoxelRenderer
 import numpy as np
 import glm
@@ -36,7 +38,7 @@ class VoxelProxy:
 
     def add_box(self, offset: int3, strength: 'np.ndarray[np.float32]', material: str):
         M = self.materials[material]
-        G = np.where(strength > 0.0, M.id, 0).astype(np.uint32)
+        G = np.where(strength > 0.0, M.id, 0).astype(np.uint32) # type: ignore
         I = np.nonzero(G)  # type: ignore
         O = tuple(i + o for i, o in zip(I, offset))
         self.data.grid[O] = G[I]
@@ -61,7 +63,7 @@ class VoxelProxy:
         return W
 
 
-def test(v: 'np.ndarray[np.uint32]'):
+def test(v: 'Array[U]'):
     A = np.vstack([v, v[:, ::-1]])
     _, C = np.unique(A, axis=0, return_counts=True)
     assert np.max(C) == 1, \

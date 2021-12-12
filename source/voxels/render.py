@@ -1,37 +1,13 @@
 # pyright: reportUnknownMemberType=false, reportGeneralTypeIssues=false, reportUnknownVariableType=false
-from OpenGL.GL import *  # type: ignore
-from OpenGL.arrays.vbo import VBO  # type: ignore
+from OpenGL.GL import *
 import numpy as np
 import glm
 
-from ..utils.texture import Format, Sample, Texture1D, Texture3D, TextureProps, Wrap
-from ..utils.types import int3
+from .shaders.voxelshader import VoxelShader
 from ..utils.matrices import Hierarchy
-from ..utils.shaders import ShaderCache, ShaderUniforms, ShaderAttributes
-from ..utils.directory import cwd, script_dir
-
-
-class VoxelAttrs(ShaderAttributes):
-    t: int
-
-
-class VoxelUniforms(ShaderUniforms):
-    MVP: int
-    COLORS: int
-    VOXELS: int
-    LAYER_DIR: int
-    MOD_ALPHA: int
-    ENB_OUTLINE: int
-
-
-class VoxelShader(ShaderCache):
-
-    @cwd(script_dir(__file__), 'shaders')
-    def __init__(self):
-        self.S = self.compile('voxel.vert', 'voxel.geom', 'voxel.frag')
-        self.A = VoxelAttrs(self.S)
-        self.U = VoxelUniforms(self.S)
-
+from ..utils.texture import Format, Sample, Texture1D, Texture3D, TextureProps, Wrap
+from ..utils.buffer import BufferConfig
+from ..utils.types import int3
 
 class VoxelRenderer:
     """
@@ -77,17 +53,7 @@ class VoxelRenderer:
         # Rendering Layer Stack
         data = np.linspace(0.0, 1.0, num=layer_count, dtype=np.float32)
         self.count = layer_count
-        self.planes = VBO(data)
-
-        with self.shader.A, self.planes:
-            glVertexAttribPointer(
-                self.shader.A.t,    # index
-                1,                  # size
-                GL_FLOAT,           # type
-                GL_FALSE,           # normalize
-                0,                  # stride    (0 = tightly packed)
-                None,               # start     (None = start at 0)
-            )
+        self.planes = BufferConfig('vertices').single(data)
 
         # Voxel Textures [3d-grid & colors]
         self.voxels = Texture3D(shape, self.VOXEL_FMT)
@@ -135,19 +101,12 @@ class VoxelRenderer:
         MVP = h.MVP * self.transform
 
         # Bind Uniforms & Render
-        with self.shader.S, self.shader.A, self.planes:
-            U = self.shader.U
+        with self.shader as (A, U):
             glUniformMatrix4fv(U.MVP, 1, GL_TRUE, h.ptr(MVP))
             glUniform1i(U.LAYER_DIR, self.getLayerDirection(h))
             # TODO: scale alpha by voxel-layer-ratio ?
             glUniform1f(U.MOD_ALPHA, self.alpha)
             glUniform1i(U.ENB_OUTLINE, self.outline)
-            glVertexAttribPointer(
-                self.shader.A.t,    # attribute
-                1,                  # size
-                GL_FLOAT,           # type
-                GL_FALSE,           # normalize
-                0,                  # stride    (0 => tighty packed)
-                None,               # start     (None => start at 0)
-            )
+            with self.planes as (t,):
+                self.planes.attribute(t, A.t)
             glDrawArrays(GL_POINTS, 0, self.count)

@@ -7,7 +7,7 @@ from source.math.scanline import IntRasterizer
 
 from .linalg import coordinates, unpack
 
-from ..utils.wireframe import Geometry, SimpleMesh
+from ..utils.mesh.simplemesh import Geometry, SimpleMesh
 from ..utils.types import int3,  Array, F, I
 from ..debug.time import time
 

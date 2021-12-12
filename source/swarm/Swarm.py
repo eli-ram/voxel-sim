@@ -5,44 +5,25 @@ from OpenGL.GL.shaders import *  # type: ignore
 from OpenGL.arrays.vbo import *  # type: ignore
 import numpy as np
 
+from .shaders.swarmshader import ComputeCache, RenderCache
 from ..utils.types import int2
-from ..utils.shaders import shader, ShaderUniforms, ShaderAttributes
 from ..utils.texture import Texture2D, TextureSet
 from ..utils.directory import cwd, script_dir
 from ..utils.framebuffer import Framebuffer
 
 
-class RenderAttributes(ShaderAttributes):
-    position: int
-    velocity: int
-    direction: int
-
-class RenderUniforms(ShaderUniforms):
-    pass
-
-class ComputeAttributes(ShaderAttributes):
-    Source: int
-    agents: int
-
-class ComputeUniforms(ShaderUniforms):
-    environment: int
-    time: int
 
 class Swarm:
 
     @cwd(script_dir(__file__), 'shaders')
     def __init__(self, shape: int2):
-        self.compute = shader('swarm.comp')
-        self.render = shader('swarm.vert', 'swarm.geom', 'swarm.frag')
+        self.compute = ComputeCache.get()
+        self.render = RenderCache.get()
         self.textures = TextureSet(0, [
             Texture2D(shape),
             Texture2D(shape),
         ])
         self.framebuffer = Framebuffer()
-
-        self.render_attrs = RenderAttributes(self.render)()
-        self.compute_attr = ComputeAttributes(self.compute)()
-        self.compute_unif = ComputeUniforms(self.compute)()
 
     def set_size(self, size: int):
         # Prefer Multiples of 16 !
@@ -61,20 +42,19 @@ class Swarm:
         glLineWidth(1.0)
 
         item = data.itemsize
-        attr = self.render_attrs
-        with self.agents:
+        with self.agents, self.render as (A, _):
             stride = 4 * item
-            glVertexAttribPointer(attr.position, 2, GL_FLOAT, GL_FALSE, stride, ptr(0 * item))
-            glVertexAttribPointer(attr.direction, 1, GL_FLOAT, GL_FALSE, stride, ptr(2 * item))
-            glVertexAttribPointer(attr.velocity, 1, GL_FLOAT, GL_FALSE, stride, ptr(3 * item))
+            glVertexAttribPointer(A.position, 2, GL_FLOAT, GL_FALSE, stride, ptr(0 * item))
+            glVertexAttribPointer(A.direction, 1, GL_FLOAT, GL_FALSE, stride, ptr(2 * item))
+            glVertexAttribPointer(A.velocity, 1, GL_FLOAT, GL_FALSE, stride, ptr(3 * item))
 
             # TODO: find right location
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, self.agents)
 
     def update(self, time: float, delta: float):
 
-        with self.compute, self.textures:
-            glUniform1f(self.compute_unif.time, time)
+        with self.textures, self.compute as (_, U):
+            glUniform1f(U.time, time)
             glDispatchCompute(self.count // 16, 1, 1)
 
         self.textures.swap(0, 1)
@@ -82,7 +62,7 @@ class Swarm:
         glEnable(GL_BLEND)
         glBlendFunc(GL_ONE, GL_ONE)
         # glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-        with self.framebuffer, self.render, self.agents, self.render_attrs:
+        with self.framebuffer, self.agents, self.render:
             self.framebuffer.output(self.textures[0])
             # self.framebuffer.check()
             glDrawArrays(GL_POINTS, 0, self.count)

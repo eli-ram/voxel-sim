@@ -54,6 +54,10 @@ class Hierarchy:
         cls.BUFFER_MATRIX[...] = m
         return cls.BUFFER_MATRIX
 
+    @classmethod
+    def copy(cls, m: glm.mat4):
+        return cls.ptr(m).copy()
+
 
 @dataclass
 class OrbitCamera:

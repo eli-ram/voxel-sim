@@ -1,5 +1,5 @@
 import numpy as np
-from .wireframe import Geometry, SimpleMesh
+from .mesh.simplemesh import Geometry, SimpleMesh
 from pywavefront import (  # type: ignore
     wavefront as w,
     mesh as m,

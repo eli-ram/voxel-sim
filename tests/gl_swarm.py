@@ -35,7 +35,7 @@ class Swarm_Window(Window):
         ], np.float32)
 
         # conf smooth shader
-        self.u_fade = FadeUniforms(self.fade)()
+        self.u_fade = FadeUniforms(self.fade)
 
         @bind(self.fade)
         def diff(value: float):
@@ -48,7 +48,7 @@ class Swarm_Window(Window):
         self.decay = Animated(decay, 0.801, 0.001)
 
         # conf render shader
-        self.u_shader = RectUniforms(self.shader)()
+        self.u_shader = RectUniforms(self.shader)
 
         self.set_position(500, 10)
 

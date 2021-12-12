@@ -4,7 +4,7 @@ from source.math.scanline import IntRasterizer
 from timeit import default_timer as tick
 
 from gl_voxels import bone as get_bone
-from source.utils.wireframe import SimpleMesh
+from source.utils.wireframe.wireframe import SimpleMesh
 bone: SimpleMesh = get_bone()
 
 I = bone.indices.reshape(-1, 3)
@@ -16,7 +16,7 @@ size = (60, 60)
 raster = IntRasterizer(size)
 for tri in I:
     A, B, C = unpack(vertices[tri, :])
-    raster.rasterize(A, B, C)
+    raster.rasterize(A, B, C) # type: ignore
 stop = tick()
 
 total = stop - start
