@@ -1,13 +1,9 @@
-from ..utils.types import Array, U
 from ..data.colors import Color
-from ..data.voxels import Voxels, MaterialStore, int3, bool3
-from ..math.voxels2truss import voxels2truss
-from ..utils.matrices import Hierarchy
-from ..utils.wireframe.wireframe import Wireframe
-from ..utils.mesh.simplemesh import Geometry, SimpleMesh
+from ..data.voxels import Voxels, MaterialStore
+from ..utils.types import Array, F, T, I, int3, bool3, float3
+from ..debug.time import time
 from .render import VoxelRenderer
 import numpy as np
-import glm
 
 
 class VoxelProxy:
@@ -36,35 +32,42 @@ class VoxelProxy:
         M = self.materials[material]
         self.data.set_static(M, locks)
 
-    def add_box(self, offset: int3, strength: 'np.ndarray[np.float32]', material: str):
+    def set_force(self, material: str, force: float3):
         M = self.materials[material]
-        G = np.where(strength > 0.0, M.id, 0).astype(np.uint32) # type: ignore
-        I = np.nonzero(G)  # type: ignore
+        self.data.set_force(M, force)
+
+    @time("add-box")
+    def add_box(self, offset: int3, strength: 'Array[F]', material: str):
+        # Get material
+        M = self.materials[material]
+        # Get Material indices
+        I = np.where(strength > 0.0)  # type: ignore
+        # Get with offset
         O = tuple(i + o for i, o in zip(I, offset))
-        self.data.grid[O] = G[I]
+        # Set Material
+        self.data.grid[O] = M.id
+        # Set Strengths
         self.data.strength[O] = strength[I]
+        # Get Box slices
         S = strength.shape
         R = tuple(slice(o, o + s) for o, s in zip(offset, S))
-        B = self.data.grid[R]
-        self.graphics.setBox(offset, B.astype(np.float32))
+        B = self.data.grid[R].astype(np.float32)
+        # Update live preview
+        self.graphics.setBox(offset, B)
 
     def update_colors(self):
         self.graphics.colors.setData(self.materials.colors())
 
-    def render(self, h: Hierarchy):
-        self.graphics.render(h)
 
-    def get_mesh(self, color: glm.vec4):
-        # This resets internal state !
-        T = voxels2truss(self.data, exclude=['edges'])
-        M = SimpleMesh(T.nodes, T.edges, Geometry.Lines)
-        test(M.indices)
-        W = Wireframe(M, color, 1.0)
-        return W
+def remove_padding(strength: 'Array[T]'):
+    def span(V: 'Array[I]'):
+        return slice(V.min(), V.max() + 1)
+    X, Y, Z = np.where(strength > 0.0)  # type: ignore
+    x = span(X)
+    y = span(Y)
+    z = span(Z)
 
+    strength = strength[x, y, z]
+    offset = (x.start, y.start, z.start)
 
-def test(v: 'Array[U]'):
-    A = np.vstack([v, v[:, ::-1]])
-    _, C = np.unique(A, axis=0, return_counts=True)
-    assert np.max(C) == 1, \
-        "Mesh contains duplicate indices"
+    return offset, strength

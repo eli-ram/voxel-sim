@@ -70,21 +70,21 @@ class TrussBuilder:
         # Voxel Indices
         I = np.nonzero(voxels.grid) # type: ignore
         # Material Grid
-        self.grid = voxels.grid
+        self.nodes = voxels.grid > 0
         # Vertex Array
         self.vertices = np.vstack(I).astype(np.float32).transpose()
         self.vertices += np.float32(0.5)
         # Grid => Vertex Index
         self.index_table = np.zeros(voxels.shape, np.uint32)
         self.index_table[I] = range(len(self.vertices))
-        # Force Per Vertex
-        self.forces = voxels.forces[I]
         # Strength Per Vertex
         self.strength = voxels.strength[I]
-        # Static Locks Per Vertex
+        # Material Mapping
         Materials: slice = voxels.grid[I] # type: ignore
-        Mapping = voxels.static_map()
-        self.static = Mapping[Materials, :]
+        # Static Locks Per Vertex
+        self.static = voxels.static_map()[Materials, :]
+        # Forces Per Vertex
+        self.forces = voxels.force_map()[Materials, :]
 
     def run(self, offsets: list[int3]):
         for offset in offsets:
@@ -92,7 +92,7 @@ class TrussBuilder:
 
     def get_edges(self, offset: int3):
         A, B = get_ranges(self.shape, offset)
-        connectivity = self.grid[A] & self.grid[B]
+        connectivity = self.nodes[A] & self.nodes[B]
         connections = np.nonzero(connectivity)  # type: ignore
         a = self.index_table[A][connections]
         b = self.index_table[B][connections]
@@ -100,7 +100,7 @@ class TrussBuilder:
 
     def output(self) -> Truss:
         edges = np.vstack(self.edges)
-        areas = np.sum(self.strength[edges], axis=0) / 2
+        areas = np.sum(self.strength[edges], axis=1) / 2
         return Truss(
             nodes=self.vertices,
             forces=self.forces,

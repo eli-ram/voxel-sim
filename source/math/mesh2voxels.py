@@ -37,7 +37,7 @@ class Raster_Direction_3D(Enum):
 
     def reshape(self, shape: int3) -> int3:
         S = [shape[i] for i in self.value[0]]
-        return tuple(S) # type: ignore
+        return tuple(S)  # type: ignore
 
 
 class Z_Raster(IntRasterizer):
@@ -48,12 +48,12 @@ class Z_Raster(IntRasterizer):
         self.stride = shape[0]
         self.empty = np.zeros(0, np.float32)
         self.zhash: dict[int, 'Array[F]'] = \
-            DefaultDict(lambda:self.empty)
+            DefaultDict(lambda: self.empty)
         self.height = shape[2]
 
     def plot(self, x: int, y: int, z: float):
         I = x + y * self.stride
-        self.zhash[I] = np.append(self.zhash[I], z) # type: ignore
+        self.zhash[I] = np.append(self.zhash[I], z)  # type: ignore
 
     def get(self, I: int):
         x = I % self.stride
@@ -71,7 +71,7 @@ class Z_Raster(IntRasterizer):
 
         for tri in indices:
             A, B, C = vertices[tri, :]
-            self.rasterize(A, B, C) # type: ignore
+            self.rasterize(A, B, C)  # type: ignore
 
     def voxels(self):
         # Voxel Grid to fill / return
@@ -95,8 +95,6 @@ class Z_Raster(IntRasterizer):
             grid[x, y, :] = C % 2
 
         return grid
-
-
 
 
 class Rasterizer_3D:
@@ -311,7 +309,6 @@ def transform(mesh: SimpleMesh, transform: 'Array[F]'):
     return vertices, indices
 
 
-
 def mesh_2_voxels(vertices: 'Array[F]', indices: 'Array[I]', voxels: int3, direction: str = "Z") -> 'Array[np.bool_]':
     D = Raster_Direction_3D[direction]
 
@@ -330,6 +327,6 @@ def mesh_2_voxels(vertices: 'Array[F]', indices: 'Array[I]', voxels: int3, direc
     grid = rasterizer.voxels()
 
     # Restore grid from swizzling
-    grid: 'Array[F]' = grid.transpose(D.transpose) # type: ignore
+    grid: 'Array[F]' = grid.transpose(D.transpose)  # type: ignore
 
     return grid

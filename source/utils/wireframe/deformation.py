@@ -107,4 +107,4 @@ def test_case():
 
     M = SimpleMesh(T.nodes, T.edges, Geometry.Lines)
 
-    return DeformationWireframe(M, D, glm.vec4(1))
+    return DeformationWireframe(M, D, glm.vec4(1), 5.0)

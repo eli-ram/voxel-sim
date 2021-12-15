@@ -11,6 +11,6 @@ void main()
     float I = dist - abs(edge - dist);
     vec4 color = COLOR;
     // Make section of edge close to the node dark
-    color.rgb *= smoothstep(0.1, 0.15, I);
+    color.rgb *= smoothstep(0.01, 0.05, I);
     frag_color = color;
 }

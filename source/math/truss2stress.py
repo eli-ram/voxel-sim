@@ -1,5 +1,7 @@
 # pyright: reportConstantRedefinition=false
 from typing import Union, Any
+
+from source.debug.time import time
 from ..utils.types import Array, F, I
 from ..data.truss import Truss
 from scipy.sparse import (
@@ -90,9 +92,8 @@ def stress_matrix(truss: Truss, elasticity: float = 2E9):
     # Row wise outer product
     # to obtain stress kernels
     Q = outer_rows(D).reshape(D.shape[0], -1)
-    inplace_multiply(L, A)
-    inplace_multiply(L, elasticity)
-    inplace_multiply(Q, L[:, None])
+    O = L * A * elasticity
+    inplace_multiply(Q, O[:, None])
 
     # Accumulate node stress kernels
     C = np.zeros((N.shape[0], Q.shape[1]), np.float32)
@@ -181,10 +182,20 @@ def edge_stress(truss: Truss, DU: 'Array[F]', elasticity: float = 1E9):
 
     return S
 
+@time("fem-simulate")
 def fem_simulate(truss: Truss, elasticity: float = 1E9):
+    print("Building matrix")
     M = stress_matrix(truss, elasticity)
+    print("shape", M.shape)
+    print("Making vector")
+    # HUH!:
+    # scipy.sparse.linalg.factorized
     F = force_vector(truss)
+    print("forces", F.shape)
+    print("Solving sparse")
     U = solve(M, F)
+    print("Unpacking result")
     D = displacements(truss, U)
-    E = edge_stress(truss, D, elasticity)
+    # E = edge_stress(truss, D, elasticity)
+    E = None
     return D, E
