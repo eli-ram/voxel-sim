@@ -1,34 +1,91 @@
 # pyright: reportUnusedImport=false, reportUnusedFunction=false
-import asyncio
-from typing import Any
 import __init__
-import glm
-import numpy as np
-from source.data.colors import Colors
-from source.debug.time import time
-from source.interactive import Window
-from source.math.truss2stress import fem_simulate
-from source.math.voxels2truss import voxels2truss
-from source.utils.matrices import Hierarchy, OrbitCamera
-from source.utils.mesh.simplemesh import Geometry, SimpleMesh
-from source.utils.misc import random_box
-from source.utils.types import Array, T
 from source.utils.wireframe.deformation import DeformationWireframe, test_case
 from source.utils.wireframe.wireframe import Wireframe
+from source.utils.mesh.simplemesh import Geometry, SimpleMesh
 from source.utils.mesh.shapes import line_cube, origin, simplex
+from source.math.truss2stress import fem_simulate
+from source.math.voxels2truss import voxels2truss
 from source.utils.mesh_loader import loadMeshes
-from source.utils.directory import cwd, script_dir
 from source.math.mesh2voxels import mesh_2_voxels, transform
+from source.utils.directory import cwd, script_dir
+from source.utils.matrices import Hierarchy, OrbitCamera
 from source.voxels.proxy import VoxelProxy, remove_padding
+from source.utils.types import Array, T
+from source.data.colors import Colors
+from source.interactive import Window
+from source.debug.time import time
+from source.utils.misc import random_box
 from OpenGL.GL import *
+from typing import Any
 from random import random, choice
-
+from PIL import Image, ImageOps
+import numpy as np
+import asyncio
+import glm
 
 @cwd(script_dir(__file__), '..', 'meshes')
 @time("BONE")
 def bone():
     BONE, = loadMeshes('test_bone.obj')
     return BONE
+
+class Animator:
+    frames: list[Image.Image]
+    
+    def __init__(self, delta: float = 0.2):
+        self.recording = False
+        self.delta = delta
+
+    def record(self, r: bool):
+        if self.recording and not r:
+            self.save()
+        self.recording = r
+        self.time = -self.delta
+        self.frames = []
+
+    def resize(self, w: int, h: int):
+        self.offset = (0,0)
+        self.shape = (w, h)
+        self.frames = []
+
+    def update(self, time: float, delta: float):
+        if not self.recording:
+            return time, delta
+        self.time += self.delta
+        if self.time > 0.0:
+            self.frame()
+        return self.time, self.delta
+
+    def frame(self):
+        print("Saving frame @", self.time)
+        glPixelStorei(GL_PACK_ALIGNMENT, 1)
+        data = glReadPixels( # type: ignore
+            *self.offset,
+            *self.shape,
+            GL_RGBA,
+            GL_UNSIGNED_BYTE,
+        )
+        image = Image.frombytes( # type: ignore
+            'RGBA', 
+            self.shape,
+            data,
+        )
+        self.frames.append(ImageOps.flip(image))
+
+    @cwd(script_dir(__file__), '..', 'results')
+    def save(self):
+        print("Frames to save", len(self.frames))
+        if not self.frames:
+            return
+        image, *images = self.frames
+        image.save(
+            'animation.gif',
+            save_all=True,
+            append_images=images,
+            duration=self.time,
+            loop=0,
+        )
 
 
 class Voxels(Window):
@@ -49,6 +106,9 @@ class Voxels(Window):
             "red": Colors.RED,
             "gray": Colors.GRAY,
         })
+
+        # Store animator
+        self.animator = Animator()
 
         # Get list of materials
         self.materials = self.voxels.material_list()
@@ -125,6 +185,9 @@ class Voxels(Window):
         K.action("R")(lambda: T.run(self.wireframe()))
         K.action("B")(lambda: T.run(self.get_bone_voxels()))
 
+        # Bind animator recording
+        K.toggle("SPACE")(self.animator.record)
+
         self.add_other()
 
         async def ticks():
@@ -149,7 +212,7 @@ class Voxels(Window):
         self.voxels.add_box(offset, strength, "blue")
 
         strength = np.ones((5, 5, 1), np.float32) * 8.0
-        offset = (8, 12, 15)
+        offset = (9, 13, 15)
         self.voxels.set_force("red", (0, 0, -100))
         self.voxels.add_box(offset, strength, "red")
 
@@ -162,6 +225,7 @@ class Voxels(Window):
         print("Creating Mesh")
         M = SimpleMesh(truss.nodes, truss.edges, Geometry.Lines)
         D, _ = await DandE
+        # Render mesh even if simulation failed
         np.nan_to_num(D, copy=False)
         print("Creating Deformation")
         self.truss = DeformationWireframe(M, D, color, 2.0)
@@ -198,6 +262,7 @@ class Voxels(Window):
         self.add_other()
 
     def resize(self, width: int, height: int):
+        self.animator.resize(width, height)
         self.move_scale = 1 / max(width, height)
         glViewport(0, 0, width, height)
         self.matrices.SetPerspective(
@@ -218,17 +283,17 @@ class Voxels(Window):
         voxels.add_box(offset, strength - 0.35, material)
 
     def update(self, time: float, delta: float):
-        # Debug w random voxels
-        if random() * time < 0:
-            self.addVoxels()
+        # Let the animator control the time if it's recording
+        time, delta = self.animator.update(time, delta)
 
         # Update Camera Matrix
         self.matrices.V = self.camera.Compute()
 
         # Change deformation
         if hasattr(self, 'truss'):
-            D = (time % 40 - 5) / 30
-            self.truss.deformation = max(min(D, 1), 0) * 5.0
+            D = (time % 34 - 2) / 30
+            T = max(min(D, 1.0), 0.0)
+            self.truss.deformation = T * 5.0
 
     def render(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)  # type: ignore

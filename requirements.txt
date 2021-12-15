@@ -3,6 +3,7 @@ autopep8==1.5.7
 data-science-types==0.2.23
 glfw==2.1.0
 numpy==1.21.4
+Pillow==8.4.0
 pycodestyle==2.7.0
 PyGLM==2.5.4
 pyglm-typing==0.1.1
