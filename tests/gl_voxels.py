@@ -1,6 +1,7 @@
 # pyright: reportUnusedImport=false, reportUnusedFunction=false
 import __init__
-from source.utils.wireframe.deformation import DeformationWireframe, test_case
+from source.interactive.Animator import Animator
+from source.utils.wireframe.deformation import DeformationWireframe
 from source.utils.wireframe.wireframe import Wireframe
 from source.utils.mesh.simplemesh import Geometry, SimpleMesh
 from source.utils.mesh.shapes import line_cube, origin, simplex
@@ -13,16 +14,16 @@ from source.utils.matrices import Hierarchy, OrbitCamera
 from source.voxels.proxy import VoxelProxy, remove_padding
 from source.utils.types import Array, T
 from source.data.colors import Colors
-from source.interactive import Window
+from source.interactive import Window, Animator
 from source.debug.time import time
 from source.utils.misc import random_box
 from OpenGL.GL import *
 from typing import Any
-from random import random, choice
-from PIL import Image, ImageOps
+from random import choice
 import numpy as np
 import asyncio
 import glm
+
 
 @cwd(script_dir(__file__), '..', 'meshes')
 @time("BONE")
@@ -30,62 +31,12 @@ def bone():
     BONE, = loadMeshes('test_bone.obj')
     return BONE
 
-class Animator:
-    frames: list[Image.Image]
-    
-    def __init__(self, delta: float = 0.2):
-        self.recording = False
-        self.delta = delta
 
-    def record(self, r: bool):
-        if self.recording and not r:
-            self.save()
-        self.recording = r
-        self.time = -self.delta
-        self.frames = []
-
-    def resize(self, w: int, h: int):
-        self.offset = (0,0)
-        self.shape = (w, h)
-        self.frames = []
-
-    def update(self, time: float, delta: float):
-        if not self.recording:
-            return time, delta
-        self.time += self.delta
-        if self.time > 0.0:
-            self.frame()
-        return self.time, self.delta
-
-    def frame(self):
-        print("Saving frame @", self.time)
-        glPixelStorei(GL_PACK_ALIGNMENT, 1)
-        data = glReadPixels( # type: ignore
-            *self.offset,
-            *self.shape,
-            GL_RGBA,
-            GL_UNSIGNED_BYTE,
-        )
-        image = Image.frombytes( # type: ignore
-            'RGBA', 
-            self.shape,
-            data,
-        )
-        self.frames.append(ImageOps.flip(image))
-
-    @cwd(script_dir(__file__), '..', 'results')
-    def save(self):
-        print("Frames to save", len(self.frames))
-        if not self.frames:
-            return
-        image, *images = self.frames
-        image.save(
-            'animation.gif',
-            save_all=True,
-            append_images=images,
-            duration=self.time,
-            loop=0,
-        )
+def time_to_t(time: float, duration: float, padding: float):
+    MOD = duration + 2 * padding
+    D = (time % MOD) / duration
+    T = max(min(D, 1.0), 0.0)
+    return T
 
 
 class Voxels(Window):
@@ -108,7 +59,7 @@ class Voxels(Window):
         })
 
         # Store animator
-        self.animator = Animator()
+        self.animator = Animator('animation.gif', delta=0.5)
 
         # Get list of materials
         self.materials = self.voxels.material_list()
@@ -291,8 +242,7 @@ class Voxels(Window):
 
         # Change deformation
         if hasattr(self, 'truss'):
-            D = (time % 34 - 2) / 30
-            T = max(min(D, 1.0), 0.0)
+            T = time_to_t(time, 30, 3)
             self.truss.deformation = T * 5.0
 
     def render(self):

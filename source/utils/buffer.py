@@ -1,7 +1,7 @@
 from typing import Any, Literal
 from OpenGL.GL import *
 from OpenGL.arrays.vbo import VBO
-from OpenGL.arrays.numpymodule import NumpyHandler
+from OpenGL.arrays.numpymodule import NumpyHandler, ARRAY_TO_GL_TYPE_MAPPING # type: ignore
 from ctypes import c_void_p as ptr
 from dataclasses import dataclass
 
@@ -41,7 +41,8 @@ class BufferConfig:
         return size
 
     def element_type(self, array: 'Array[N]') -> Any:
-        return NumpyHandler.arrayToGLType(array)  # type: ignore
+        return ARRAY_TO_GL_TYPE_MAPPING[array.dtype] # type: ignore
+        # return NumpyHandler.arrayToGLType(array)  # type: ignore
 
     def element_stride(self, array: 'Array[N]'):
         if self.target == 'indices':
