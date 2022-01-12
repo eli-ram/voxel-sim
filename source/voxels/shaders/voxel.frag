@@ -24,8 +24,7 @@ void main() {
     // Check if valid voxel
     float voxel = texture(VOXELS, tex).r;
     if (voxel < 0.999) {
-        frag_color = vec4(0);
-        return;
+        discard;
     }
 
     // Get voxel color
