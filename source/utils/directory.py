@@ -3,6 +3,11 @@ from typing import Any, TypeVar
 from contextlib import contextmanager
 import os
 
+def require(base: str, *extra: str):
+    path = os.path.join(base, *extra)
+    os.makedirs(path, exist_ok=True)
+    return path
+
 @contextmanager
 def directory(base: str, *extra: str):
     path = os.path.join(base, *extra)
