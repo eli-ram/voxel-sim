@@ -2,7 +2,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, cast
 
-from ..utils.types import int2, float3
+from ...utils.types import int2, float3
 
 
 Point = TypeVar('Point')

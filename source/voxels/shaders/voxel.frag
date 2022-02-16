@@ -23,7 +23,7 @@ float box_outline(vec3 texel, float inset, float fade)
 void main() {
     // Check if valid voxel
     float voxel = texture(VOXELS, tex).r;
-    if (voxel < 0.999) {
+    if (voxel < 1.0) {
         discard;
     }
 

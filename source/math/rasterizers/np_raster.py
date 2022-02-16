@@ -1,8 +1,8 @@
 from collections import defaultdict
 
 from source.debug.time import time
-from ..utils.types import int3, Array, F, I
-from .linalg import unpack
+from ...utils.types import int3, Array, F, I
+from ..linalg import unpack
 import numpy as np
 import glm
 
@@ -34,6 +34,7 @@ class Z_Hash_Rasterizer:
     def rasterize(self, X: 'Array[F]', Y: 'Array[F]', Z: 'Array[F]'):
         x, y, _ = self.shape
 
+        # It may be possible to cut away tris before rasterizing...
         lx, hx = minmax(X, x)
         if lx == hx:
             return
@@ -45,6 +46,7 @@ class Z_Hash_Rasterizer:
         try:
             B, BX, BY = barycentric(X, Y)
         except ZeroDivisionError:
+            # Triangle spans zero area
             return 
             
         bz = glm.vec3(Z[0], Z[1], Z[2])
@@ -80,6 +82,8 @@ class Z_Hash_Rasterizer:
 
         assert vertices.shape[1] == 3, \
             " Vertices must be on the form [Nx3] to represent vertices !"
+
+        # TODO: vectorize check for tri outside of bounds
 
         for tri in indices:
             X, Y, Z = unpack(vertices[tri, :].transpose())
