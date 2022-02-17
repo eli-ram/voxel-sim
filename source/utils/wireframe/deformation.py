@@ -25,11 +25,11 @@ class DeformationWireframe:
         self.width = width
         self.deformation = 0.0
 
-    def render(self, h: Hierarchy):
+    def render(self, m: Hierarchy):
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
         glLineWidth(self.width)
         with self.shader as (A, U):
-            glUniformMatrix4fv(U.MVP, 1, GL_TRUE, h.ptr(h.MVP))
+            glUniformMatrix4fv(U.MVP, 1, GL_TRUE, m.ptr(m.MVP))
             glUniform4fv(U.COLOR, 1, self.color)
             glUniform1f(U.DEFORMATION, self.deformation)
             with self.buffer as (pos, offset):

@@ -63,6 +63,8 @@ class Animator:
             return
         image, *images = self.frames
         with directory(self.PATH):
+            if os.path.exists(self.filename):
+                print(f"Overwriting {self.filename} !")
             image.save(
                 self.filename,
                 save_all=True,

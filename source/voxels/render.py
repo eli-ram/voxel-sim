@@ -84,11 +84,11 @@ class VoxelRenderer:
     def clearBox(self, pos: int3, shape: int3):
         self.voxels.setPixels(pos, np.zeros(shape, dtype=np.float32))
 
-    def getLayerDirection(self, h: Hierarchy) -> int:
-        DIR = h.GetCameraDirection()
+    def getLayerDirection(self, m: Hierarchy) -> int:
+        DIR = m.GetCameraDirection()
         return np.argmax([-DIR, DIR])
 
-    def render(self, h: Hierarchy):
+    def render(self, m: Hierarchy):
         # Make sure blending is enabled
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
@@ -98,12 +98,12 @@ class VoxelRenderer:
         self.colors.bind(1)
 
         # Calculate full MVP transform
-        MVP = h.MVP * self.transform
+        MVP = m.MVP * self.transform
 
         # Bind Uniforms & Render
         with self.shader as (A, U):
-            glUniformMatrix4fv(U.MVP, 1, GL_TRUE, h.ptr(MVP))
-            glUniform1i(U.LAYER_DIR, self.getLayerDirection(h))
+            glUniformMatrix4fv(U.MVP, 1, GL_TRUE, m.ptr(MVP))
+            glUniform1i(U.LAYER_DIR, self.getLayerDirection(m))
             # TODO: scale alpha by voxel-layer-ratio ?
             glUniform1f(U.MOD_ALPHA, self.alpha)
             glUniform1i(U.ENB_OUTLINE, self.outline)

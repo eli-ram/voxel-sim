@@ -10,11 +10,11 @@ from source.math.voxels2truss import voxels2truss
 from source.utils.mesh_loader import loadMeshes
 from source.math.mesh2voxels import mesh_2_voxels, transform
 from source.utils.directory import cwd, script_dir
-from source.utils.matrices import Hierarchy, OrbitCamera
+from source.utils.matrices import OrbitCamera
 from source.voxels.proxy import VoxelProxy, remove_padding
 from source.utils.types import Array, T
 from source.data.colors import Colors
-from source.interactive import Window, Animator
+from source.interactive import Window, Animator, Base, Scene, Void, Transform
 from source.debug.time import time
 from source.utils.misc import random_box
 from OpenGL.GL import *
@@ -41,10 +41,10 @@ def time_to_t(time: float, duration: float, padding: float):
 
 class Voxels(Window):
 
+    BONE = False
+
     def setup(self):
-        glEnable(GL_DEPTH_TEST)
-        glClearColor(0.4, 0.4, 0.8, 1.0)
-        self.matrices = Hierarchy()
+        self.scene = Base((0.3, 0.2, 0.5))
         self.camera = OrbitCamera(
             distance=1.25,
             svivel_speed=0.005,
@@ -55,7 +55,7 @@ class Voxels(Window):
             "blue": Colors.BLUE,
             "green": Colors.GREEN,
             "red": Colors.RED,
-            "gray": Colors.GRAY,
+            "gray" : Colors.GRAY,
         })
 
         # Store animator
@@ -64,47 +64,55 @@ class Voxels(Window):
         # Get list of materials
         self.materials = self.voxels.material_list()
 
-        # 3D-crosshair for camera
-        self.origin = Wireframe(origin(0.05), glm.vec4(1, 0.5, 0, 1), 1.0)
-
         # Outline for Voxels
-        self.cube = Wireframe(line_cube(), glm.vec4(0, 0, 0, 1), 1.0)
+        self.scene.add(Wireframe(line_cube(), glm.vec4(0, 0, 0, 1), 1.0))
 
-        # Bone Model
-        # TODO: async load
-        # self.bone_mesh = bone()
-        self.bone_mesh = simplex()
-        self.bone = Wireframe(
-            self.bone_mesh,
-            glm.vec4(0.8, 0.8, 1, 1),
-            2.0,
+        # 3D-crosshair for camera
+        self.move_cross = Transform(
+            transform=glm.mat4(),
+            mesh=Wireframe(origin(0.05), glm.vec4(1, 0.5, 0, 1), 1.0),
+            hidden=True,
         )
+        self.scene.add(self.move_cross)
 
-        # self.deformation = test_case()
+        if self.BONE:
+            # Load Bone Model
+            self.s_mesh = bone()
+            self.t_mesh = (
+                glm.translate(glm.vec3(0.5, 0.5, -1.8)) *
+                glm.scale(glm.vec3(0.5)) *
+                glm.translate(glm.vec3(0, 0, -0.01)) *
+                glm.rotate(glm.pi() / 2, glm.vec3(1, 0, 0))
+            )
 
-        # Cache transforms
+        else:
+            # Load Simplex Model
+            self.s_mesh = simplex()
+            self.t_mesh = (
+                glm.translate(glm.vec3(0.1, 0.1, 0.2)) *
+                glm.scale(glm.vec3(0.9)) *
+                glm.rotate(glm.radians(10.0), glm.vec3(0, 0, 1))
+            )
+
+        self.mesh = Transform(
+            transform=self.t_mesh,
+            mesh=Wireframe(self.s_mesh, glm.vec4(0.8, 0.8, 1, 1), 2.0),
+        )
+        self.scene.add(self.mesh)
 
         # Normalze Voxel grid (0 -> N) => (0.0 -> 1.0)
         self.t_norm = glm.scale(glm.vec3(1/max(*shape)))
-        """
-        self.t_bone = (
-            glm.translate(glm.vec3(0.5, 0.5, -1.8)) *
-            glm.scale(glm.vec3(0.5)) *
-            glm.translate(glm.vec3(0, 0, -0.01)) *
-            glm.rotate(glm.pi() / 2, glm.vec3(1, 0, 0))
+        self.norm = Scene(
+            transform=self.t_norm,
+            children=[Void(), self.voxels.graphics]
         )
-        """
-        self.t_bone = (
-            glm.translate(glm.vec3(0.1, 0.1, 0.2)) *
-            glm.scale(glm.vec3(0.9)) *
-            glm.rotate(glm.radians(10.0), glm.vec3(0, 0, 1))
-        )
+        self.scene.add(self.norm)
+
 
         # Some internal state
-        self.alphas = np.power(np.linspace(1.0, 0.0, 6), 3)  # type: ignore
+        self.alphas = np.power(np.linspace(1.0, 0.0, 6), 2)  # type: ignore
         self.move_mode = False
         self.move_active = False
-        self.show_bone = True
 
         # Getting Vars
         K = self.keys
@@ -113,8 +121,8 @@ class Voxels(Window):
 
         # Toggle Bone
         @K.action("H")
-        def show():
-            self.show_bone = not self.show_bone
+        def show_mesh():
+            self.mesh.hidden = not self.mesh.hidden
 
         # Bind camera controls
         @K.toggle("LEFT_CONTROL")
@@ -123,6 +131,7 @@ class Voxels(Window):
 
         @B.toggle("LEFT")
         def active(a: bool):
+            self.move_cross.hidden = not a
             self.move_active = a
 
         # Bind alpha controls
@@ -180,16 +189,17 @@ class Voxels(Window):
         np.nan_to_num(D, copy=False)
         print("Creating Deformation")
         self.truss = DeformationWireframe(M, D, color, 2.0)
+        self.norm.children[0] = self.truss
         print("Truss deformation created")
 
     async def get_bone_voxels(self):
         print("get-bone-voxels")
         import numpy as np
-        t = glm.affineInverse(self.t_norm) * self.t_bone
-        t = self.matrices.copy(t)[:3, :]
+        t = glm.affineInverse(self.t_norm) * self.t_mesh
+        t = self.scene.stack.copy(t)[:3, :]
         T = self.tasks
         S = self.voxels.data.shape
-        V, I = await T.parallel(transform, self.bone_mesh, t)
+        V, I = await T.parallel(transform, self.s_mesh, t)
 
         def grid(D: str):
             G = mesh_2_voxels(V, I, S, D)
@@ -216,7 +226,7 @@ class Voxels(Window):
         self.animator.resize(width, height)
         self.move_scale = 1 / max(width, height)
         glViewport(0, 0, width, height)
-        self.matrices.SetPerspective(
+        self.scene.stack.SetPerspective(
             fovy=glm.radians(45.0),
             aspect=(width / height),
             near=0.01,
@@ -238,7 +248,8 @@ class Voxels(Window):
         time, delta = self.animator.update(time, delta)
 
         # Update Camera Matrix
-        self.matrices.V = self.camera.Compute()
+        self.scene.stack.V = self.camera.Compute()
+        self.move_cross.transform = glm.translate(self.camera.center)
 
         # Change deformation
         if hasattr(self, 'truss'):
@@ -246,31 +257,7 @@ class Voxels(Window):
             self.truss.deformation = T * 5.0
 
     def render(self):
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)  # type: ignore
-        M = self.matrices
-        # Render Opaque first
-
-        self.cube.render(M)
-
-        # Render origin when navigating
-        if self.move_active:
-            with M.Push(glm.translate(self.camera.center)):
-                self.origin.render(M)
-
-        # Render Bone Mesh
-        if self.show_bone:
-            with M.Push(self.t_bone):
-                self.bone.render(M)
-
-        # Render Normalized geometry
-        with M.Push(self.t_norm):
-
-            # Render Truss mesh
-            if hasattr(self, 'truss'):
-                self.truss.render(M)
-
-            # Render Transparent last
-            self.voxels.graphics.render(M)
+        self.scene.render()
 
     def move(self, dx: float, dy: float):
         if self.move_mode:
