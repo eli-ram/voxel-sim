@@ -8,10 +8,10 @@ from source.utils.mesh.shapes import line_cube, origin, simplex
 from source.math.truss2stress import fem_simulate
 from source.math.voxels2truss import voxels2truss
 from source.utils.mesh_loader import loadMeshes
-from source.math.mesh2voxels import mesh_2_voxels, transform
+from source.math.mesh2voxels import mesh_to_voxels
 from source.utils.directory import cwd, script_dir
 from source.utils.matrices import Hierarchy, OrbitCamera
-from source.voxels.proxy import VoxelProxy, remove_padding
+from source.voxels.proxy import VoxelProxy, remove_padding_grid
 from source.utils.types import Array, T
 from source.data.colors import Colors
 from source.interactive import Window, Animator
@@ -184,33 +184,23 @@ class Voxels(Window):
 
     async def get_bone_voxels(self):
         print("get-bone-voxels")
-        import numpy as np
-        t = glm.affineInverse(self.t_norm) * self.t_bone
-        t = self.matrices.copy(t)[:3, :]
-        T = self.tasks
-        S = self.voxels.data.shape
-        V, I = await T.parallel(transform, self.bone_mesh, t)
+        def compute():
+            import numpy as np
+            transform = glm.affineInverse(self.t_norm) * self.t_bone
+            offset, grid = mesh_to_voxels(
+                self.bone_mesh,
+                self.matrices.copy(transform)[:3, :],
+                self.voxels.data.shape
+            )
+            strength = np.where(grid, np.float32(0.5), np.float32(0.0))  # type: ignore
+            return offset, strength
 
-        def grid(D: str):
-            G = mesh_2_voxels(V, I, S, D)
-            return G.astype(np.float32)
+        def complete(values: Any):
+            offset, strength = values
+            self.voxels.add_box(offset, strength, "gray")
+            self.add_other()
 
-        X = T.parallel(grid, "X")
-        Y = T.parallel(grid, "Y")
-        Z = T.parallel(grid, "Z")
-
-        def combine(X: 'Array[T]', Y: 'Array[T]', Z: 'Array[T]'):
-            G = X + Y + Z
-            S = np.float32(0.5)
-            O = np.float32(0.0)
-            # Patch out errors by requiring best of 3
-            strength = np.where(G > 1.0, S, O)  # type: ignore
-            # Reduce later operation complexity
-            return remove_padding(strength)
-
-        offset, strength = await T.parallel(combine, await X, await Y, await Z)
-        self.voxels.add_box(offset, strength, "gray")
-        self.add_other()
+        self.task_queue.run(compute, complete)
 
     def resize(self, width: int, height: int):
         self.animator.resize(width, height)

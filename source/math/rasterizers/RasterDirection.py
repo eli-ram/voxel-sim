@@ -1,4 +1,5 @@
-from ...utils.types import int3
+from typing import Any
+from ...utils.types import int3, Array
 from enum import Enum
 
 class Raster_Direction_3D(Enum):
@@ -10,9 +11,8 @@ class Raster_Direction_3D(Enum):
     def swizzle(self) -> slice:
         return self.value[0]
 
-    @property
-    def transpose(self) -> int3:
-        return self.value[1]
+    def transpose(self, grid: Array[Any]) -> Array[Any]:
+        return grid.transpose(self.value[1])
 
     def reshape(self, shape: int3) -> int3:
         S = [shape[i] for i in self.value[0]]

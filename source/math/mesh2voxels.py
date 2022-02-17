@@ -1,4 +1,7 @@
+from typing import Tuple
 import numpy as np
+
+from source.voxels.proxy import remove_padding_grid
 from .rasterizers.np_raster import Z_Hash_Rasterizer
 from .rasterizers.RasterDirection import Raster_Direction_3D
 
@@ -15,8 +18,15 @@ Resources:
 
 """
 
+def mesh_to_voxels(mesh: SimpleMesh, transform: 'Array[F]', voxels: int3) -> 'Tuple[int3, Array[np.bool_]]':
+    V, I = _transform(mesh, transform)
+    Z = _rasterize(V, I, voxels, 'Z')
+    X = _rasterize(V, I, voxels, 'X')
+    Y = _rasterize(V, I, voxels, 'Y')
+    return remove_padding_grid(Z & X & Y)
+ 
 
-def transform(mesh: SimpleMesh, transform: 'Array[F]'):
+def _transform(mesh: SimpleMesh, transform: 'Array[F]'):
     assert mesh.geometry == Geometry.Triangles, \
         " Mesh must be made up of triangles! "
 
@@ -34,13 +44,12 @@ def transform(mesh: SimpleMesh, transform: 'Array[F]'):
     return vertices, indices
 
 
-def mesh_2_voxels(vertices: 'Array[F]', indices: 'Array[I]', voxels: int3, direction: str = "Z") -> 'Array[np.bool_]':
+def _rasterize(vertices: 'Array[F]', indices: 'Array[I]', voxels: int3, direction: str = "Z") -> 'Array[np.bool_]':
     D = Raster_Direction_3D[direction]
 
     # Init rasterizer
-    # rasterizer = Rasterizer_3D(D.reshape(voxels))
-    # rasterizer = Z_Raster(D.reshape(voxels))
-    rasterizer = Z_Hash_Rasterizer(D.reshape(voxels))
+    # Tested to be the 'fastest'
+    rasterizer = Z_Hash_Rasterizer(D.reshape(voxels)) 
 
     print("[#] Wide Triangles")
     # Potential Parallel-For
@@ -52,6 +61,4 @@ def mesh_2_voxels(vertices: 'Array[F]', indices: 'Array[I]', voxels: int3, direc
     grid = rasterizer.voxels()
 
     # Restore grid from swizzling
-    grid: 'Array[F]' = grid.transpose(D.transpose)  # type: ignore
-
-    return grid
+    return D.transpose(grid)

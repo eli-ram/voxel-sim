@@ -2,7 +2,7 @@
 from typing import Any
 
 from source.interactive.Buttons import Buttons
-from source.interactive.Tasks import Tasks
+from source.interactive.Tasks import TaskQueue, Tasks
 from .Context import glfw, UninitializedException
 from .Keys import Keys
 from dataclasses import dataclass
@@ -28,6 +28,7 @@ class Window:
         self.keys = k = Keys()
         self.buttons = Buttons()
         self.tasks = Tasks()
+        self.task_queue = TaskQueue()
 
         # Binding some default actions
         k.action("ESCAPE")(self.close)
@@ -57,23 +58,12 @@ class Window:
     def set_position(self, x: int, y: int):
         glfw.set_window_pos(self.window, x, y)
 
-    def setup(self):
-        pass
-
-    def resize(self, width: int, height: int):
-        pass
-
-    def update(self, time: float, delta: float):
-        pass
-
-    def render(self):
-        pass
-
-    def cursor(self, x: float, y: float, dx: float, dy: float):
-        pass
-
-    def scroll(self, value: float):
-        pass
+    def setup(self): ...
+    def resize(self, width: int, height: int): ...
+    def update(self, time: float, delta: float): ...
+    def render(self): ...
+    def cursor(self, x: float, y: float, dx: float, dy: float): ...
+    def scroll(self, value: float): ...
 
     def start(self):
         self.tasks.run_main_loop(self.spin())
@@ -92,6 +82,7 @@ class Window:
             self.frame()
             glfw.poll_events()
             await self.tasks.poll()
+            self.task_queue.update()
 
     def frame(self):
         now = glfw.get_time()
