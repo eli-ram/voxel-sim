@@ -24,7 +24,7 @@ class Swarm_Window(Window):
         # glEnable(GL_DEPTH_TEST)
         glClearColor(0.0, 0.0, 0.0, 1.0)
         self.swarm = Swarm((SIZE, SIZE))
-        self.swarm.set_size(10_000)
+        self.swarm.set_size(1_000)
         self.fade = shader('fade.comp')
         self.shader = shader('rect.frag', 'rect.vert')
         self.square = np.array([  # type: ignore

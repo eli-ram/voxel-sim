@@ -188,7 +188,6 @@ def fem_simulate(truss: Truss, elasticity: float = 1E9):
     M = stress_matrix(truss, elasticity)
     print("shape", M.shape)
     print("Making vector")
-    # HUH!:
     # scipy.sparse.linalg.factorized
     F = force_vector(truss)
     print("forces", F.shape)

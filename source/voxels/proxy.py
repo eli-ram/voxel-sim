@@ -59,15 +59,34 @@ class VoxelProxy:
         self.graphics.colors.setData(self.materials.colors())
 
 
-def remove_padding(strength: 'Array[T]'):
-    def span(V: 'Array[I]'):
-        return slice(V.min(), V.max() + 1)
+def _span(V: 'Array[I]'):
+    return slice(V.min(), V.max() + 1)
+
+
+def remove_padding_strength(strength: 'Array[T]'):
     X, Y, Z = np.where(strength > 0.0)  # type: ignore
-    x = span(X)
-    y = span(Y)
-    z = span(Z)
+    x = _span(X)
+    y = _span(Y)
+    z = _span(Z)
 
     strength = strength[x, y, z]
     offset = (x.start, y.start, z.start)
 
     return offset, strength
+
+
+def remove_padding_grid(grid: 'Array[np.bool_]'):
+    def span(a: int, b: int):
+        B = np.any(grid, axis=(a, b)) # type: ignore
+        l = np.argmax(B[::+1])  # type: ignore
+        h = np.argmax(B[::-1])  # type: ignore
+        return slice(l, -h)
+
+    x = span(1, 2)
+    y = span(0, 2)
+    z = span(0, 1)
+
+    grid = grid[x, y, z]
+    offset = (x.start, y.start, z.start)
+
+    return offset, grid
