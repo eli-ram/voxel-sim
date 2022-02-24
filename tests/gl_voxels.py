@@ -1,9 +1,9 @@
 # pyright: reportUnusedImport=false, reportUnusedFunction=false
 import __init__
-from source.interactive.Animator import Animator
 from source.utils.wireframe.deformation import DeformationWireframe
 from source.utils.wireframe.wireframe import Wireframe
 from source.utils.mesh.simplemesh import Geometry, SimpleMesh
+from source.interactive.Animator import Animator
 from source.utils.mesh.shapes import line_cube, origin, simplex
 from source.math.truss2stress import fem_simulate
 from source.math.voxels2truss import voxels2truss
@@ -12,15 +12,16 @@ from source.math.mesh2voxels import mesh_to_voxels
 from source.utils.directory import cwd, script_dir
 from source.utils.matrices import Hierarchy, OrbitCamera
 from source.voxels.proxy import VoxelProxy
+from source.utils.types import Array, F
 from source.data.colors import Colors
 from source.interactive import Window, Animator, Base, Scene, Void, Transform
+from source.data.truss import Truss
 from source.debug.time import time
 from source.utils.misc import random_box
 from OpenGL.GL import *
-from typing import Any
+from typing import Any, Tuple
 from random import choice
 import numpy as np
-import asyncio
 import glm
 
 
@@ -41,6 +42,7 @@ def time_to_t(time: float, duration: float, padding: float):
 class Voxels(Window):
 
     BONE = False
+    truss: DeformationWireframe
 
     def setup(self):
         self.scene = Base((0.3, 0.2, 0.5))
@@ -116,7 +118,6 @@ class Voxels(Window):
         # Getting Vars
         K = self.keys
         B = self.buttons
-        T = self.tasks
 
         # Toggle Bone
         @K.action("H")
@@ -141,21 +142,13 @@ class Voxels(Window):
         K.action("O")(self.voxels.toggle_outline)
 
         # Bind other controls
-        K.action("R")(lambda: T.run(self.wireframe()))
-        K.action("B")(lambda: T.run(self.get_bone_voxels()))
+        K.action("R")(self.wireframe)
+        K.action("B")(self.get_bone_voxels)
 
         # Bind animator recording
         K.toggle("SPACE")(self.animator.record)
 
         self.add_other()
-
-        async def ticks():
-            b = False
-            while True:
-                print("tick" if (b := not b) else "tock")
-                await asyncio.sleep(10)
-
-        T.run(ticks())
 
     def alpha(self, up: bool):
         step = 1 if up else -1
@@ -175,24 +168,33 @@ class Voxels(Window):
         self.voxels.set_force("red", (0, 0, -100))
         self.voxels.add_box(offset, strength, "red")
 
-    async def wireframe(self):
-        color = glm.vec4(0.8, 0.8, 1, 1)
-        print("Building Truss")
-        truss = await self.tasks.parallel(voxels2truss, self.voxels.data)
-        print("Simulating Truss")
-        DandE = self.tasks.parallel(fem_simulate, truss, 1E3)
-        print("Creating Mesh")
-        M = SimpleMesh(truss.nodes, truss.edges, Geometry.Lines)
-        D, _ = await DandE
-        # Render mesh even if simulation failed
-        np.nan_to_num(D, copy=False)
-        print("Creating Deformation")
-        self.truss = DeformationWireframe(M, D, color, 2.0)
-        self.norm.children[0] = self.truss
-        print("Truss deformation created")
+    def wireframe(self):
+        print("wireframe")
 
-    async def get_bone_voxels(self):
+        def build():
+            print("Building Truss")
+            truss = voxels2truss(self.voxels.data)
+            print("Simulating Truss")
+            D, _ = fem_simulate(truss, 1E3)
+            print("Creating Mesh")
+            # Render mesh even if simulation failed
+            np.nan_to_num(D, copy=False)
+            return truss, D
+
+        def resolve(bundle: 'Tuple[Truss, Array[F]]'):
+            print("Creating Deformation")
+            truss, D = bundle
+            color = glm.vec4(0.8, 0.8, 1, 1)
+            M = SimpleMesh(truss.nodes, truss.edges, Geometry.Lines)
+            self.truss = DeformationWireframe(M, D, color, 2.0)
+            self.norm.children[0] = self.truss
+            print("Truss deformation created")
+
+        self.task_queue.run(build, resolve)
+
+    def get_bone_voxels(self):
         print("get-bone-voxels")
+
         def compute():
             import numpy as np
             transform = glm.affineInverse(self.t_norm) * self.t_mesh
