@@ -11,8 +11,7 @@ from source.utils.mesh_loader import loadMeshes
 from source.math.mesh2voxels import mesh_to_voxels
 from source.utils.directory import cwd, script_dir
 from source.utils.matrices import Hierarchy, OrbitCamera
-from source.voxels.proxy import VoxelProxy, remove_padding_grid
-from source.utils.types import Array, T
+from source.voxels.proxy import VoxelProxy
 from source.data.colors import Colors
 from source.interactive import Window, Animator, Base, Scene, Void, Transform
 from source.debug.time import time
@@ -50,7 +49,7 @@ class Voxels(Window):
             svivel_speed=0.005,
         )
         shape = (32, 32, 32)
-        resolution = 2**10
+        resolution = 2**7
         self.voxels = VoxelProxy(shape, resolution, {
             "blue": Colors.BLUE,
             "green": Colors.GREEN,

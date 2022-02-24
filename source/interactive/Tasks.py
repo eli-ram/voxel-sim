@@ -42,7 +42,7 @@ class FunctionalTask(Task):
         self._complete = complete
 
     def compute(self):
-        self._value = self.compute()
+        self._value = self._compute()
 
     def complete(self):
         self._complete(self._value)
