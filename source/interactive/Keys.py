@@ -38,7 +38,7 @@ class Keys:
                 if press:
                     func()
             self.lut[key] = trigger
-            return func
+            return None
         return call
 
     def trigger(self, key: int, code: int, action: int, mods: int):

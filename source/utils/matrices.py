@@ -68,6 +68,7 @@ class OrbitCamera:
     distance: float = 1.0
     svivel_speed: float = 1.0
     move_speed: float = 0.001
+    pan_mode: bool = False
 
     @property
     def dir(self):
@@ -75,6 +76,9 @@ class OrbitCamera:
         h_s, v_s = glm.sin(V)
         h_c, v_c = glm.cos(V)
         return glm.vec3(v_c * h_s, v_c * h_c, v_s)
+
+    def SetPan(self, pan: bool):
+        self.pan_mode = pan
 
     def Svivel(self, h_delta: float, v_delta: float):
         # Adjust angles with camera speed
@@ -111,6 +115,12 @@ class OrbitCamera:
         e = 1E-10
         if self.distance < e:
             self.distance = e
+
+    def Cursor(self, dx: float, dy: float):
+        if self.pan_mode:
+            self.Move(dx, dy)
+        else:
+            self.Svivel(dx, dy)
 
     def Compute(self):
         eye = self.center + self.dir * self.distance

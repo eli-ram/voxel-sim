@@ -2,7 +2,7 @@
 from typing import Any
 
 from source.interactive.Buttons import Buttons
-from source.interactive.Tasks import TaskQueue, Tasks
+from source.interactive.Tasks import TaskQueue
 from .Context import glfw, UninitializedException
 from .Keys import Keys
 from dataclasses import dataclass
@@ -25,14 +25,13 @@ class Window:
     def __init__(self, width: int, height: int, title: str):
         self.window = glfw.create_window(width, height, title, None, None)
         UninitializedException.check(self.window, "window")
-        self.keys = k = Keys()
+        self.keys = Keys()
         self.buttons = Buttons()
-        self.tasks = Tasks()
-        self.task_queue = TaskQueue()
+        self.tasks = TaskQueue()
 
         # Binding some default actions
-        k.action("ESCAPE")(self.close)
-        k.action("F11")(self.toggle_fullscreen)
+        self.keys.action("ESCAPE")(self.close)
+        self.keys.action("F11")(self.toggle_fullscreen)
 
         # Binding event callbacks
         glfw.make_context_current(self.window)
@@ -65,10 +64,7 @@ class Window:
     def cursor(self, x: float, y: float, dx: float, dy: float): ...
     def scroll(self, value: float): ...
 
-    def start(self):
-        self.tasks.run_main_loop(self.spin())
-
-    async def spin(self):
+    def spin(self):
         window = self.window
 
         glfw.make_context_current(window)
@@ -81,8 +77,7 @@ class Window:
         while not glfw.window_should_close(window):
             self.frame()
             glfw.poll_events()
-            await self.tasks.poll()
-            self.task_queue.update()
+            self.tasks.update()
 
     def frame(self):
         now = glfw.get_time()
@@ -162,4 +157,4 @@ class Window:
 
 if __name__ == '__main__':
     window = Window(800, 800, "Test-Window")
-    window.start()
+    window.spin()

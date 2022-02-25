@@ -12,15 +12,13 @@ from source.math.mesh2voxels import mesh_to_voxels
 from source.utils.directory import cwd, script_dir
 from source.utils.matrices import Hierarchy, OrbitCamera
 from source.voxels.proxy import VoxelProxy
-from source.utils.types import Array, F
+from source.utils.types import Array, F, int3
 from source.data.colors import Colors
 from source.interactive import Window, Animator, Base, Scene, Void, Transform
 from source.data.truss import Truss
 from source.debug.time import time
-from source.utils.misc import random_box
 from OpenGL.GL import *
-from typing import Any, Tuple
-from random import choice
+from typing import Tuple
 import numpy as np
 import glm
 
@@ -30,6 +28,29 @@ import glm
 def bone():
     BONE, = loadMeshes('test_bone.obj')
     return BONE
+
+
+def mesh(get_bone: bool):
+    if get_bone:
+        # Load Bone Model
+        s_mesh = bone()
+        t_mesh = (
+            glm.translate(glm.vec3(0.5, 0.5, -1.8)) *
+            glm.scale(glm.vec3(0.5)) *
+            glm.translate(glm.vec3(0, 0, -0.01)) *
+            glm.rotate(glm.pi() / 2, glm.vec3(1, 0, 0))
+        )
+
+    else:
+        # Load Simplex Model
+        s_mesh = simplex()
+        t_mesh = (
+            glm.translate(glm.vec3(0.1, 0.1, 0.2)) *
+            glm.scale(glm.vec3(0.9)) *
+            glm.rotate(glm.radians(10.0), glm.vec3(0, 0, 1))
+        )
+
+    return s_mesh, t_mesh
 
 
 def time_to_t(time: float, duration: float, padding: float):
@@ -56,7 +77,7 @@ class Voxels(Window):
             "blue": Colors.BLUE,
             "green": Colors.GREEN,
             "red": Colors.RED,
-            "gray" : Colors.GRAY,
+            "gray": Colors.GRAY,
         })
 
         # Store animator
@@ -76,43 +97,23 @@ class Voxels(Window):
         )
         self.scene.add(self.move_cross)
 
-        if self.BONE:
-            # Load Bone Model
-            self.s_mesh = bone()
-            self.t_mesh = (
-                glm.translate(glm.vec3(0.5, 0.5, -1.8)) *
-                glm.scale(glm.vec3(0.5)) *
-                glm.translate(glm.vec3(0, 0, -0.01)) *
-                glm.rotate(glm.pi() / 2, glm.vec3(1, 0, 0))
-            )
+        self.mesh, matrix = mesh(self.BONE)
 
-        else:
-            # Load Simplex Model
-            self.s_mesh = simplex()
-            self.t_mesh = (
-                glm.translate(glm.vec3(0.1, 0.1, 0.2)) *
-                glm.scale(glm.vec3(0.9)) *
-                glm.rotate(glm.radians(10.0), glm.vec3(0, 0, 1))
-            )
-
-        self.mesh = Transform(
-            transform=self.t_mesh,
-            mesh=Wireframe(self.s_mesh, glm.vec4(0.8, 0.8, 1, 1), 2.0),
+        self.model = Transform(
+            transform=matrix,
+            mesh=Wireframe(self.mesh, glm.vec4(0.8, 0.8, 1, 1), 2.0),
         )
-        self.scene.add(self.mesh)
+        self.scene.add(self.model)
 
         # Normalze Voxel grid (0 -> N) => (0.0 -> 1.0)
-        self.t_norm = glm.scale(glm.vec3(1/max(*shape)))
-        self.norm = Scene(
-            transform=self.t_norm,
+        self.box = Scene(
+            transform=glm.scale(glm.vec3(1/max(*shape))),
             children=[Void(), self.voxels.graphics]
         )
-        self.scene.add(self.norm)
-
+        self.scene.add(self.box)
 
         # Some internal state
-        self.alphas = np.power(np.linspace(1.0, 0.0, 6), 2)  # type: ignore
-        self.move_mode = False
+        self.alphas: 'Array[F]' = np.power(np.linspace(1.0, 0.0, 6), 2)  # type: ignore
         self.move_active = False
 
         # Getting Vars
@@ -122,12 +123,10 @@ class Voxels(Window):
         # Toggle Bone
         @K.action("H")
         def show_mesh():
-            self.mesh.hidden = not self.mesh.hidden
+            self.model.hidden = not self.model.hidden
 
         # Bind camera controls
-        @K.toggle("LEFT_CONTROL")
-        def mode(m: bool):
-            self.move_mode = m
+        K.toggle("LEFT_CONTROL")(self.camera.SetPan)
 
         @B.toggle("LEFT")
         def active(a: bool):
@@ -152,8 +151,7 @@ class Voxels(Window):
 
     def alpha(self, up: bool):
         step = 1 if up else -1
-        self.alphas: 'np.ndarray[np.float32]' = \
-            np.roll(self.alphas, step)  # type: ignore
+        self.alphas = np.roll(self.alphas, step)  # type: ignore
         self.voxels.set_alpha(self.alphas[0])
 
     def add_other(self):
@@ -178,7 +176,10 @@ class Voxels(Window):
             D, _ = fem_simulate(truss, 1E3)
             print("Creating Mesh")
             # Render mesh even if simulation failed
-            np.nan_to_num(D, copy=False)
+            if np.isnan(D).any():
+                print("Fem simulation failed & produced nan")
+                np.nan_to_num(D, copy=False)
+
             return truss, D
 
         def resolve(bundle: 'Tuple[Truss, Array[F]]'):
@@ -187,35 +188,34 @@ class Voxels(Window):
             color = glm.vec4(0.8, 0.8, 1, 1)
             M = SimpleMesh(truss.nodes, truss.edges, Geometry.Lines)
             self.truss = DeformationWireframe(M, D, color, 2.0)
-            self.norm.children[0] = self.truss
+            self.box.children[0] = self.truss
             print("Truss deformation created")
 
-        self.task_queue.run(build, resolve)
+        self.tasks.run(build, resolve, "wireframe")
 
     def get_bone_voxels(self):
         print("get-bone-voxels")
 
         def compute():
             import numpy as np
-            transform = glm.affineInverse(self.t_norm) * self.t_mesh
+            transform = glm.affineInverse(
+                self.box.transform) * self.model.transform
             offset, grid = mesh_to_voxels(
-                self.s_mesh,
+                self.mesh,
                 Hierarchy.copy(transform)[:3, :],
                 self.voxels.data.shape
             )
-            strength = np.where(grid, np.float32(0.5), np.float32(0.0))  # type: ignore
-            return offset, strength
+            return offset, np.float32(0.5) * grid
 
-        def complete(values: Any):
+        def complete(values: 'Tuple[int3, Array[F]]'):
             offset, strength = values
             self.voxels.add_box(offset, strength, "gray")
             self.add_other()
 
-        self.task_queue.run(compute, complete)
+        self.tasks.run(compute, complete, "voxels")
 
     def resize(self, width: int, height: int):
         self.animator.resize(width, height)
-        self.move_scale = 1 / max(width, height)
         glViewport(0, 0, width, height)
         self.scene.stack.SetPerspective(
             fovy=glm.radians(45.0),
@@ -223,16 +223,6 @@ class Voxels(Window):
             near=0.01,
             far=100.0,
         )
-
-    rng = np.random.default_rng()
-
-    def addVoxels(self):
-        voxels = self.voxels
-        volume, offset = random_box(voxels.data.shape, 32, 32)
-        strength: Any = \
-            self.rng.random(size=volume, dtype=np.float32)  # type: ignore
-        material = choice(self.materials)
-        voxels.add_box(offset, strength - 0.35, material)
 
     def update(self, time: float, delta: float):
         # Let the animator control the time if it's recording
@@ -250,18 +240,9 @@ class Voxels(Window):
     def render(self):
         self.scene.render()
 
-    def move(self, dx: float, dy: float):
-        if self.move_mode:
-            # Move Position
-            self.camera.Move(dx, dy)
-
-        else:
-            # Move Camera
-            self.camera.Svivel(dx, dy)
-
     def cursor(self, x: float, y: float, dx: float, dy: float):
         if self.move_active:
-            self.move(dx, dy)
+            self.camera.Cursor(dx, dy)
 
     def scroll(self, value: float):
         self.camera.Zoom(value)
@@ -276,4 +257,4 @@ if __name__ == '__main__':
     def perf():
         performance(GPU.NVIDIA)
 
-    window.start()
+    window.spin()
