@@ -1,6 +1,6 @@
 from queue import Queue
 from threading import Thread
-from typing import Any, Set, Optional, Callable, TypeVar
+from typing import Any, List, Set, Optional, Callable, TypeVar
 
 T = TypeVar('T')
 
@@ -22,6 +22,27 @@ class FunctionalTask(Task):
 
     def complete(self):
         self._complete(self._value)
+
+class SequenceTask(Task):
+    active: Task
+
+    def __init__(self, queue: 'TaskQueue', tasks: List[Task], tag: Optional[str] = None):
+        self.tag = tag
+        self.queue = queue
+        self.tasks = tasks
+
+    def next(self):
+        if not self.tasks:
+            return
+        self.active = self.tasks.pop(0)
+        self.queue.add(self)
+
+    def compute(self):
+        self.active.compute()
+
+    def complete(self):
+        self.active.complete()
+        self.next()
 
 class TaskQueue:
     running: Set[str]
@@ -48,12 +69,20 @@ class TaskQueue:
     def run(self, compute: Callable[[], T], complete: Callable[[T], None], tag: Optional[str] = None):
         self.add(FunctionalTask(compute, complete, tag))
 
+    def sequence(self, *tasks: Task, tag: Optional[str] = None):
+        SequenceTask(self, list(tasks), tag).next()
+
     def update(self):
-        if not self.done.empty():
-            task = self.done.get()
-            task.complete()
+        if self.done.empty():
+            return
+
+        task = self.done.get()
+        task.complete()
+        
+        if task.tag:
             self.running.remove(task.tag)
-            self.done.task_done()
+        
+        self.done.task_done()
 
     def worker(self):
         while True:

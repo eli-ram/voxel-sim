@@ -1,13 +1,14 @@
+from ..interactive.Tasks import TaskQueue
 from ..data.colors import Color
 from ..data.voxels import Voxels, MaterialStore
 from ..utils.types import Array, F, T, I, int3, bool3, float3
-from ..debug.time import time
 from .render import VoxelRenderer
 import numpy as np
 
 
 class VoxelProxy:
     data: Voxels
+    tasks: TaskQueue
     graphics: VoxelRenderer
     materials: MaterialStore
 
@@ -36,24 +37,28 @@ class VoxelProxy:
         M = self.materials[material]
         self.data.set_force(M, force)
 
-    @time("add-box")
     def add_box(self, offset: int3, strength: 'Array[F]', material: str):
-        # Get material
-        M = self.materials[material]
-        # Get Material indices
-        I = np.where(strength > 0.0)  # type: ignore
-        # Get with offset
-        O = tuple(i + o for i, o in zip(I, offset))
-        # Set Material
-        self.data.grid[O] = M.id
-        # Set Strengths
-        self.data.strength[O] = strength[I]
-        # Get Box slices
-        S = strength.shape
-        R = tuple(slice(o, o + s) for o, s in zip(offset, S))
-        B = self.data.grid[R].astype(np.float32)
-        # Update live preview
-        self.graphics.setBox(offset, B)
+        def build():
+            # Get material
+            M = self.materials[material]
+            # Get Material indices
+            I = np.where(strength > 0.0)  # type: ignore
+            # Get with offset
+            O = tuple(i + o for i, o in zip(I, offset))
+            # Set Material
+            self.data.grid[O] = M.id
+            # Set Strengths
+            self.data.strength[O] = strength[I]
+            # Get Box slices
+            S = strength.shape
+            R = tuple(slice(o, o + s) for o, s in zip(offset, S))
+            return self.data.grid[R].astype(np.float32)
+
+        def commit(values: 'Array[np.float32]'):
+            # Update live preview
+            self.graphics.setBox(offset, values)
+
+        self.tasks.run(build, commit)
 
     def update_colors(self):
         self.graphics.colors.setData(self.materials.colors())

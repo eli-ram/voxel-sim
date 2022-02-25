@@ -14,7 +14,7 @@ from source.utils.matrices import Hierarchy, OrbitCamera
 from source.voxels.proxy import VoxelProxy
 from source.utils.types import Array, F, int3
 from source.data.colors import Colors
-from source.interactive import Window, Animator, Base, Scene, Void, Transform
+from source.interactive import Window, Animator, SceneBase, Scene, Void, Transform
 from source.data.truss import Truss
 from source.debug.time import time
 from OpenGL.GL import *
@@ -66,7 +66,7 @@ class Voxels(Window):
     truss: DeformationWireframe
 
     def setup(self):
-        self.scene = Base((0.3, 0.2, 0.5))
+        self.scene = SceneBase((0.3, 0.2, 0.5))
         self.camera = OrbitCamera(
             distance=1.25,
             svivel_speed=0.005,
@@ -79,6 +79,7 @@ class Voxels(Window):
             "red": Colors.RED,
             "gray": Colors.GRAY,
         })
+        self.voxels.tasks = self.tasks
 
         # Store animator
         self.animator = Animator('animation.gif', delta=0.5)
@@ -113,7 +114,7 @@ class Voxels(Window):
         self.scene.add(self.box)
 
         # Some internal state
-        self.alphas: 'Array[F]' = np.power(np.linspace(1.0, 0.0, 6), 2)  # type: ignore
+        self.alphas = np.power(np.linspace(1.0, 0.0, 6), 2)  # type: ignore
         self.move_active = False
 
         # Getting Vars
@@ -121,16 +122,14 @@ class Voxels(Window):
         B = self.buttons
 
         # Toggle Bone
-        @K.action("H")
-        def show_mesh():
-            self.model.hidden = not self.model.hidden
+        K.action("H")(self.model.toggle)   
 
         # Bind camera controls
         K.toggle("LEFT_CONTROL")(self.camera.SetPan)
 
         @B.toggle("LEFT")
         def active(a: bool):
-            self.move_cross.hidden = not a
+            self.move_cross.visible(a)
             self.move_active = a
 
         # Bind alpha controls
@@ -151,7 +150,7 @@ class Voxels(Window):
 
     def alpha(self, up: bool):
         step = 1 if up else -1
-        self.alphas = np.roll(self.alphas, step)  # type: ignore
+        self.alphas: 'Array[F]' = np.roll(self.alphas, step)  # type: ignore
         self.voxels.set_alpha(self.alphas[0])
 
     def add_other(self):
@@ -205,7 +204,7 @@ class Voxels(Window):
                 Hierarchy.copy(transform)[:3, :],
                 self.voxels.data.shape
             )
-            return offset, np.float32(0.5) * grid
+            return offset, grid * 0.5
 
         def complete(values: 'Tuple[int3, Array[F]]'):
             offset, strength = values

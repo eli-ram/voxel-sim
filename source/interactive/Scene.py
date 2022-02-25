@@ -18,6 +18,12 @@ class Transform:
     mesh: Render
     hidden: bool = False
 
+    def toggle(self):
+        self.hidden = not self.hidden
+
+    def visible(self, show: bool):
+        self.hidden = not show
+
     def render(self, m: Hierarchy):
         if self.hidden:
             return
@@ -49,7 +55,7 @@ class Void:
         pass
 
 
-class Base:
+class SceneBase:
     children: list[Render]
 
     def __init__(self, background: float3, alpha: float = 1.0):
