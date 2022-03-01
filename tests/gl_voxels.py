@@ -128,9 +128,9 @@ class Voxels(Window):
         K.toggle("LEFT_CONTROL")(self.camera.SetPan)
 
         @B.toggle("LEFT")
-        def active(a: bool):
-            self.move_cross.visible(a)
-            self.move_active = a
+        def active(move: bool):
+            self.move_cross.visible(move)
+            self.move_active = move
 
         # Bind alpha controls
         K.action("U")(lambda: self.alpha(True))
@@ -140,8 +140,8 @@ class Voxels(Window):
         K.action("O")(self.voxels.toggle_outline)
 
         # Bind other controls
-        K.action("R")(self.wireframe)
-        K.action("B")(self.get_bone_voxels)
+        K.action("R")(self.makeWireframe)
+        K.action("B")(self.makeVoxels)
 
         # Bind animator recording
         K.toggle("SPACE")(self.animator.record)
@@ -165,8 +165,9 @@ class Voxels(Window):
         self.voxels.set_force("red", (0, 0, -100))
         self.voxels.add_box(offset, strength, "red")
 
-    def wireframe(self):
-        print("wireframe")
+    def makeWireframe(self):
+
+        # Move into Proxy
 
         def build():
             print("Building Truss")
@@ -192,13 +193,14 @@ class Voxels(Window):
 
         self.tasks.run(build, resolve, "wireframe")
 
-    def get_bone_voxels(self):
-        print("get-bone-voxels")
+    def makeVoxels(self):
+
+        # Move into Proxy
 
         def compute():
-            import numpy as np
-            transform = glm.affineInverse(
-                self.box.transform) * self.model.transform
+            box = self.box.transform
+            model = self.model.transform
+            transform = glm.affineInverse(box) * model
             offset, grid = mesh_to_voxels(
                 self.mesh,
                 Hierarchy.copy(transform)[:3, :],
