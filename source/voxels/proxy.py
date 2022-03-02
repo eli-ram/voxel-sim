@@ -1,4 +1,10 @@
-from ..utils.mesh.simplemesh import SimpleMesh
+from typing import Callable
+from source.math.truss2stress import fem_simulate
+
+from source.math.voxels2truss import voxels2truss
+
+from ..utils.wireframe.deformation import DeformationWireframe
+from ..utils.mesh.simplemesh import Geometry, SimpleMesh
 from ..interactive.tasks import Task
 from ..math.mesh2voxels import mesh_to_voxels
 from ..utils.matrices import Hierarchy
@@ -15,14 +21,19 @@ class VoxelProxy:
     graphics: VoxelRenderer
     materials: MaterialStore
 
-    def __init__(self, shape: int3, res: int, materials: dict[str, Color]):
+    def __init__(self, shape: int3, res: int):
         self.data = Voxels(shape)
         self.shape = shape
         self.graphics = VoxelRenderer(shape, res)
         self.materials = MaterialStore()
-        for k, v in materials.items():
+
+    def createMaterials(self, map: dict[str, Color]):
+        for k, v in map.items():
             self.materials.create(k, v)
-        self.update_colors()
+        self.update_colors()        
+
+    def update_colors(self):
+        self.graphics.colors.setData(self.materials.colors())
 
     def material_list(self) -> list[str]:
         return list(self.materials)
@@ -42,40 +53,32 @@ class VoxelProxy:
         self.data.set_force(M, force)
 
     def add_mesh(self, mesh: SimpleMesh, transform: glm.mat4, strength: float, material: str):
-        task = AddMeshTask(self, material)
+        task = AddMeshTask(self)
+        task.setMaterial(material)
         task.setMesh(mesh, transform, strength)
         return task
 
     def add_box(self, offset: int3, strength: 'Array[F]', material: str):
-        task = AddBoxTask(self, material)
+        task = AddBoxTask(self)
+        task.setMaterial(material)
         task.setBox(offset, strength)
         return task
-        # Get material
-        M = self.materials[material]
 
-        def build():
-            # Get Material indices
-            I = np.where(strength > 0.0)  # type: ignore
-            # Get with offset
-            O = tuple(i + o for i, o in zip(I, offset))
-            # Set Material
-            self.data.grid[O] = M.id
-            # Set Strengths
-            self.data.strength[O] = strength[I]
-            # Get Box slices
-            R = tuple(slice(o, o + s) for o, s in zip(offset, strength.shape))
-            return self.data.grid[R].astype(np.float32)
+    def fem_simulate(self, callback: Callable[[DeformationWireframe], None]):
+        task = FemSimulateTask(self)
+        task.setCallback(callback)
+        return task
 
-    def update_colors(self):
-        self.graphics.colors.setData(self.materials.colors())
+class ProxyTask(Task):
 
-
-class AddBoxTask(Task):
-
-    def __init__(self, proxy: VoxelProxy, material: str):
+    def __init__(self, proxy: VoxelProxy):
         self.tag = proxy.tag
         self.P = proxy
-        self.material = proxy.materials[material]
+
+class AddBoxTask(ProxyTask):
+
+    def setMaterial(self, material: str):
+        self.material = self.P.materials[material]
 
     def setBox(self, offset: int3, values: 'Array[F]'):
         self.offset = offset
@@ -104,3 +107,29 @@ class AddMeshTask(AddBoxTask):
         values = grid * self.strength
         self.setBox(offset, values)
         AddBoxTask.compute(self)
+
+
+
+class FemSimulateTask(ProxyTask):
+
+    def setCallback(self, callback: Callable[[DeformationWireframe], None]):
+        self.callback = callback
+
+    def compute(self):
+        print("Building Truss")
+        truss = voxels2truss(self.P.data)
+        print("Simulating Truss")
+        D, _ = fem_simulate(truss, 1E3)
+        print("Creating Mesh")
+        # Render mesh even if simulation failed
+        if np.isnan(D).any():
+            print("Fem simulation failed & produced nan")
+            np.nan_to_num(D, copy=False)
+
+        self.M = SimpleMesh(truss.nodes, truss.edges, Geometry.Lines)
+        self.D = D
+
+    def complete(self):
+        print("Creating Deformation")
+        self.callback(DeformationWireframe(self.M, self.D))
+        print("Truss deformation created")

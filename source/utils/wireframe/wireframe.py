@@ -1,34 +1,42 @@
 from OpenGL.GL import *
 import numpy as np
-import glm
-
 
 from .shaders.wireframeshader import WireframeShader
 from ..mesh.simplemesh import SimpleMesh
 from ..matrices import Hierarchy
 from ..buffer import BufferConfig
-
+from ...data.colors import Color, Colors
 
 class Wireframe:
 
-    def __init__(self, mesh: SimpleMesh, color: glm.vec4, width: float = 1.0):
-        self.vertices = BufferConfig('vertices').single(mesh.vertices)
-        self.indices = BufferConfig('indices').single(mesh.indices.astype(np.uint32))
-        self.shader = WireframeShader.get()
-        self.color = np.array([*color], np.float32)  # type: ignore
-        self.width = width
-        self.geometry = mesh.geometry.value
+    def __init__(self, mesh: SimpleMesh):
+        self._V = BufferConfig('vertices').single(mesh.vertices)
+        self._I = BufferConfig('indices').single(mesh.indices.astype(np.uint32))
+        self._S = WireframeShader.get()
+        self._G = mesh.geometry.value
+        self._c = Colors.WHITE
+        self._w = 1.0
+
+    def setColor(self, color: Color):
+        self._c = color
+        return self
+
+    def setWidth(self, width: float):
+        self._w = width
+        return self
 
     def render(self, m: Hierarchy):
+        V = self._V
+        I = self._I
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
-        glLineWidth(self.width)
-        with self.shader as (A, U), self.vertices, self.indices:
+        glLineWidth(self._w)
+        with self._S as (A, U), V, I:
             glUniformMatrix4fv(U.MVP, 1, GL_TRUE, m.ptr(m.MVP))
-            glUniform4fv(U.COLOR, 1, self.color)
-            with self.vertices as (pos,):
-                self.vertices.attribute(pos, A.pos)
-            with self.indices as (i,):
-                self.indices.draw(i, self.geometry)
+            glUniform4fv(U.COLOR, 1, self._c.value)
+            with V as (pos,):
+                V.attribute(pos, A.pos)
+            with I as (i,):
+                I.draw(i, self._G)
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
 
 

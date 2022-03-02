@@ -6,8 +6,15 @@ from pywavefront import (  # type: ignore
     material as l,
 )
 
+def loadMesh(file: str, cache: bool = False):
+    """ Only load the first mesh """
+    return next(yieldMeshes(file, cache))
 
 def loadMeshes(file: str, cache: bool = False):
+    """ Load all the meshes """
+    return list(yieldMeshes(file, cache))
+
+def yieldMeshes(file: str, cache: bool = False):
     """ Discard all other data then mesh data """
     # Allow the creation of cache files, must be deleted manually
     scene = w.Wavefront(file, cache=cache)

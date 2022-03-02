@@ -1,13 +1,11 @@
-from __future__ import annotations
-from typing import Any
 import numpy as np
 
 __all__ = ['Color', 'Colors']
 
 def _attr(channel: int) -> float:
-    def get(self: Any) -> float:
+    def get(self: 'Color') -> float:
         return self.value[channel]
-    def set(self: Any, value: float):
+    def set(self: 'Color', value: float):
         self.value[channel] = value
     return property(get, set) # type: ignore
 
@@ -23,10 +21,15 @@ class Color:
     a = _attr(3)
 
     @staticmethod
-    def stack(colors: list[Color]):
+    def stack(colors: 'list[Color]'):
         return np.vstack([c.value for c in colors])
 
 class Colors:
+
+    @classmethod
+    def get(cls, name: str) -> Color:
+        return getattr(cls, name.upper())
+
     WHITE = Color(1.0, 1.0, 1.0)
     GRAY = Color(0.5, 0.5, 0.5)
     BLACK = Color(0.0, 0.0, 0.0)

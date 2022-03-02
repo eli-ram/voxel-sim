@@ -32,6 +32,16 @@ class MaterialStore:
         self._all.append(M)
         return M
 
+    def updateOrCreate(self, name: str, color: Color):
+        if name in self._lut:
+            M = self._lut[name]
+            M.color = color
+            return M
+        return self.create(name, color)
+
+    def __contains__(self, key: str):
+        return key in self._lut
+
     def __getitem__(self, key: str):
         return self._lut[key]
 

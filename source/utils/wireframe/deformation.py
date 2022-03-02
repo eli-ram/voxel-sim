@@ -2,35 +2,43 @@
 
 from OpenGL.GL import *
 import numpy as np
-import glm
 
 from .shaders.deformationshader import DeformationShader
 from ..matrices import Hierarchy
 from ..buffer import BufferConfig
 from ..mesh.simplemesh import Geometry, SimpleMesh
 from ..types import Array, F
+from ...data.colors import Color, Colors
 
 
 class DeformationWireframe:
 
-    def __init__(self, mesh: SimpleMesh, offset: 'Array[F]', color: glm.vec4, width: float = 1.0):
+    def __init__(self, mesh: SimpleMesh, offset: 'Array[F]'):
         assert mesh.geometry == Geometry.Lines, \
             "Is only defined for lines!"
         assert mesh.vertices.shape == offset.shape, \
             "Offsets must match vertices!"
+        self.color = Colors.WHITE
+        self.width = 1.0
         self.buffer = BufferConfig('vertices').combine(mesh.vertices, offset)
         self.indices = BufferConfig('indices').single(mesh.indices.astype(np.uint32))
         self.shader = DeformationShader.get()
-        self.color = np.array([*color], dtype=np.float32)  # type: ignore
-        self.width = width
         self.deformation = 0.0
+
+    def setColor(self, color: Color):
+        self.color = color
+        return self
+
+    def setWidth(self, width: float):
+        self.width = width
+        return self
 
     def render(self, m: Hierarchy):
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
         glLineWidth(self.width)
         with self.shader as (A, U):
             glUniformMatrix4fv(U.MVP, 1, GL_TRUE, m.ptr(m.MVP))
-            glUniform4fv(U.COLOR, 1, self.color)
+            glUniform4fv(U.COLOR, 1, self.color.value)
             glUniform1f(U.DEFORMATION, self.deformation)
             with self.buffer as (pos, offset):
                 self.buffer.attribute(pos, A.pos)
@@ -107,4 +115,4 @@ def test_case():
 
     M = SimpleMesh(T.nodes, T.edges, Geometry.Lines)
 
-    return DeformationWireframe(M, D, glm.vec4(1), 5.0)
+    return DeformationWireframe(M, D).setWidth(5.0)

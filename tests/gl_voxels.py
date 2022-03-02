@@ -1,61 +1,29 @@
 # pyright: reportUnusedImport=false, reportUnusedFunction=false
 import __init__
+from typing import Any
 
 # Interactive
 from source.interactive.animator import Animator
-from source.interactive.scene import SceneBase, Scene, Transform, Void
 from source.interactive.window import Window
-from source.interactive.tasks import FunctionalTask
+from source.interactive.scene import SceneBase, Scene, Transform, Void
+from source.utils.mesh.simplemesh import SimpleMesh
 
 # Other
 from source.utils.wireframe.deformation import DeformationWireframe
 from source.utils.wireframe.wireframe import Wireframe
-from source.utils.mesh.simplemesh import Geometry, SimpleMesh
 from source.utils.mesh.shapes import line_cube, origin, simplex
-from source.math.truss2stress import fem_simulate
-from source.math.voxels2truss import voxels2truss
-from source.utils.mesh_loader import loadMeshes
+from source.utils.mesh_loader import loadMesh
 from source.utils.directory import cwd, script_dir
 from source.utils.matrices import OrbitCamera
 from source.voxels.proxy import VoxelProxy
 from source.utils.types import Array, F
-from source.data.colors import Colors
-from source.data.truss import Truss
+from source.data.colors import Color, Colors
 from source.debug.time import time
+
+# Packages
 from OpenGL.GL import *
-from typing import Tuple
 import numpy as np
 import glm
-
-
-@cwd(script_dir(__file__), '..', 'meshes')
-@time("BONE")
-def bone():
-    BONE, = loadMeshes('test_bone.obj')
-    return BONE
-
-
-def mesh(get_bone: bool):
-    if get_bone:
-        # Load Bone Model
-        s_mesh = bone()
-        t_mesh = (
-            glm.translate(glm.vec3(0.5, 0.5, -1.8)) *
-            glm.scale(glm.vec3(0.5)) *
-            glm.translate(glm.vec3(0, 0, -0.01)) *
-            glm.rotate(glm.pi() / 2, glm.vec3(1, 0, 0))
-        )
-
-    else:
-        # Load Simplex Model
-        s_mesh = simplex()
-        t_mesh = (
-            glm.translate(glm.vec3(0.1, 0.1, 0.2)) *
-            glm.scale(glm.vec3(0.9)) *
-            glm.rotate(glm.radians(10.0), glm.vec3(0, 0, 1))
-        )
-
-    return s_mesh, t_mesh
 
 
 def time_to_t(time: float, duration: float, padding: float):
@@ -68,6 +36,8 @@ def time_to_t(time: float, duration: float, padding: float):
 class Voxels(Window):
 
     BONE = False
+    mesh: SimpleMesh
+    model: Transform
     truss: DeformationWireframe
 
     def setup(self):
@@ -78,36 +48,29 @@ class Voxels(Window):
         )
         shape = (32, 32, 32)
         resolution = 2**10
-        self.voxels = VoxelProxy(shape, resolution, {
-            "blue": Colors.BLUE,
-            "green": Colors.GREEN,
-            "red": Colors.RED,
-            "gray": Colors.GRAY,
+        self.voxels = VoxelProxy(shape, resolution)
+        self.voxels.createMaterials({
+            "STATIC": Colors.BLUE,
+            "FORCE": Colors.RED,
+            "BONE": Color(0.3, 0.5, 0.3, 0.1),
         })
- 
+
         # Store animator
         self.animator = Animator('animation.gif', delta=0.5)
 
-        # Get list of materials
-        self.materials = self.voxels.material_list()
-
         # Outline for Voxels
-        self.scene.add(Wireframe(line_cube(), glm.vec4(0, 0, 0, 1), 1.0))
+        self.scene.add(Wireframe(line_cube()).setColor(Colors.BLACK))
 
         # 3D-crosshair for camera
         self.move_cross = Transform(
             transform=glm.mat4(),
-            mesh=Wireframe(origin(0.05), glm.vec4(1, 0.5, 0, 1), 1.0),
+            mesh=Wireframe(origin(0.05)).setColor(Color(1, 0.5, 0)),
             hidden=True,
         )
         self.scene.add(self.move_cross)
 
-        self.mesh, matrix = mesh(self.BONE)
+        self.model = Transform(None, None, hidden=True)  # type: ignore
 
-        self.model = Transform(
-            transform=matrix,
-            mesh=Wireframe(self.mesh, glm.vec4(0.8, 0.8, 1, 1), 2.0),
-        )
         self.scene.add(self.model)
 
         # Normalze Voxel grid (0 -> N) => (0.0 -> 1.0)
@@ -126,7 +89,7 @@ class Voxels(Window):
         B = self.buttons
 
         # Toggle Bone
-        K.action("H")(self.model.toggle)   
+        K.action("H")(self.model.toggle)
 
         # Bind camera controls
         K.toggle("LEFT_CONTROL")(self.camera.SetPan)
@@ -146,64 +109,79 @@ class Voxels(Window):
         # Bind animator recording
         K.toggle("SPACE")(self.animator.record)
 
-        self.tasks.sequence(
-            self.makeVoxels(),
-            self.makeStatic(),
-            self.makeForce(),
-            self.makeTruss(),
-        )
+        self.build()
 
     def alpha(self, up: bool):
         step = 1 if up else -1
         self.alphas: 'Array[F]' = np.roll(self.alphas, step)  # type: ignore
         self.voxels.set_alpha(self.alphas[0])
 
+    def build(self):
+        if self.BONE:
+            @cwd(script_dir(__file__), '..', 'meshes')
+            @time("mesh")
+            def compute():
+                # Load Bone Model
+                return loadMesh('test_bone.obj')
+
+            self.model.transform = (
+                glm.translate(glm.vec3(0.5, 0.5, -1.8)) *
+                glm.scale(glm.vec3(0.5)) *
+                glm.translate(glm.vec3(0, 0, -0.01)) *
+                glm.rotate(glm.pi() / 2, glm.vec3(1, 0, 0))
+            )
+
+        else:
+            def compute():
+                # Load Simplex Model
+                return simplex()
+
+            self.model.transform = (
+                glm.translate(glm.vec3(0.1, 0.1, 0.2)) *
+                glm.scale(glm.vec3(0.9)) *
+                glm.rotate(glm.radians(10.0), glm.vec3(0, 0, 1))
+            )
+
+        def complete(mesh: SimpleMesh):
+            self.mesh = mesh
+            self.model.mesh = Wireframe(mesh)\
+                .setColor(Color(0.8, 0.8, 1.0))
+            self.model.hidden = False
+            # Build the rest
+            self.tasks.sequence(
+                self.makeVoxels(),
+                self.makeStatic(),
+                self.makeForce(),
+                self.makeTruss(),
+            )
+
+        self.tasks.run(compute, complete)
+
     def makeStatic(self):
         strength = np.ones((32, 32, 1), np.float32) * 8.0
         strength[5:27, 5:27, 0] = 0.0
         offset = (0, 0, 5)
-        self.voxels.set_static("blue", (True, True, True))
-        return self.voxels.add_box(offset, strength, "blue")
+        self.voxels.set_static("STATIC", (True, True, True))
+        return self.voxels.add_box(offset, strength, "STATIC")
 
     def makeForce(self):
         strength = np.ones((5, 5, 1), np.float32) * 8.0
         offset = (9, 13, 15)
-        self.voxels.set_force("red", (0, 0, -100))
-        return self.voxels.add_box(offset, strength, "red")
+        self.voxels.set_force("FORCE", (0, 0, -100))
+        return self.voxels.add_box(offset, strength, "FORCE")
 
     def makeTruss(self):
-
-        # Move into Proxy
-
-        def build():
-            print("Building Truss")
-            truss = voxels2truss(self.voxels.data)
-            print("Simulating Truss")
-            D, _ = fem_simulate(truss, 1E3)
-            print("Creating Mesh")
-            # Render mesh even if simulation failed
-            if np.isnan(D).any():
-                print("Fem simulation failed & produced nan")
-                np.nan_to_num(D, copy=False)
-
-            return truss, D
-
-        def resolve(bundle: 'Tuple[Truss, Array[F]]'):
-            print("Creating Deformation")
-            truss, D = bundle
-            color = glm.vec4(0.8, 0.8, 1, 1)
-            M = SimpleMesh(truss.nodes, truss.edges, Geometry.Lines)
-            self.truss = DeformationWireframe(M, D, color, 2.0)
-            self.box.children[0] = self.truss
-            print("Truss deformation created")
-
-        return FunctionalTask(build, resolve)
+        @self.voxels.fem_simulate
+        def task(truss: DeformationWireframe):
+            self.truss = truss
+            self.box.children[0] = truss
+        return task
 
     def makeVoxels(self):
         box = self.box.transform
         model = self.model.transform
         transform = glm.affineInverse(box) * model
-        return self.voxels.add_mesh(self.mesh, transform, 0.5, "gray")
+        return self.voxels.add_mesh(self.mesh, transform, 0.5, "BONE")
 
     def resize(self, width: int, height: int):
         self.animator.resize(width, height)
