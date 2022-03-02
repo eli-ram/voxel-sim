@@ -1,10 +1,10 @@
 # pyright: reportUnknownMemberType=false
 from typing import Any
 
-from source.interactive.Buttons import Buttons
-from source.interactive.Tasks import TaskQueue
-from .Context import glfw, UninitializedException
-from .Keys import Keys
+from source.interactive.buttons import Buttons
+from source.interactive.tasks import TaskQueue
+from .context import glfw, UninitializedException
+from .keys import Keys
 from dataclasses import dataclass
 
 def callback(func: Any) -> None:  

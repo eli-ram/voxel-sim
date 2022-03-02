@@ -1,6 +1,6 @@
 # pyright: reportUnknownMemberType=false
 from typing import Callable, Dict, Any
-from .Context import glfw
+from .context import glfw
     
 class NotAButton(Exception):
     " The key could not be found "

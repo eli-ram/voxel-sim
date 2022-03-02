@@ -1,19 +1,23 @@
-from ..interactive.Tasks import TaskQueue
+from ..utils.mesh.simplemesh import SimpleMesh
+from ..interactive.tasks import Task
+from ..math.mesh2voxels import mesh_to_voxels
+from ..utils.matrices import Hierarchy
 from ..data.colors import Color
 from ..data.voxels import Voxels, MaterialStore
-from ..utils.types import Array, F, T, I, int3, bool3, float3
+from ..utils.types import Array, F, int3, bool3, float3
 from .render import VoxelRenderer
 import numpy as np
-
+import glm
 
 class VoxelProxy:
+    tag: str = 'main-voxels'
     data: Voxels
-    tasks: TaskQueue
     graphics: VoxelRenderer
     materials: MaterialStore
 
     def __init__(self, shape: int3, res: int, materials: dict[str, Color]):
         self.data = Voxels(shape)
+        self.shape = shape
         self.graphics = VoxelRenderer(shape, res)
         self.materials = MaterialStore()
         for k, v in materials.items():
@@ -37,10 +41,19 @@ class VoxelProxy:
         M = self.materials[material]
         self.data.set_force(M, force)
 
+    def add_mesh(self, mesh: SimpleMesh, transform: glm.mat4, strength: float, material: str):
+        task = AddMeshTask(self, material)
+        task.setMesh(mesh, transform, strength)
+        return task
+
     def add_box(self, offset: int3, strength: 'Array[F]', material: str):
+        task = AddBoxTask(self, material)
+        task.setBox(offset, strength)
+        return task
+        # Get material
+        M = self.materials[material]
+
         def build():
-            # Get material
-            M = self.materials[material]
             # Get Material indices
             I = np.where(strength > 0.0)  # type: ignore
             # Get with offset
@@ -50,48 +63,44 @@ class VoxelProxy:
             # Set Strengths
             self.data.strength[O] = strength[I]
             # Get Box slices
-            S = strength.shape
-            R = tuple(slice(o, o + s) for o, s in zip(offset, S))
+            R = tuple(slice(o, o + s) for o, s in zip(offset, strength.shape))
             return self.data.grid[R].astype(np.float32)
-
-        def commit(values: 'Array[np.float32]'):
-            # Update live preview
-            self.graphics.setBox(offset, values)
-
-        self.tasks.run(build, commit)
 
     def update_colors(self):
         self.graphics.colors.setData(self.materials.colors())
 
 
-def _span(V: 'Array[I]'):
-    return slice(V.min(), V.max() + 1)
+class AddBoxTask(Task):
 
+    def __init__(self, proxy: VoxelProxy, material: str):
+        self.tag = proxy.tag
+        self.P = proxy
+        self.material = proxy.materials[material]
 
-def remove_padding_strength(strength: 'Array[T]'):
-    X, Y, Z = np.where(strength > 0.0)  # type: ignore
-    x = _span(X)
-    y = _span(Y)
-    z = _span(Z)
+    def setBox(self, offset: int3, values: 'Array[F]'):
+        self.offset = offset
+        self.values = values
+        self.S = tuple(slice(o,o+l) for o, l in zip(offset, values.shape))
 
-    strength = strength[x, y, z]
-    offset = (x.start, y.start, z.start)
+    def compute(self):
+        B = self.values > 0.0
+        D = self.P.data
+        D.grid[self.S][B] = self.material.id
+        D.strength[self.S][B] = self.values[B]
 
-    return offset, strength
+    def complete(self):
+        colors = self.P.data.grid[self.S].astype(np.float32)
+        self.P.graphics.setBox(self.offset, colors)
 
+class AddMeshTask(AddBoxTask):
 
-def remove_padding_grid(grid: 'Array[np.bool_]'):
-    def span(a: int, b: int):
-        B = np.any(grid, axis=(a, b)) # type: ignore
-        l = np.argmax(B[::+1])  # type: ignore
-        h = np.argmax(B[::-1])  # type: ignore
-        return slice(l, -h)
+    def setMesh(self, mesh: SimpleMesh, transform: glm.mat4, strength: float):
+        self.mesh = mesh
+        self.transform = Hierarchy.copy(transform)[:3, :]
+        self.strength = strength
 
-    x = span(1, 2)
-    y = span(0, 2)
-    z = span(0, 1)
-
-    grid = grid[x, y, z]
-    offset = (x.start, y.start, z.start)
-
-    return offset, grid
+    def compute(self):
+        offset, grid = mesh_to_voxels(self.mesh, self.transform, self.P.shape)
+        values = grid * self.strength
+        self.setBox(offset, values)
+        AddBoxTask.compute(self)

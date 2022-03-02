@@ -1,6 +1,5 @@
 from collections import defaultdict
 
-from source.debug.time import time
 from ...utils.types import int3, Array, F, I
 from ..linalg import unpack
 import numpy as np
@@ -74,8 +73,6 @@ class Z_Hash_Rasterizer:
             # Iterate Barycentric coord over y
             by = by + BY
 
-
-    @time("np-raster-run")
     def run(self, indices: 'Array[I]', vertices: 'Array[F]'):
         assert indices.shape[1] == 3, \
             " Indices must be on the form [Nx3] to represent triangles !"
@@ -104,8 +101,7 @@ class Z_Hash_Rasterizer:
             # Find the boolean matrix for voxel-surface-ray-intersection
             B = s[:, np.newaxis] <= z[np.newaxis, :]
             # Count ray-intersections
-            C: 'Array[I]' = \
-                np.count_nonzero(B, axis=1)  # type: ignore
+            C = np.count_nonzero(B, axis=1)  # type: ignore
             # intersection modulo 2 means that the voxel is inside the mesh
             grid[x, y, :] = C % 2
 

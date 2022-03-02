@@ -1,16 +1,14 @@
-from typing import Tuple
-import numpy as np
-
-from source.voxels.proxy import remove_padding_grid
+from .utils import remove_padding_grid
 from .rasterizers.np_raster import Z_Hash_Rasterizer
 from .rasterizers.RasterDirection import Raster_Direction_3D
 
 from ..utils.mesh.simplemesh import Geometry, SimpleMesh
-from ..utils.types import int3, Array, F, I
+from ..utils.types import int3, Array, F, I, B
+from ..debug.time import time
 
 """
 This is basically a (black/white) software-rasterizer.
-But, it's optimized for filling a volume instead of a surface.
+But, it's for filling a volume instead of a surface.
 
 Resources:
 > https://courses.cs.washington.edu/courses/csep557/10au/lectures/triangle_intersection.pdf
@@ -18,7 +16,8 @@ Resources:
 
 """
 
-def mesh_to_voxels(mesh: SimpleMesh, transform: 'Array[F]', voxels: int3) -> 'Tuple[int3, Array[np.bool_]]':
+@time("mesh_to_voxels")
+def mesh_to_voxels(mesh: SimpleMesh, transform: 'Array[F]', voxels: int3):
     V, I = _transform(mesh, transform)
     Z = _rasterize(V, I, voxels, 'Z')
     X = _rasterize(V, I, voxels, 'X')
@@ -44,19 +43,17 @@ def _transform(mesh: SimpleMesh, transform: 'Array[F]'):
     return vertices, indices
 
 
-def _rasterize(vertices: 'Array[F]', indices: 'Array[I]', voxels: int3, direction: str = "Z") -> 'Array[np.bool_]':
+def _rasterize(vertices: 'Array[F]', indices: 'Array[I]', voxels: int3, direction: str) -> 'Array[B]':
     D = Raster_Direction_3D[direction]
 
     # Init rasterizer
     # Tested to be the 'fastest'
     rasterizer = Z_Hash_Rasterizer(D.reshape(voxels)) 
 
-    print("[#] Wide Triangles")
     # Potential Parallel-For
     # Swizzle coordinates
     rasterizer.run(indices, vertices[:, D.swizzle])
 
-    print("[#] Wide Voxels")
     # Potential Parallel-For
     grid = rasterizer.voxels()
 

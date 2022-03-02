@@ -2,7 +2,8 @@ from queue import Queue
 from threading import Thread
 from typing import Any, List, Set, Optional, Callable, TypeVar
 
-T = TypeVar('T')
+
+Value = TypeVar('Value')
 
 class Task:
     tag: Optional[str] = None
@@ -12,7 +13,7 @@ class Task:
 class FunctionalTask(Task):
     _value: Any
 
-    def __init__(self, compute: Callable[[], T], complete: Callable[[T], None], tag: Optional[str] = None):
+    def __init__(self, compute: Callable[[], Value], complete: Callable[[Value], None], tag: Optional[str] = None):
         self.tag = tag
         self._compute = compute
         self._complete = complete
@@ -66,7 +67,7 @@ class TaskQueue:
 
         self.queue.put(task)            
 
-    def run(self, compute: Callable[[], T], complete: Callable[[T], None], tag: Optional[str] = None):
+    def run(self, compute: Callable[[], Value], complete: Callable[[Value], None], tag: Optional[str] = None):
         self.add(FunctionalTask(compute, complete, tag))
 
     def sequence(self, *tasks: Task, tag: Optional[str] = None):

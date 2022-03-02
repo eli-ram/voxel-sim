@@ -1,20 +1,25 @@
 # pyright: reportUnusedImport=false, reportUnusedFunction=false
 import __init__
+
+# Interactive
+from source.interactive.animator import Animator
+from source.interactive.scene import SceneBase, Scene, Transform, Void
+from source.interactive.window import Window
+from source.interactive.tasks import FunctionalTask
+
+# Other
 from source.utils.wireframe.deformation import DeformationWireframe
 from source.utils.wireframe.wireframe import Wireframe
 from source.utils.mesh.simplemesh import Geometry, SimpleMesh
-from source.interactive.Animator import Animator
 from source.utils.mesh.shapes import line_cube, origin, simplex
 from source.math.truss2stress import fem_simulate
 from source.math.voxels2truss import voxels2truss
 from source.utils.mesh_loader import loadMeshes
-from source.math.mesh2voxels import mesh_to_voxels
 from source.utils.directory import cwd, script_dir
-from source.utils.matrices import Hierarchy, OrbitCamera
+from source.utils.matrices import OrbitCamera
 from source.voxels.proxy import VoxelProxy
-from source.utils.types import Array, F, int3
+from source.utils.types import Array, F
 from source.data.colors import Colors
-from source.interactive import Window, Animator, SceneBase, Scene, Void, Transform
 from source.data.truss import Truss
 from source.debug.time import time
 from OpenGL.GL import *
@@ -72,15 +77,14 @@ class Voxels(Window):
             svivel_speed=0.005,
         )
         shape = (32, 32, 32)
-        resolution = 2**7
+        resolution = 2**10
         self.voxels = VoxelProxy(shape, resolution, {
             "blue": Colors.BLUE,
             "green": Colors.GREEN,
             "red": Colors.RED,
             "gray": Colors.GRAY,
         })
-        self.voxels.tasks = self.tasks
-
+ 
         # Store animator
         self.animator = Animator('animation.gif', delta=0.5)
 
@@ -128,7 +132,7 @@ class Voxels(Window):
         K.toggle("LEFT_CONTROL")(self.camera.SetPan)
 
         @B.toggle("LEFT")
-        def active(move: bool):
+        def toggle_move(move: bool):
             self.move_cross.visible(move)
             self.move_active = move
 
@@ -139,33 +143,35 @@ class Voxels(Window):
         # Bind toggle outline
         K.action("O")(self.voxels.toggle_outline)
 
-        # Bind other controls
-        K.action("R")(self.makeWireframe)
-        K.action("B")(self.makeVoxels)
-
         # Bind animator recording
         K.toggle("SPACE")(self.animator.record)
 
-        self.add_other()
+        self.tasks.sequence(
+            self.makeVoxels(),
+            self.makeStatic(),
+            self.makeForce(),
+            self.makeTruss(),
+        )
 
     def alpha(self, up: bool):
         step = 1 if up else -1
         self.alphas: 'Array[F]' = np.roll(self.alphas, step)  # type: ignore
         self.voxels.set_alpha(self.alphas[0])
 
-    def add_other(self):
+    def makeStatic(self):
         strength = np.ones((32, 32, 1), np.float32) * 8.0
         strength[5:27, 5:27, 0] = 0.0
         offset = (0, 0, 5)
         self.voxels.set_static("blue", (True, True, True))
-        self.voxels.add_box(offset, strength, "blue")
+        return self.voxels.add_box(offset, strength, "blue")
 
+    def makeForce(self):
         strength = np.ones((5, 5, 1), np.float32) * 8.0
         offset = (9, 13, 15)
         self.voxels.set_force("red", (0, 0, -100))
-        self.voxels.add_box(offset, strength, "red")
+        return self.voxels.add_box(offset, strength, "red")
 
-    def makeWireframe(self):
+    def makeTruss(self):
 
         # Move into Proxy
 
@@ -191,29 +197,13 @@ class Voxels(Window):
             self.box.children[0] = self.truss
             print("Truss deformation created")
 
-        self.tasks.run(build, resolve, "wireframe")
+        return FunctionalTask(build, resolve)
 
     def makeVoxels(self):
-
-        # Move into Proxy
-
-        def compute():
-            box = self.box.transform
-            model = self.model.transform
-            transform = glm.affineInverse(box) * model
-            offset, grid = mesh_to_voxels(
-                self.mesh,
-                Hierarchy.copy(transform)[:3, :],
-                self.voxels.data.shape
-            )
-            return offset, grid * 0.5
-
-        def complete(values: 'Tuple[int3, Array[F]]'):
-            offset, strength = values
-            self.voxels.add_box(offset, strength, "gray")
-            self.add_other()
-
-        self.tasks.run(compute, complete, "voxels")
+        box = self.box.transform
+        model = self.model.transform
+        transform = glm.affineInverse(box) * model
+        return self.voxels.add_mesh(self.mesh, transform, 0.5, "gray")
 
     def resize(self, width: int, height: int):
         self.animator.resize(width, height)
