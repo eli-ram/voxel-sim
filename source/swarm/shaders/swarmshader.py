@@ -8,7 +8,7 @@ class RenderAttributes(ShaderAttributes):
 
 
 class RenderUniforms(ShaderUniforms):
-    pass
+    aspect: int
 
 
 class RenderCache(ShaderCache[RenderAttributes, RenderUniforms]):
@@ -16,15 +16,29 @@ class RenderCache(ShaderCache[RenderAttributes, RenderUniforms]):
     CODE = ['swarm.vert', 'swarm.geom', 'swarm.frag']
 
 
-class ComputeAttributes(ShaderAttributes):
-    pass
-
-
 class ComputeUniforms(ShaderUniforms):
     environment: int
     time: int
 
 
-class ComputeCache(ShaderCache[ComputeAttributes, ComputeUniforms]):
+class ComputeCache(ShaderCache[ShaderAttributes, ComputeUniforms]):
     FILE = __file__
     CODE = ['swarm.comp']
+
+
+class FadeUniforms(ShaderUniforms):
+    diff: int
+    decay: int
+
+
+class FadeCache(ShaderCache[ShaderAttributes, FadeUniforms]):
+    FILE = __file__
+    CODE = ['fade.comp']
+
+
+class RectUniforms(ShaderUniforms):
+    aspect: int
+
+class RectCache(ShaderCache[ShaderAttributes, RectUniforms]):
+    FILE = __file__
+    CODE = ['rect.frag', 'rect.vert']

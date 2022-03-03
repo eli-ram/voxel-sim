@@ -4,12 +4,12 @@ from typing import cast
 from OpenGL.GL import *  # type: ignore
 from OpenGL.GL.shaders import *  # type: ignore
 from OpenGL.arrays.vbo import *  # type: ignore
-from source.interactive import Window
+from source.interactive.window import Window
 import numpy as np
 
 vs = \
     """
-#version 430
+# version 430
 
 layout (location = 0) uniform vec2 aspect;
 
@@ -24,7 +24,7 @@ void main() {
 
 fs = \
     """
-#version 430
+# version 430
 
 layout (binding = 0) uniform sampler2D srcTex;
 
@@ -42,7 +42,7 @@ void main() {
 
 cs = \
     """
-#version 430
+# version 430
 
 layout (location = 0) uniform float roll;
 layout (binding = 0) restrict writeonly uniform image2D dstTex;
@@ -60,6 +60,7 @@ void main() {
 }
 """
 
+
 class GL_Window(Window):
 
     def setup(self):
@@ -74,10 +75,10 @@ class GL_Window(Window):
             compileShader(fs, GL_FRAGMENT_SHADER),
         )
         self.square = np.array([
-            [-1,-1],
-            [+1,-1],
-            [+1,+1],
-            [-1,+1],
+            [-1, -1],
+            [+1, -1],
+            [+1, +1],
+            [-1, +1],
         ], np.float32)
 
         # conf compute shader
@@ -92,10 +93,12 @@ class GL_Window(Window):
 
     def resize(self, width: int, height: int):
         glViewport(0, 0, width, height)
-        aspect = [(height / width), 1.0] if width > height else [1.0, (width / height)]
+        if width > height:
+            a = (height / width), 1.0
+        else:
+            a = 1.0, (width / height)
         with self.shader:
-            glUniform2f(self.aspect_handle, *aspect)
-
+            glUniform2f(self.aspect_handle, *a)
 
     def update(self, time: float, delta: float):
         with self.compute:
@@ -108,7 +111,7 @@ class GL_Window(Window):
         with self.shader:
             glVertexPointer(2, GL_FLOAT, 0, self.square)
             glDrawArrays(GL_QUADS, 0, 4)
-            
+
 
 def generateTexture():
     handle = cast(int, glGenTextures(1))
@@ -128,5 +131,4 @@ def generateTexture():
 
 
 if __name__ == '__main__':
-    window = GL_Window(800, 800, "OpenGL_Window")
-    window.start()
+    GL_Window(800, 800, "OpenGL_Window").spin()

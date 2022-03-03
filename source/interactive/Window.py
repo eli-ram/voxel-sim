@@ -20,7 +20,7 @@ class Cache:
     cursor_pos: tuple[float, float] = (0, 0)
 
 class Window:
-    " Wrapper for GLFW to allow simple usage "
+    " Wrapper for GLFW to allow simpler usage "
 
     def __init__(self, width: int, height: int, title: str):
         self.window = glfw.create_window(width, height, title, None, None)
@@ -90,6 +90,7 @@ class Window:
         glfw.set_window_should_close(self.window, True)
 
     def toggle_fullscreen(self):
+        size: tuple[int, int]
         if not glfw.get_window_monitor(self.window):
             self._cache.window_pos = glfw.get_window_pos(self.window)
             self._cache.window_size = glfw.get_window_size(self.window)
@@ -97,7 +98,7 @@ class Window:
             monitor = glfw.get_primary_monitor()
             mode = glfw.get_video_mode(monitor)
             pos = (0, 0)
-            size: tuple[int, int] = mode.size
+            size = mode.size
             rate = mode.refresh_rate
 
         else:
