@@ -5,7 +5,7 @@ import sys
 import numpy as np
 from source.math.truss2stress import fem_simulate, stress_matrix
 from source.data.truss import Truss
-
+from source.loader.test import test_load
 
 def x_test_sparse():
     T = Truss(
@@ -60,11 +60,11 @@ def x_test_sparse():
     M = stress_matrix(T, 1E1) # type: ignore
     print(M)
 
-    D, E = fem_simulate(T, 1E1)
+    D, _E = fem_simulate(T, 1E1)
     print(D.round(4))
-    print(E.round(4))
+    # print(E.round(4))
 
-def test_mpad():
+def x_test_mpad():
     m = np.zeros((5, 5, 5), np.float32)
     m[2:4, 1:4, 2:4] = 0.1
     X, Y, Z = np.where(m > 0.0) # type: ignore
