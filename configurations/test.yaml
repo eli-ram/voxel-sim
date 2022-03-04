@@ -50,5 +50,6 @@ parameters:
     normal: [0, 1, 0] 
   outer-surface:
     type: circle
+    radius: 0.2
     center: [1.0, 1.0, 1.0]
     normal: [0, -1, 0]
