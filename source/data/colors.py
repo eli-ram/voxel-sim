@@ -24,6 +24,10 @@ class Color:
     def stack(colors: 'list[Color]'):
         return np.vstack([c.value for c in colors])
 
+    def __str__(self) -> str:
+        r, g, b, a = self.value
+        return f"Color({r=}, {g=}, {b=}, {a=})"
+
 class Colors:
 
     @classmethod

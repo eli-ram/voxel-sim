@@ -1,33 +1,15 @@
-from typing import Dict, List
-from .parse import Params, AutoParsable, ValueParsable
-from .geometry import Geometry
-from .literal import Data
+from .parse import AutoParsable
+from .parameters import Parameters
+from .geometry import GeometryList
+from .literal import Int
+from .material import ColorMap
 
-class ColorMap(ValueParsable[Dict[str, List[float]]]):
-
-    def parse(self, data: Params):
-        data = data or {}
-        self.value = data
-
-    def format(self, indent: str) -> str:
-        return "".join(f"\n{indent}{k}: {v}" for k, v in self.value.items())
-
-class GeometryMap(ValueParsable[Dict[str, Geometry]]):
-
-    def parse(self, data: Params):
-        data = data or {}
-        def make(data: Params):
-            obj = Geometry()
-            obj.parse(data)
-            return obj
-        self.value = {k:make(v)for k, v in data.items() }
-
-    def format(self, indent: str) -> str:
-        inner = indent + "  "
-        return "".join(f"\n{indent}{k}:{v.format(inner)}" for k, v in self.value.items())
+class Config(AutoParsable):
+    size: Int
+    resolution: Int
 
 class Configuration(AutoParsable):
-    config: Data
+    config: Config
     colors: ColorMap
-    geometry: GeometryMap
-    parameters: Data
+    geometry: GeometryList
+    parameters: Parameters

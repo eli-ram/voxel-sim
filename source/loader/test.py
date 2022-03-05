@@ -9,6 +9,9 @@ def test_load():
         data = yaml.safe_load(f)
 
     conf = Configuration()
+    print("\n[#] Initial Parse:")
     conf.parse(data)
-    print(conf)
+    print("\n[#] Update Parse:")
+    conf.parse(data)
+    print(f"\n[#] Result: {conf}")
     
