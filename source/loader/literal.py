@@ -1,6 +1,8 @@
-from typing import Any, Dict
-from .parse import Indent, ValueParsable
+from typing import Any, Dict, List, TypeVar
+from .parse import Indent, ValueParsable, Formatter
 import glm
+
+T = TypeVar('T')
 
 class Int(ValueParsable[int]):
     def validate(self, data: Any):
@@ -14,16 +16,25 @@ class String(ValueParsable[str]):
     def validate(self, data: Any):
         return str(data)
 
-class Data(ValueParsable[Dict[str, Any]]):
+class Map(ValueParsable[Dict[str, T]]):
     def validate(self, data: Any):
         return data or {}
 
     def format(self, I: Indent) -> str:
-        W = max(len(k) for k in self.value) + 2
-        def F(key: str):
-            return (key + ":").ljust(W)
-        T = (I + F(k) + str(v) for k, v in self.value.items())
-        return "".join(T)
+        return Formatter.LiteralDict(self.value, I)
+
+    def __getitem__(self, key: str):
+        return self.value[key]
+
+class Array(ValueParsable[List[T]]):
+    def validate(self, data: Any):
+        return data or []
+
+    def format(self, I: Indent) -> str:
+        return Formatter.LiteralList(self.value, I)
+
+    def __getitem__(self, index: int):
+        return self.value[index]
 
 class Vector(ValueParsable[glm.vec3]):
     default = glm.vec3()

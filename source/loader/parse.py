@@ -2,9 +2,6 @@
 from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
 
 
-Params = Optional[Dict[str, Any]]
-
-
 class Indent:
     def __init__(self, value: str, step: str, pad: str) -> None:
         self.value = value
@@ -36,38 +33,61 @@ class Parsable:
         return f"\nv{T}\n^"
 
 
+T = TypeVar('T')
+P = TypeVar('P', bound=Parsable)
+
+
+class Formatter:
+
+    @staticmethod
+    def fmt(V: Dict[str, str], I: Indent) -> str:
+        W = len(V) and max(len(k) for k in V) + 1
+        return "".join(I + k.ljust(W) + v for k, v in V.items())
+
+    @classmethod
+    def LiteralDict(cls, V: Dict[str, Any], I: Indent) -> str:
+        return cls.fmt({f"{k}:": str(v) for k, v in V.items()}, I)
+
+    @classmethod
+    def LiteralList(cls, V: List[Any], I: Indent) -> str:
+        return cls.fmt({f"[{i}]:": str(v) for i, v in enumerate(V)}, I)
+
+    @classmethod
+    def ParsableDict(cls, V: Dict[str, P], I: Indent) -> str:
+        N = I.next()
+        return cls.fmt({f"{k}:": v.format(N) for k, v in V.items()}, I)
+
+    @classmethod
+    def ParsableList(cls, V: List[P], I: Indent) -> str:
+        N = I.next()
+        return cls.fmt({f"[{i}]:": v.format(N) for i, v in enumerate(V)}, I)
+
+
+def isParsable(T: Any) -> bool:
+    P = type(Parsable)
+    I = isinstance
+    return I(T, P) or I(getattr(T, '__origin__'), P)
+
 class AutoParsable(Parsable):
     """ Auto Parsable base for annotated fields """
 
     @classmethod
     def initFields(cls) -> Dict[str, Parsable]:
         items = cls.__annotations__.items()
-        return {k: v() for k, v in items if isinstance(v, type(Parsable))}
+        return {attr: type() for attr, type in items if isParsable(type)}
 
     def __init__(self) -> None:
         self._fields = self.initFields()
-        for name, parsable in self.fields:
+        for name, parsable in self._fields.items():
             setattr(self, name, parsable)
-
-    @property
-    def fields(self):
-        return self._fields.items()
 
     def parse(self, data: Optional[Dict[str, Any]]):
         data = data or {}
-        for name, parsable in self.fields:
+        for name, parsable in self._fields.items():
             parsable.parse(data.get(name))
 
     def format(self, I: Indent) -> str:
-        N = I.next()
-        W = max(len(k) for k in self._fields) + 2
-        def F(key: str):
-            return (key + ":").ljust(W)
-        T = (I + F(k) + v.format(N) for k, v in self.fields)
-        return "".join(T)
-
-
-T = TypeVar('T')
+        return Formatter.ParsableDict(self._fields, I)
 
 
 class ValueParsable(Parsable, Generic[T]):
@@ -87,19 +107,15 @@ class ValueParsable(Parsable, Generic[T]):
         return self.value is None
 
 
-P = TypeVar('P', bound=Parsable)
-
-
 class MapParsable(Parsable, Generic[P]):
+    child: Type[P]
     values: Dict[str, P]
 
     def __init__(self) -> None:
-        base, = self.__orig_bases__  # type: ignore
-        tcls, = base.__args__  # type: ignore
-        self._cls: Type[P] = tcls
         self.values = {}
 
-    def create(self) -> P: ...
+    def create(self) -> P:
+        return self.child()
 
     def parse(self, data: Optional[Dict[str, Any]]):
         data = data or {}
@@ -121,29 +137,26 @@ class MapParsable(Parsable, Generic[P]):
             parsable.parse(data.get(key))
 
     def format(self, I: Indent) -> str:
-        N = I.next()
-        W = max(len(k) for k in self.values) + 2
-        def F(key: str):
-            return (key + ":").ljust(W)
-        T = (I + F(k) + v.format(N) for k, v in self.values.items())
-        return "".join(T)
+        return Formatter.ParsableDict(self.values, I)
+
+    def __getitem__(self, key: str) -> P:
+        return self.values[key]
+
 
 class ListParsable(Parsable, Generic[P]):
+    child: Type[P]
     values: List[P]
 
     def __init__(self) -> None:
-        base, = self.__orig_bases__  # type: ignore
-        tcls, = base.__args__  # type: ignore
-        self._cls: Type[P] = tcls
         self.values = []
 
-    def create(self) -> P: ...
+    def create(self) -> P:
+        return self.child()
 
     def parse(self, data: Optional[List[Any]]):
         data = data or []
         V = len(self.values)
         D = len(data)
-
 
         # Create
         for index in range(V, D):
@@ -160,9 +173,7 @@ class ListParsable(Parsable, Generic[P]):
             parsable.parse(value)
 
     def format(self, I: Indent) -> str:
-        N = I.next()
-        W = len(str(len(self.values))) + 4
-        def F(index: int):
-            return (f"[{index}]:").ljust(W)
-        T = (I + F(i) + v.format(N) for i, v in enumerate(self.values))
-        return "".join(T)
+        return Formatter.ParsableList(self.values, I)
+
+    def __getitem__(self, index: int) -> P:
+        return self.values[index]

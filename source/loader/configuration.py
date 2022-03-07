@@ -2,14 +2,21 @@ from .parse import AutoParsable
 from .parameters import Parameters
 from .geometry import GeometryList
 from .literal import Int
-from .material import ColorMap
+from .material import MaterialMap
 
 class Config(AutoParsable):
     size: Int
     resolution: Int
 
 class Configuration(AutoParsable):
+    # General Settings
     config: Config
-    colors: ColorMap
+
+    # Defined Materials
+    materials: MaterialMap
+
+    # Application order of Geometry
     geometry: GeometryList
+
+    # Machine Learning Parameters
     parameters: Parameters

@@ -1,7 +1,7 @@
 from typing import Any
 from ..data import colors as c
 from .parse import AutoParsable, ValueParsable, MapParsable
-from .literal import Float
+from .literal import Float, Array
 
 
 class Color(ValueParsable[c.Color]):
@@ -15,7 +15,8 @@ class Color(ValueParsable[c.Color]):
 class Material(AutoParsable):
     color: Color
     strength: Float
+    locks: Array[bool]
+    force: Array[float]
 
-class ColorMap(MapParsable[Color]):
-    def create(self):
-        return Color()
+class MaterialMap(MapParsable[Material]):
+    child = Material

@@ -2,17 +2,24 @@ config:
   size: 256
   resolution: 4
 
-colors:
-  BLUE: [0.2, 0.1, 0.9]
-  RED:  [0.9, 0.2, 0.1]
-  BONE: [0.2, 0.6, 0.5, 0.1]
+materials:
+  BONE:
+    color: [0.2, 0.6, 0.5, 0.1]
+    strength: 0.5
+  STATIC:
+    color: [0.2, 0.1, 0.9]
+    strength: 10.0
+    locks: [true, true, true]
+  FORCE:
+    color: [0.9, 0.2, 0.1]
+    strength: 10.0
+    force: [0.0, 0.0, -10.0]
 
 geometry:
   - type: mesh
     operation: add
+    material: BONE
     properties:
-      color: BONE
-      strength: 0.5
       file: "./meshes/test_bone.obj"
     transform:
       position: [4.8, 2.6, 1.2]
@@ -21,20 +28,14 @@ geometry:
 
   - type: sphere
     operation: add
-    properties:
-      color: BLUE
-      strength: 10.0
-      locked-axes: [true, true, true]
+    material: STATIC
     transform:
       position: [0, 0, 0]
       scale: 0.5
 
   - type: sphere
     operation: add
-    properties:
-      color: RED
-      strength: 10.0
-      force-axes: [0.0, 0.0, -10.0]
+    material: FORCE
     transform:
       position: [1, 1, 1]
       scale: 0.5
