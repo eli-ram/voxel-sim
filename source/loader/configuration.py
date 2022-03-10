@@ -1,15 +1,15 @@
 from .parse.collection import ParsableMap, ParsableArray
 from .parse.literal import Int
-from .parse.auto import AutoParsable
+from .parse.struct import ParsableStruct
 from .parameters import Parameters
 from .geometry import Geometry
 from .material import Material
 
-class Config(AutoParsable):
+class Config(ParsableStruct):
     size: Int
     resolution: Int
 
-class Configuration(AutoParsable):
+class Configuration(ParsableStruct):
     # General Settings
     config: Config
 

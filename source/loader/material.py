@@ -1,6 +1,6 @@
 from typing import Any
 from ..data import colors as c
-from .parse.auto import AutoParsable
+from .parse.struct import ParsableStruct
 from .parse.value import ValueParsable
 from .parse.literal import Float
 from .parse.nametuple import ParseNamedTuple, NamedTuple
@@ -23,7 +23,7 @@ class Color(ValueParsable[c.Color]):
             return c.Color(*data) # type: ignore
         return c.Colors.WHITE
 
-class Material(AutoParsable):
+class Material(ParsableStruct):
     color: Color
     strength: Float
     locks: ParseNamedTuple[Locks]
