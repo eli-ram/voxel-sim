@@ -1,5 +1,5 @@
 from typing import Any
-from .utils import Indent
+from .indent import Indent
 
 class Parsable:
     """ Abstract Parsable Definition """

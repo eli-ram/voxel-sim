@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, TypeVar
-from .utils import Indent
-from .base import Parsable
+from .indent import Indent
+from .parsable import Parsable
 
 P = TypeVar('P', bound=Parsable)
 

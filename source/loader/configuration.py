@@ -1,8 +1,9 @@
+from .parse.collection import ParsableMap, ParsableArray
+from .parse.literal import Int
 from .parse.auto import AutoParsable
 from .parameters import Parameters
-from .geometry import GeometryList
-from .parse.literal import Int
-from .material import MaterialMap
+from .geometry import Geometry
+from .material import Material
 
 class Config(AutoParsable):
     size: Int
@@ -13,10 +14,10 @@ class Configuration(AutoParsable):
     config: Config
 
     # Defined Materials
-    materials: MaterialMap
+    materials: ParsableMap[Material]
 
     # Application order of Geometry
-    geometry: GeometryList
+    geometry: ParsableArray[Geometry]
 
     # Machine Learning Parameters
     parameters: Parameters

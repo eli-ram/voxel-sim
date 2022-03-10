@@ -1,7 +1,7 @@
 from typing import Any
 from ..data import colors as c
-from .parse.parse import ValueParsable, MapParsable
 from .parse.auto import AutoParsable
+from .parse.value import ValueParsable
 from .parse.literal import Float
 from .parse.nametuple import ParseNamedTuple, NamedTuple
 
@@ -28,6 +28,3 @@ class Material(AutoParsable):
     strength: Float
     locks: ParseNamedTuple[Locks]
     force: ParseNamedTuple[Force]
-
-class MaterialMap(MapParsable[Material]):
-    child = Material

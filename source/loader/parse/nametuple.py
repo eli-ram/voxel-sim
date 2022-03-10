@@ -1,7 +1,7 @@
-from .parse import ValueParsable
+from typing import Any, NamedTuple, TypeVar
+from .value import ValueParsable
 from .error import ParseError
 from .utils import generic
-from typing import Any, NamedTuple, TypeVar
 
 T = TypeVar('T', bound=NamedTuple)
 
