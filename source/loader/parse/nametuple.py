@@ -1,11 +1,11 @@
-from typing import Any, NamedTuple, TypeVar
-from .value import ValueParsable
+from typing import Any, TypeVar, NamedTuple as __namedtuple__
+from .value import Value
 from .error import ParseError
 from .utils import generic
 
-T = TypeVar('T', bound=NamedTuple)
+T = TypeVar('T', bound=__namedtuple__)
 
-class ParseNamedTuple(ValueParsable[T]):
+class NamedTuple(Value[T]):
 
     def validate(self, data: Any) -> T:
         T = generic(self)

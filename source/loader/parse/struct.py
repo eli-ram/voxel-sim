@@ -7,7 +7,7 @@ from .utils import isParsableType
 from .fmt import Fmt
 
 
-class ParsableStruct(Parsable):
+class Struct(Parsable):
     """ Auto Parsable base for annotated fields """
 
     @classmethod

@@ -1,29 +1,29 @@
 from typing import Any
 from .indent import Indent
-from .value import ValueParsable
+from .value import Value
 from .error import ParseError
 import glm
 
-class Int(ValueParsable[int]):
+class Int(Value[int]):
     def validate(self, data: Any):
         if not isinstance(data, int):
             raise ParseError("Expected an Integer")
         return data
 
-class Float(ValueParsable[float]):
+class Float(Value[float]):
     def validate(self, data: Any):
         if not isinstance(data, (int, float)):
             raise ParseError("Expected a Float")
         return float(data)
 
-class String(ValueParsable[str]):
+class String(Value[str]):
     def validate(self, data: Any):
         if not isinstance(data, str):
             raise ParseError("Expected a String")
         return data
 
 
-class Vector(ValueParsable[glm.vec3]):
+class Vector(Value[glm.vec3]):
     default = glm.vec3()
 
     def validate(self, data: Any):
@@ -38,7 +38,7 @@ class Vector(ValueParsable[glm.vec3]):
         x, y, z = self.value
         return f"Vector({x=: 6.3f}, {y=: 6.3f}, {z=: 6.3f})"
 
-class Quaternion(ValueParsable[glm.quat]):
+class Quaternion(Value[glm.quat]):
     def validate(self, data: Any):
         # TODO
         return glm.quat()

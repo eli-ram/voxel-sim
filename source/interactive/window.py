@@ -1,8 +1,8 @@
 # pyright: reportUnknownMemberType=false
 from typing import Any
 
-from source.interactive.buttons import Buttons
-from source.interactive.tasks import TaskQueue
+from .buttons import Buttons
+from .tasks import TaskQueue
 from .context import glfw, UninitializedException
 from .keys import Keys
 from dataclasses import dataclass

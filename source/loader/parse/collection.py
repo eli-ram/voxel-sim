@@ -1,14 +1,14 @@
 from typing import Any, Dict, Generic, List, TypeVar, cast
 from .indent import Indent
 from .parsable import Parsable
-from .value import ValueParsable
+from .value import Value
 from .error import ParseError
 from .utils import generic
 from .fmt import Fmt
 
 P = TypeVar('P', bound=Parsable)
 
-class ParsableMap(ValueParsable[P]):
+class Map(Value[P]):
     values: Dict[str, P]
 
     def __init__(self) -> None:
@@ -45,7 +45,7 @@ class ParsableMap(ValueParsable[P]):
     def __getitem__(self, key: str) -> P:
         return self.values[key]
 
-class ParsableArray(Parsable, Generic[P]):
+class Array(Parsable, Generic[P]):
     values: List[P]
 
     def __init__(self) -> None:

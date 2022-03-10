@@ -1,23 +1,23 @@
-from .parse.collection import ParsableMap, ParsableArray
+from .parse.collection import Map, Array
 from .parse.literal import Int
-from .parse.struct import ParsableStruct
+from .parse.struct import Struct
 from .parameters import Parameters
 from .geometry import Geometry
 from .material import Material
 
-class Config(ParsableStruct):
+class Config(Struct):
     size: Int
     resolution: Int
 
-class Configuration(ParsableStruct):
+class Configuration(Struct):
     # General Settings
     config: Config
 
     # Defined Materials
-    materials: ParsableMap[Material]
+    materials: Map[Material]
 
     # Application order of Geometry
-    geometry: ParsableArray[Geometry]
+    geometry: Array[Geometry]
 
     # Machine Learning Parameters
     parameters: Parameters

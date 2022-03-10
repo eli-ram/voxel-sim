@@ -1,9 +1,6 @@
-from typing import Any
+from typing import Any, NamedTuple
 from ..data import colors as c
-from .parse.struct import ParsableStruct
-from .parse.value import ValueParsable
-from .parse.literal import Float
-from .parse.nametuple import ParseNamedTuple, NamedTuple
+from .parse import all as p
 
 class Locks(NamedTuple):
     x: bool = False
@@ -15,7 +12,7 @@ class Force(NamedTuple):
     y: float = 0
     z: float = 0
 
-class Color(ValueParsable[c.Color]):
+class Color(p.Value[c.Color]):
     def validate(self, data: Any):
         if isinstance(data, str):
             return c.Colors.get(data)
@@ -23,8 +20,8 @@ class Color(ValueParsable[c.Color]):
             return c.Color(*data) # type: ignore
         return c.Colors.WHITE
 
-class Material(ParsableStruct):
+class Material(p.Struct):
     color: Color
-    strength: Float
-    locks: ParseNamedTuple[Locks]
-    force: ParseNamedTuple[Force]
+    strength: p.Float
+    locks: p.NamedTuple[Locks]
+    force: p.NamedTuple[Force]

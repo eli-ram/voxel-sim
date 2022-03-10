@@ -4,7 +4,7 @@ from .parsable import Parsable
 
 T = TypeVar('T')
 
-class ValueParsable(Parsable, Generic[T]):
+class Value(Parsable, Generic[T]):
     """ Value Parsable base for literal fields """
     value: T
 
