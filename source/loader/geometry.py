@@ -1,6 +1,7 @@
 from .transform import Transform
-from .literal import String, Map
-from .parse import AutoParsable, ListParsable
+from .parse.literal import String, Map
+from .parse.auto import AutoParsable
+from .parse.parse import ListParsable
 
 class Geometry(AutoParsable):
     type: String

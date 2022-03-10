@@ -1,8 +1,19 @@
 from typing import Any
 from ..data import colors as c
-from .parse import AutoParsable, ValueParsable, MapParsable
-from .literal import Float, Array
+from .parse.parse import ValueParsable, MapParsable
+from .parse.auto import AutoParsable
+from .parse.literal import Float
+from .parse.nametuple import ParseNamedTuple, NamedTuple
 
+class Locks(NamedTuple):
+    x: bool = False
+    y: bool = False
+    z: bool = False
+
+class Force(NamedTuple):
+    x: float = 0
+    y: float = 0
+    z: float = 0
 
 class Color(ValueParsable[c.Color]):
     def validate(self, data: Any):
@@ -15,8 +26,8 @@ class Color(ValueParsable[c.Color]):
 class Material(AutoParsable):
     color: Color
     strength: Float
-    locks: Array[bool]
-    force: Array[float]
+    locks: ParseNamedTuple[Locks]
+    force: ParseNamedTuple[Force]
 
 class MaterialMap(MapParsable[Material]):
     child = Material

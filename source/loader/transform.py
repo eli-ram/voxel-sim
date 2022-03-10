@@ -1,5 +1,5 @@
-from .parse import AutoParsable
-from .literal import Vector, Quaternion
+from .parse.auto import AutoParsable
+from .parse.literal import Vector, Quaternion
 import glm
 
 class Scale(Vector):

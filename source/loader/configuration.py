@@ -1,7 +1,7 @@
-from .parse import AutoParsable
+from .parse.auto import AutoParsable
 from .parameters import Parameters
 from .geometry import GeometryList
-from .literal import Int
+from .parse.literal import Int
 from .material import MaterialMap
 
 class Config(AutoParsable):

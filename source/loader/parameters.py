@@ -1,5 +1,5 @@
-from .parse import AutoParsable
-from .literal import String, Float, Vector
+from .parse.auto import AutoParsable
+from .parse.literal import String, Float, Vector
 
 class Surface(AutoParsable):
     type: String
