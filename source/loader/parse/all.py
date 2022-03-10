@@ -1,6 +1,6 @@
 # Basic classes
 from .indent import Fmt
-from .error import ParseError
+from .error import ParseError, CastError
 from .parsable import Parsable
 # Extended classes
 from .value import Value
@@ -19,6 +19,7 @@ __all__ = [
     'Fmt',
     'Parsable',
     'ParseError',
+    'CastError',
     # Extended classes
     'Map',
     'Array',

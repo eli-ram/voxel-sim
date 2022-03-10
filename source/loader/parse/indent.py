@@ -2,10 +2,11 @@ from typing import NamedTuple
 
 class Format(NamedTuple):
     initial: str = ''
-    prefix: str = '|'
+    prefix: str = ''
     step: str = '  '
     postfix: str = ''
-    keep_unchanged: bool = True
+    list_unchanged: bool = True
+    list_errors: bool = False
 
     def indent(self, string: str):
         return '\n' + self.prefix + string + self.postfix

@@ -1,9 +1,12 @@
-from typing import Any
+from typing import Any, Optional
+
+from .error import ParseError
 from .indent import Format, Fmt
 
 class Parsable:
     """ Abstract Parsable Definition """
     changed: bool = False
+    error: Optional[ParseError] = None
 
     def parse(self, data: Any): ...
     def format(self, F: Fmt) -> str: ...

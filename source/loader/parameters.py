@@ -1,11 +1,10 @@
 from .parse.struct import Struct
-from .parse.literal import String, Float, Vector
+from .parse.literal import String
+from .transform import Transform
 
 class Surface(Struct):
     type: String
-    radius: Float
-    center: Vector
-    normal: Vector
+    transform: Transform
 
 class Parameters(Struct):
    inner_surface: Surface

@@ -1,16 +1,16 @@
 from typing import Any, NamedTuple
 from ..data import colors as c
 from .parse import all as p
+from .vector import Vector
+import glm
 
 class Locks(NamedTuple):
     x: bool = False
     y: bool = False
     z: bool = False
 
-class Force(NamedTuple):
-    x: float = 0
-    y: float = 0
-    z: float = 0
+class Force(Vector):
+    default = glm.vec3()
 
 class Color(p.Value[c.Color]):
     def validate(self, data: Any):
@@ -24,4 +24,4 @@ class Material(p.Struct):
     color: Color
     strength: p.Float
     locks: p.NamedTuple[Locks]
-    force: p.NamedTuple[Force]
+    force: Force

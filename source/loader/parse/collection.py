@@ -2,16 +2,17 @@ from typing import Any, Dict, Generic, List, TypeVar, cast
 from .indent import Fmt
 from .parsable import Parsable
 from .error import ParseError
-from .utils import generic, formatMap, formatArray
+from .utils import generic, formatMap, formatArray, safeParse
 
 P = TypeVar('P', bound=Parsable)
 
 class Map(Parsable, Generic[P]):
-    values: Dict[str, P]
+    map: Dict[str, P]
 
     def __init__(self) -> None:
-        self.values = {}
+        self.map = {}
 
+    @safeParse
     def parse(self, data: Any):
         data = data or {}
 
@@ -20,7 +21,7 @@ class Map(Parsable, Generic[P]):
 
         map = cast(Dict[str, Any], data)
         cls = generic(self)
-        V = set(self.values)
+        V = set(self.map)
         D = set(map)
 
         # Baseline for change
@@ -29,30 +30,35 @@ class Map(Parsable, Generic[P]):
         # Create
         for key in D - V:
             print(f"Create: {key}")
-            self.values[key] = cls()
+            self.map[key] = cls()
 
         # Delete
         for key in V - D:
             print(f"Delete: {key}")
-            self.values.pop(key)
+            self.map.pop(key)
 
         # Parse & Check changes
-        for key, parsable in self.values.items():
+        for key, parsable in self.map.items():
             parsable.parse(map.get(key))
             self.changed |= parsable.changed
 
+        # Check Errors
+        if any(p.error for p in self.map.values()):
+            raise ParseError()
+
     def format(self, F: Fmt) -> str:
-        return formatMap(self.values, F)
+        return formatMap(self, self.map, F)
 
     def __getitem__(self, key: str) -> P:
-        return self.values[key]
+        return self.map[key]
 
 class Array(Parsable, Generic[P]):
-    values: List[P]
+    array: List[P]
 
     def __init__(self) -> None:
-        self.values = []
+        self.array = []
 
+    @safeParse
     def parse(self, data: Any):
         data = data or []
 
@@ -61,7 +67,7 @@ class Array(Parsable, Generic[P]):
 
         array = cast(List[Any], data)
         cls = generic(self)
-        V = len(self.values)
+        V = len(self.array)
         D = len(array)
 
         # Baseline for change
@@ -70,20 +76,25 @@ class Array(Parsable, Generic[P]):
         # Create
         for index in range(V, D):
             print(f"Create: {index}")
-            self.values.append(cls())
+            self.array.append(cls())
 
         # Delete
         for index in range(V, D, -1):
             print(f"Delete: {index}")
-            self.values.pop()
+            self.array.pop()
 
         # Parse & Check for changes
-        for parsable, value in zip(self.values, array):
+        for parsable, value in zip(self.array, array):
             parsable.parse(value)
             self.changed |= parsable.changed
 
+        # Check Errors
+        if any(p.error for p in self.array):
+            raise ParseError()
+
+
     def format(self, F: Fmt) -> str:
-        return formatArray(self.values, F)
+        return formatArray(self, self.array, F)
 
     def __getitem__(self, index: int) -> P:
-        return self.values[index]
+        return self.array[index]

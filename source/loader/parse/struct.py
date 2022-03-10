@@ -3,7 +3,7 @@ from typing import Any, Dict, cast
 from .error import ParseError
 from .indent import Fmt
 from .parsable import Parsable
-from .utils import isParsableType, formatMap
+from .utils import isParsableType, formatMap, safeParse
 
 class Struct(Parsable):
     """ Auto Parsable base for annotated fields """
@@ -18,10 +18,12 @@ class Struct(Parsable):
         for field, parsable in self._fields.items():
             setattr(self, field, parsable)
 
+    @safeParse
     def parse(self, data: Any):
         data = data or {}
         if not isinstance(data, dict):
             raise ParseError("Expected a Map of Properties")
+
         map = cast(Dict[str, Any], data)
 
         # Baseline for Change
@@ -32,5 +34,9 @@ class Struct(Parsable):
             parsable.parse(map.get(field))
             self.changed |= parsable.changed
 
+        # Check for Errors
+        if any(p.error for p in self._fields.values()):
+            raise ParseError()
+
     def format(self, F: Fmt) -> str:
-        return formatMap(self._fields, F)
+        return formatMap(self, self._fields, F)
