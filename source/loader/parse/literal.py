@@ -1,5 +1,5 @@
 from typing import Any
-from .indent import Indent
+from .indent import Fmt
 from .value import Value
 from .error import ParseError
 import glm
@@ -34,7 +34,7 @@ class Vector(Value[glm.vec3]):
         else:
             return self.default
 
-    def format(self, I: Indent) -> str:
+    def format(self, F: Fmt) -> str:
         x, y, z = self.value
         return f"Vector({x=: 6.3f}, {y=: 6.3f}, {z=: 6.3f})"
 
@@ -43,6 +43,6 @@ class Quaternion(Value[glm.quat]):
         # TODO
         return glm.quat()
 
-    def format(self, I: Indent) -> str:
+    def format(self, F: Fmt) -> str:
         w, x, y, z = self.value
         return f"Quaternion({w=: 6.3f}, {x=: 6.3f}, {y=: 6.3f}, {z=: 6.3f})"

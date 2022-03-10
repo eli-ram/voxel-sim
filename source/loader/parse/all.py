@@ -1,5 +1,5 @@
 # Basic classes
-from .indent import Indent
+from .indent import Fmt
 from .error import ParseError
 from .parsable import Parsable
 # Extended classes
@@ -16,7 +16,7 @@ from .literal import (
 
 __all__ = [
     # Basic classes
-    'Indent',
+    'Fmt',
     'Parsable',
     'ParseError',
     # Extended classes

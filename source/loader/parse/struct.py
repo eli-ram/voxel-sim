@@ -1,11 +1,9 @@
 from typing import Any, Dict, cast
 
 from .error import ParseError
-from .indent import Indent
+from .indent import Fmt
 from .parsable import Parsable
-from .utils import isParsableType
-from .fmt import Fmt
-
+from .utils import isParsableType, formatMap
 
 class Struct(Parsable):
     """ Auto Parsable base for annotated fields """
@@ -17,17 +15,22 @@ class Struct(Parsable):
 
     def __init__(self) -> None:
         self._fields = self.initFields()
-        for name, parsable in self._fields.items():
-            setattr(self, name, parsable)
+        for field, parsable in self._fields.items():
+            setattr(self, field, parsable)
 
     def parse(self, data: Any):
         data = data or {}
         if not isinstance(data, dict):
             raise ParseError("Expected a Map of Properties")
-
         map = cast(Dict[str, Any], data)
-        for name, parsable in self._fields.items():
-            parsable.parse(map.get(name))
 
-    def format(self, I: Indent) -> str:
-        return Fmt.ParsableDict(self._fields, I)
+        # Baseline for Change
+        self.changed = False
+
+        # Update & Check for changes
+        for field, parsable in self._fields.items():
+            parsable.parse(map.get(field))
+            self.changed |= parsable.changed
+
+    def format(self, F: Fmt) -> str:
+        return formatMap(self._fields, F)

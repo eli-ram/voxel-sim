@@ -28,6 +28,12 @@ class Color:
         r, g, b, a = self.value
         return f"Color({r=}, {g=}, {b=}, {a=})"
 
+    def __eq__(self, other: object):
+        return (
+            isinstance(other, Color) and 
+            not (self.value != other.value).any()
+        )
+
 class Colors:
 
     @classmethod

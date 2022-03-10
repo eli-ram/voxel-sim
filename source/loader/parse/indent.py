@@ -1,18 +1,28 @@
-class Indent:
-    def __init__(self, value: str, step: str, pad: str) -> None:
-        self.value = value
-        self.step = step
-        self.pad = pad
-        self.string = "\n" + self.value + self.pad
+from typing import NamedTuple
 
+class Format(NamedTuple):
+    initial: str = ''
+    prefix: str = '|'
+    step: str = '  '
+    postfix: str = ''
+    keep_unchanged: bool = True
+
+    def indent(self, string: str):
+        return '\n' + self.prefix + string + self.postfix
+
+    def next(self, string: str):
+        return Fmt(string + self.step, self)
+    
+    def init(self):
+        return self.next('')
+
+class Fmt:
+    def __init__(self, string: str, format: Format) -> None:
+        self.string = string
+        self.format = format
+        
     def next(self):
-        return Indent(self.value + self.step, self.step, self.pad)
+        return self.format.next(self.string)
 
-    def __str__(self) -> str:
-        return self.string
-
-    def __add__(self, other: str) -> str:
-        return self.string + other
-
-    def __radd__(self, other: str) -> str:
-        return other + self.string
+    def indent(self):
+        return self.format.indent(self.string)

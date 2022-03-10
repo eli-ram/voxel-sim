@@ -19,7 +19,7 @@ class Color(p.Value[c.Color]):
         if isinstance(data, list):
             return c.Color(*data) # type: ignore
         return c.Colors.WHITE
-
+        
 class Material(p.Struct):
     color: Color
     strength: p.Float
