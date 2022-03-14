@@ -6,6 +6,7 @@ import numpy as np
 from source.math.truss2stress import fem_simulate, stress_matrix
 from source.data.truss import Truss
 from source.loader.test import test_load
+from source.loader.parse.polymorphic import test_init as test_x
 
 def x_test_sparse():
     T = Truss(
@@ -82,5 +83,5 @@ def x_test_mpad():
 if __name__ == '__main__':
     for name, func in getmembers(sys.modules[__name__], isfunction):
         if name.startswith('test'):
-            print(f"Running: {name}")
+            print(f"\nRunning: {name}")
             func()

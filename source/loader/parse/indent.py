@@ -6,7 +6,7 @@ class Format(NamedTuple):
     step: str = '  '
     postfix: str = ''
     list_unchanged: bool = True
-    list_errors: bool = False
+    list_errors: bool = True
 
     def indent(self, string: str):
         return '\n' + self.prefix + string + self.postfix

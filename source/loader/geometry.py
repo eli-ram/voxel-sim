@@ -1,11 +1,9 @@
 from .transform import Transform
-from .parse.struct import Struct
-from .parse.literal import String
-from .parse.collection import Map
+from .parse import all as p
 
-class Geometry(Struct):
-    type: String
-    operation: String
-    material: String
+class Geometry(p.Struct):
+    type: p.String
+    operation: p.String
+    material: p.String
     transform: Transform
-    properties: Map[String]
+    properties: p.Map[p.String]

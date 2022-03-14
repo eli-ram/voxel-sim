@@ -1,27 +1,38 @@
 from typing import Any, Callable, Tuple, Dict, List, TypeVar
-
-from .error import ParseError, CastError
 from .indent import Fmt
 from .parsable import Parsable
+import traceback
 
 P = TypeVar('P', bound=Parsable)
 Parse = Callable[[P, Any], None]
 
+def _err(e: Exception) -> str:
+    _, *trace = traceback.format_tb(e.__traceback__, None)
+    where = "\n".join(trace)
+    name = e.__class__.__name__
+    return f"{name}[{e}]\n{where}".replace('\n','\n\t|')
+
 def safeParse(method: Parse[P]):
     def safely(self: Parsable, data: Any):
         try:
-            self.error = None
+            self.error = False
+            self.what = ""
             method(self, data)
-        except ParseError as e:
-            self.error = e
         except Exception as e:
-            self.error = CastError(",".join(e.args))
+            self.error = True
+            self.what = _err(e)
     return safely
+
+def linkParse(parent: Parsable, child: Parsable, data: Any):
+    child.parse(data)
+    parent.changed |= child.changed
+    parent.error |= child.error
 
 def isParsableType(cls: Any) -> bool:
     """ Check if Parsable or GenericParsable """
-    cls = cls if isinstance(cls, type) else getattr(cls, '__origin__')
-    return issubclass(cls, Parsable)
+    if hasattr(cls, '__origin__'):
+        cls = getattr(cls, '__origin__')
+    return isinstance(cls, type) and issubclass(cls, Parsable)
 
 def generics(obj: Any) -> Tuple[type, ...]:
     """ Get the Generic-Types of a Generic[T, ...] object """
@@ -45,27 +56,18 @@ def _fmt(self: Parsable, V: Dict[str, Parsable], F: Fmt) -> str:
 
     def include(v: Parsable) -> bool:
         return (
-            (E and not v.error is None)
+            (E and v.error)
             or
             (K or v.changed)
         )
-
-    if E and self.error:
-        base = str(self.error)
-    else:
-        base = str()
         
-    return base + "".join(I + k.ljust(W) + v.format(N) for k, v in V.items() if include(v))
-
-def formatValue(self: Parsable, V: str, F: Fmt) -> str:
-    E = F.format.list_errors
-    if E and self.error:
-        return str(self.error)
-    
-    return V
+    return self.what + "".join(I + k.ljust(W) + v.format(N) for k, v in V.items() if include(v))
 
 def formatMap(self: Parsable, V: Dict[str, P], F: Fmt) -> str:
-    return _fmt(self, {f"{k}:": v for k, v in V.items()}, F)
+    return _fmt(self, {f"[{k}]:": v for k, v in V.items()}, F)
 
 def formatArray(self: Parsable, V: List[P], F: Fmt) -> str:
     return _fmt(self, {f"[{i}]:": v for i, v in enumerate(V)}, F)
+
+def formatStruct(self: Parsable, V: Dict[str, P], F: Fmt) -> str:
+    return _fmt(self, {f"{k}:": v for k, v in V.items()}, F)

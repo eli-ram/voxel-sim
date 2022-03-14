@@ -1,13 +1,12 @@
-from typing import Any, Optional
-
-from .error import ParseError
+from typing import Any
 from .indent import Format, Fmt
 
 class Parsable:
     """ Abstract Parsable Definition """
-    changed: bool = False
-    error: Optional[ParseError] = None
-
+    changed = False
+    error = False
+    what = ""
+    
     def parse(self, data: Any): ...
     def format(self, F: Fmt) -> str: ...
 
@@ -15,5 +14,6 @@ class Parsable:
         return self.changed
 
     def __str__(self) -> str:
-        T = self.format(Format().init())
-        return f"\nv{T}\n^"
+        name = self.__class__.__name__
+        text = self.format(Format().init())
+        return f"{name}:{text}"

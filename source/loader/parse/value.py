@@ -1,6 +1,6 @@
 from typing import Any, Generic, Optional, TypeVar
 
-from source.loader.parse.utils import formatValue, safeParse
+from .utils import safeParse
 from .indent import Fmt
 from .parsable import Parsable
 
@@ -39,8 +39,11 @@ class Value(Parsable, Generic[T]):
         self.changed = self.hasChanged(old, new)
         
     def format(self, F: Fmt) -> str:
+        E = F.format.list_errors
+        if E and self.error:
+            return self.what
+
         if self.value is None:
-            string = ''
-        else:
-            string = self.string(self.value)
-        return formatValue(self, string, F)
+            return "null"
+
+        return self.string(self.value)            

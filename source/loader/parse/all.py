@@ -3,10 +3,11 @@ from .indent import Fmt
 from .error import ParseError, CastError
 from .parsable import Parsable
 # Extended classes
+from .map import Map
+from .array import Array 
 from .value import Value
 from .struct import Struct
 from .nametuple import NamedTuple
-from .collection import Map, Array
 # Literals
 from .literal import (
     String,
