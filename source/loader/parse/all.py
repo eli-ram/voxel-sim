@@ -8,6 +8,7 @@ from .array import Array
 from .value import Value
 from .struct import Struct
 from .nametuple import NamedTuple
+from .polymorphic import Polymorphic, PolymorphicStruct
 # Literals
 from .literal import (
     String,
@@ -27,6 +28,8 @@ __all__ = [
     'Value',
     'Struct',
     'NamedTuple',
+    'Polymorphic',
+    'PolymorphicStruct',
     # Literals
     'Int',
     'Float',

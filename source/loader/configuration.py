@@ -15,7 +15,7 @@ class Configuration(p.Struct):
     materials: p.Map[Material]
 
     # Application order of Geometry
-    geometry: p.Array[Geometry]
+    geometry: p.Array[p.Polymorphic[Geometry]]
 
     # Machine Learning Parameters
     parameters: Parameters

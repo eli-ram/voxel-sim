@@ -21,8 +21,7 @@ geometry:
   - type: mesh
     operation: add
     material: BONE
-    properties:
-      file: "./meshes/test_bone.obj"
+    file: "./meshes/test_bone.obj"
     transform:
       position: [4.8, 2.6, 1.2]
       rotation: [0.1, 3.0, 0.0, 8]
