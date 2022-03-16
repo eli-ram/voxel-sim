@@ -67,4 +67,7 @@ class Value(Parsable, Generic[T]):
         if self.value is None:
             return "none"
 
-        return self.toString(self.value)            
+        return self.toString(self.value)
+
+    def __bool__(self) -> bool:
+        return self.value is not None

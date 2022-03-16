@@ -28,6 +28,9 @@ class Struct(Parsable):
     def __init__(self) -> None:
         self._fields = self.initFields()
 
+    def validate(self):
+        """ Validate the struct after parsing (changed=True and error=False)"""
+
     @utils.safeParse
     def parse(self, data: Any):
         data = data or {}
@@ -42,6 +45,10 @@ class Struct(Parsable):
         # Update & Check for changes / errors
         for field, parsable in self._fields.items():
             utils.linkParse(self, parsable, data.get(field))
+
+        # Allow Derived class to validate
+        if self.changed:
+            self.validate()
 
     def format(self, F: Fmt) -> str:
         return utils.formatIter(self, F, "{}:", self._fields.items())    

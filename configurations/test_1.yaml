@@ -23,7 +23,7 @@ geometry:
       file: "./meshes/test_bone.obj"
     transform:
       position: [4.8, 2.6, 1.2]
-      rotation: [0.1, 3.0, 0.0]
+      rotation: [0.1, 3.0, 0.0, 0.0]
       scale: 0.2
 
   - type: sphere

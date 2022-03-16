@@ -13,4 +13,4 @@ class Parsable:
     def __str__(self) -> str:
         name = self.__class__.__name__
         text = self.format(Format().init())
-        return f"{name}:{text}"
+        return f"{name}: {text}"

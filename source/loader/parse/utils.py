@@ -14,7 +14,8 @@ Cast = Callable[[P, Any], T]
 
 def _err(e: Exception) -> str:
     name = e.__class__.__name__
-    return f"{name}[ {e} ]"
+    args = ", ".join(e.args)
+    return f"{name}[{args}]"
 
 
 def _trace(e: Exception) -> str:

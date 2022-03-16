@@ -35,3 +35,14 @@ class Transform(p.Struct):
     rotation: Rotation
     position: Position
     scale: Scale
+
+    def validate(self):
+        # TODO: combine into a matrix
+        print("Transform:")
+        if self.rotation:
+            print(" - Has", self.rotation)
+        if self.position:
+            print(" - Has", self.position)
+        if self.scale:
+            print(" - Has", self.scale)
+        print()
