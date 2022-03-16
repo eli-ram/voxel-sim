@@ -10,9 +10,6 @@ class Parsable:
     def parse(self, data: Any): ...
     def format(self, F: Fmt) -> str: ...
 
-    def __bool__(self) -> bool:
-        return self.changed
-
     def __str__(self) -> str:
         name = self.__class__.__name__
         text = self.format(Format().init())

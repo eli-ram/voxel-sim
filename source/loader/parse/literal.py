@@ -1,21 +1,30 @@
 from typing import Any
 from .value import Value
-from .error import CastError
+from .utils import wrapCast
 
 class Int(Value[int]):
-    def validate(self, data: Any):
-        if not isinstance(data, int):
-            raise CastError("Expected an Integer")
-        return data
+
+    @wrapCast
+    def parseValue(self, data: Any):
+        return int(data)
+
+    def toString(self, value: int) -> str:
+        return f"{value:6}"
 
 class Float(Value[float]):
-    def validate(self, data: Any):
-        if not isinstance(data, (int, float)):
-            raise CastError("Expected a Float")
+
+    @wrapCast
+    def parseValue(self, data: Any):
         return float(data)
+    
+    def toString(self, value: float) -> str:
+        return f"{value:6.3f}"
 
 class String(Value[str]):
-    def validate(self, data: Any):
-        if not isinstance(data, str):
-            raise CastError("Expected a String")
-        return data
+
+    @wrapCast
+    def parseValue(self, data: Any):
+        return str(data)
+
+    def toString(self, value: str) -> str:
+        return f"'{value}'"

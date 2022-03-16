@@ -7,7 +7,6 @@ from .map import Map
 from .array import Array 
 from .value import Value
 from .struct import Struct
-from .nametuple import NamedTuple
 from .polymorphic import Polymorphic, PolymorphicStruct
 # Literals
 from .literal import (
@@ -27,7 +26,6 @@ __all__ = [
     'Array',
     'Value',
     'Struct',
-    'NamedTuple',
     'Polymorphic',
     'PolymorphicStruct',
     # Literals

@@ -1,10 +1,11 @@
-from typing import Any, Dict, Generic, Optional, Type, TypeVar, cast
+from typing import Any, Dict, Optional, Type, TypeVar
 from .error import ParseError
 from .indent import Fmt
 from .struct import Struct
 from .literal import String
+from .generic import Generic
 from .parsable import Parsable
-from .utils import safeParse, generic, linkParse
+from . import utils
 
 class PolymorphicMeta(type):
     __DERIVED__: 'Dict[str, Type[PolymorphicStruct]]'
@@ -39,7 +40,7 @@ class Polymorphic(Parsable, Generic[S]):
     """ The container for PolymorphicStruct """
     type: Optional[S] = None
 
-    @safeParse
+    @utils.safeParse
     def parse(self, data: Any):
         # Check for None
         if data is None:
@@ -50,15 +51,14 @@ class Polymorphic(Parsable, Generic[S]):
         self.changed = False
 
         # Require Properties
-        if not isinstance(data, dict):
+        if not utils.isMap(data):
             raise ParseError("Expected a Map")
 
-        props = cast(Dict[str, Any], data)
-        T = cast(PolymorphicMeta, generic(self))
-        types = T.__DERIVED__
+        # Get the type mapping
+        types = self.generic().__DERIVED__
 
         # Get the actual type
-        type = props.get('type')
+        type = data.get('type')
         if type is None:
             raise ParseError("Type is not specified!")
 
@@ -73,8 +73,8 @@ class Polymorphic(Parsable, Generic[S]):
             self.type = cls()
 
         # Parse Data
-        linkParse(self, self.type, props)
+        utils.linkParse(self, self.type, data)
 
     def format(self, F: Fmt) -> str:
-        text = "" if self.type is None else self.type.format(F)
+        text = "none" if self.type is None else self.type.format(F)
         return self.what + text

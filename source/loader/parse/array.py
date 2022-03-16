@@ -1,8 +1,9 @@
-from typing import Any, Generic, List, TypeVar, cast
+from typing import Any, List, TypeVar
 from .indent import Fmt
 from .parsable import Parsable
+from .generic import Generic
 from .error import ParseError
-from .utils import generic, formatArray, safeParse, linkParse
+from . import utils
 
 P = TypeVar('P', bound=Parsable)
 
@@ -12,17 +13,16 @@ class Array(Parsable, Generic[P]):
     def __init__(self) -> None:
         self.array = []
 
-    @safeParse
+    @utils.safeParse
     def parse(self, data: Any):
         data = data or []
 
-        if not isinstance(data, list):
+        if not utils.isArray(data):
             raise ParseError("Expected an Array")
 
-        array = cast(List[Any], data)
-        cls = generic(self)
+        cls = self.generic()
         V = len(self.array)
-        D = len(array)
+        D = len(data)
 
         # Baseline for change
         self.changed = V != D
@@ -38,11 +38,11 @@ class Array(Parsable, Generic[P]):
             self.array.pop()
 
         # Parse & Check for changes / errors
-        for parsable, value in zip(self.array, array):
-            linkParse(self, parsable, value)
+        for parsable, value in zip(self.array, data):
+            utils.linkParse(self, parsable, value)
 
     def format(self, F: Fmt) -> str:
-        return formatArray(self, self.array, F)
+        return utils.formatIter(self, F, "[{}]:", enumerate(self.array))
 
     def __getitem__(self, index: int) -> P:
         return self.array[index]

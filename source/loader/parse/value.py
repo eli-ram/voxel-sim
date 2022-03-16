@@ -1,8 +1,9 @@
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Dict, List, Optional, TypeVar
 
-from .utils import safeParse
 from .indent import Fmt
+from .generic import Generic
 from .parsable import Parsable
+from . import utils
 
 T = TypeVar('T')
 
@@ -10,15 +11,35 @@ class Value(Parsable, Generic[T]):
     """ Value Parsable base for literal fields """
     value: Optional[T] = None
 
-    def validate(self, data: Any) -> Optional[T]:
-        """ Validate and return new value """
-        raise NotImplementedError()
+    def fromNone(self) -> Optional[T]:
+        return None
 
-    def compare(self, old: T, new: T) -> bool:
+    def fromMap(self, data: Dict[str, Any]) -> Optional[T]:
+        return self.generic()(**data)
+
+    def fromArray(self, data: List[Any]) -> Optional[T]:
+        return self.generic()(*data)
+
+    def fromValue(self, data: Any) -> Optional[T]:
+        return self.generic()(data)
+
+    @utils.wrapCast
+    def parseValue(self, data: Any) -> Optional[T]:
+        """ Cast data to new value """
+        if data is None:
+            return self.fromNone()
+        elif utils.isMap(data):
+            return self.fromMap(data)
+        elif utils.isArray(data):
+            return self.fromArray(data)
+        else:
+            return self.fromValue(data)
+
+    def isEqual(self, old: T, new: T) -> bool:
         """ Compare old and new value """
         return old == new
 
-    def string(self, value: T) -> str:
+    def toString(self, value: T) -> str:
         """ Convert value to string """
         return str(value)
 
@@ -29,12 +50,12 @@ class Value(Parsable, Generic[T]):
         if new is None:
             return True
 
-        return not self.compare(old, new)
+        return not self.isEqual(old, new)
 
-    @safeParse
+    @utils.safeParse
     def parse(self, data: Any):
         old = self.value
-        new = self.validate(data)
+        new = self.parseValue(data)
         self.value = new
         self.changed = self.hasChanged(old, new)
         
@@ -44,6 +65,6 @@ class Value(Parsable, Generic[T]):
             return self.what
 
         if self.value is None:
-            return "null"
+            return "none"
 
-        return self.string(self.value)            
+        return self.toString(self.value)            

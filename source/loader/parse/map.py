@@ -1,8 +1,9 @@
-from typing import Any, Dict, Generic, TypeVar, cast
+from typing import Any, Dict, TypeVar
 from .indent import Fmt
 from .parsable import Parsable
+from .generic import Generic
 from .error import ParseError
-from .utils import generic, formatMap, safeParse, linkParse
+from . import utils
 
 P = TypeVar('P', bound=Parsable)
 
@@ -12,17 +13,16 @@ class Map(Parsable, Generic[P]):
     def __init__(self) -> None:
         self.map = {}
 
-    @safeParse
+    @utils.safeParse
     def parse(self, data: Any):
         data = data or {}
 
-        if not isinstance(data, dict):
+        if not utils.isMap(data):
             raise ParseError("Expected a Map")
 
-        map = cast(Dict[str, Any], data)
-        cls = generic(self)
+        cls = self.generic()
         V = set(self.map)
-        D = set(map)
+        D = set(data)
 
         # Baseline for change
         self.changed = D != V
@@ -39,10 +39,10 @@ class Map(Parsable, Generic[P]):
 
         # Parse & Check changes / errors
         for key, parsable in self.map.items():
-            linkParse(self, parsable, map.get(key))
+            utils.linkParse(self, parsable, data.get(key))
 
     def format(self, F: Fmt) -> str:
-        return formatMap(self, self.map, F)
+        return utils.formatIter(self, F, "[{}]:", self.map.items()) 
 
     def __getitem__(self, key: str) -> P:
         return self.map[key]

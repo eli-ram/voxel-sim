@@ -1,12 +1,15 @@
-from typing import Any, Callable, Tuple, Dict, List, TypeVar
+from typing import Any, Callable, Dict, Iterable, List, Tuple, Type, TypeVar
+from typing_extensions import TypeGuard
 
-from source.loader.parse.error import ParseError
+from .error import CastError, ParseError
 from .indent import Fmt
 from .parsable import Parsable
 import traceback
 
+T = TypeVar('T')
 P = TypeVar('P', bound=Parsable)
 Parse = Callable[[P, Any], None]
+Cast = Callable[[P, Any], T]
 
 
 def _err(e: Exception) -> str:
@@ -14,14 +17,14 @@ def _err(e: Exception) -> str:
     return f"{name}[ {e} ]"
 
 
-def _trace(e: Exception):
+def _trace(e: Exception) -> str:
     _, *trace = traceback.format_tb(e.__traceback__, None)
     where = "\n" + "\n".join(trace)
     return where.replace('\n', '\n\t|')
 
 
 def safeParse(method: Parse[P]):
-    def safely(self: Parsable, data: Any):
+    def safely(self: P, data: Any):
         try:
             self.error = False
             self.what = ""
@@ -35,31 +38,37 @@ def safeParse(method: Parse[P]):
     return safely
 
 
+def wrapCast(method: Cast[P, T]):
+    def wrapper(self: P, data: Any) -> T:
+        try:
+            return method(self, data)
+        except Exception as e:
+            raise CastError(*e.args)
+    return wrapper
+
+
 def linkParse(parent: Parsable, child: Parsable, data: Any):
     child.parse(data)
     parent.changed |= child.changed
     parent.error |= child.error
 
 
-def isParsableType(cls: Any) -> bool:
+def isParsableType(cls: Any) -> TypeGuard[Type[Parsable]]:
     """ Check if Parsable or GenericParsable """
     if hasattr(cls, '__origin__'):
         cls = getattr(cls, '__origin__')
     return isinstance(cls, type) and issubclass(cls, Parsable)
 
 
-def generics(obj: Any) -> Tuple[type, ...]:
-    """ Get the Generic-Types of a Generic[T, ...] object """
-    return obj.__orig_class__.__args__
+def isMap(data: Any) -> TypeGuard[Dict[str, Any]]:
+    return isinstance(data, dict)
 
 
-def generic(obj: Any) -> type:
-    """ Get the Generic-Type of a Generic[T] object """
-    cls, = generics(obj)
-    return cls
+def isArray(data: Any) -> TypeGuard[List[Any]]:
+    return isinstance(data, list)
 
 
-def _fmt(self: Parsable, V: Dict[str, Parsable], F: Fmt) -> str:
+def formatIter(self: Parsable, F: Fmt, key: str, iter: Iterable[Tuple[Any, Parsable]]) -> str:
     """ Internal format method """
     N = F.next()
     K = F.format.list_unchanged
@@ -72,22 +81,10 @@ def _fmt(self: Parsable, V: Dict[str, Parsable], F: Fmt) -> str:
             (K or v.changed)
         )
 
-    S = {k: v.format(N) for k, v in V.items() if include(v)}
+    S = {key.format(k): v.format(N) for k, v in iter if include(v)}
     if not S:
         return self.what
 
     I = F.indent()
     W = max(len(k) for k in S) + 1
     return self.what + "".join(I + k.ljust(W) + v for k, v in S.items())
-
-
-def formatMap(self: Parsable, V: Dict[str, P], F: Fmt) -> str:
-    return _fmt(self, {f"[{k}]:": v for k, v in V.items()}, F)
-
-
-def formatArray(self: Parsable, V: List[P], F: Fmt) -> str:
-    return _fmt(self, {f"[{i}]:": v for i, v in enumerate(V)}, F)
-
-
-def formatStruct(self: Parsable, V: Dict[str, P], F: Fmt) -> str:
-    return _fmt(self, {f"{k}:": v for k, v in V.items()}, F)
