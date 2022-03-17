@@ -24,7 +24,7 @@ def void_errors():
 class FileChangeDetector:
 
     def __init__(self, file: str):
-        self.timestamp = 0.0
+        self.timestamp = None
         self.file = file
 
     def changed(self) -> bool:
@@ -40,7 +40,9 @@ class FileChangeDetector:
 P = TypeVar('P', bound=Parsable)
 F = Format(prefix=' |', list_unchanged=False, list_errors=True).init()
 
+
 class ParsableDetector(Generic[P]):
+    LOG = True
     _thread: Optional[Thread] = None
     _callback: Any
 
@@ -53,6 +55,9 @@ class ParsableDetector(Generic[P]):
         self._file = os.path.abspath(filename)
         self._args = args
         self.start()
+
+    def shouldLog(self, parser: P) -> bool:
+        return self.LOG and (parser.changed or parser.error)
 
     def logParsed(self, parser: P):
         print(
@@ -72,8 +77,9 @@ class ParsableDetector(Generic[P]):
         parser = self.generic()
         callback = self._callback
 
+        print(f"Staring: {self}")
         # Run loop
-        while thread is self._thread:
+        while self._thread is thread:
 
             # Await File change
             if not file.changed():
@@ -84,10 +90,12 @@ class ParsableDetector(Generic[P]):
             with void_errors(), file.read() as f:
                 data = self.loadFile(f)
                 parser.parse(data)
-                if parser.changed or parser.error:
+                if self.shouldLog(parser):
                     self.logParsed(parser)
                 if parser.changed:
                     callback(*args, parser)
+
+        print(f"Stopped: {self}")
 
     def __str__(self) -> str:
         name = self.__class__.__name__
