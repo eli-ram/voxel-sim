@@ -55,7 +55,7 @@ class Polymorphic(Parsable, Generic[S]):
             raise ParseError("Expected a Map")
 
         # Get the type mapping
-        types = self.generic().__DERIVED__
+        types = self.generic.__DERIVED__
 
         # Get the actual type
         type = data.get('type')

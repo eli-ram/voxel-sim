@@ -20,7 +20,7 @@ class Array(Parsable, Generic[P]):
         if not utils.isArray(data):
             raise ParseError("Expected an Array")
 
-        cls = self.generic()
+        T = self.generic
         V = len(self.array)
         D = len(data)
 
@@ -30,7 +30,7 @@ class Array(Parsable, Generic[P]):
         # Create
         for index in range(V, D):
             print(f"Create: {index}")
-            self.array.append(cls())
+            self.array.append(T())
 
         # Delete
         for index in range(V, D, -1):

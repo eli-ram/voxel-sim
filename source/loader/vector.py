@@ -2,9 +2,7 @@ from .parse import all as p
 import glm
 
 class Vector(p.Value[glm.vec3]):
-    
-    def generic(self):
-        return glm.vec3
+    generic = glm.vec3
 
     def toString(self, value: glm.vec3) -> str:
         name = self.__class__.__name__

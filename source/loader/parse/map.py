@@ -20,7 +20,7 @@ class Map(Parsable, Generic[P]):
         if not utils.isMap(data):
             raise ParseError("Expected a Map")
 
-        cls = self.generic()
+        T = self.generic
         V = set(self.map)
         D = set(data)
 
@@ -30,7 +30,7 @@ class Map(Parsable, Generic[P]):
         # Create
         for key in D - V:
             print(f"Create: {key}")
-            self.map[key] = cls()
+            self.map[key] = T()
 
         # Delete
         for key in V - D:

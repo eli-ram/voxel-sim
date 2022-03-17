@@ -3,10 +3,12 @@ from .indent import Format, Fmt
 
 class Parsable:
     """ Abstract Parsable Definition """
+
     changed = False
     error = False
     what = ""
-    
+
+    def __init__(self) -> None: ...
     def parse(self, data: Any): ...
     def format(self, F: Fmt) -> str: ...
 

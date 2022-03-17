@@ -15,13 +15,13 @@ class Value(Parsable, Generic[T]):
         return None
 
     def fromMap(self, data: Dict[str, Any]) -> Optional[T]:
-        return self.generic()(**data)
+        return self.generic(**data)
 
     def fromArray(self, data: List[Any]) -> Optional[T]:
-        return self.generic()(*data)
+        return self.generic(*data)
 
     def fromValue(self, data: Any) -> Optional[T]:
-        return self.generic()(data)
+        return self.generic(data)
 
     @utils.wrapCast
     def parseValue(self, data: Any) -> Optional[T]:
