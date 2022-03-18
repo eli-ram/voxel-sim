@@ -1,14 +1,17 @@
-from typing import Any, Dict, Optional, Type, TypeVar
+from typing import Dict, Optional, Type, TypeVar
 from .error import ParseError
 from .indent import Fmt
 from .struct import Struct
 from .literal import String
 from .generic import Generic
 from .parsable import Parsable
-from . import utils
+from .types import Any, isMap
+from .utils import safeParse
+
 
 class PolymorphicMeta(type):
     __DERIVED__: 'Dict[str, Type[PolymorphicStruct]]'
+
 
 class PolymorphicStruct(Struct, metaclass=PolymorphicMeta):
     """ Direct Polymorphic type, requires Polymorphic as a container """
@@ -22,10 +25,10 @@ class PolymorphicStruct(Struct, metaclass=PolymorphicMeta):
 
         # Do not register abstract classes
         if abstract:
-            return 
+            return
 
         # Type needs to be specified
-        assert type is not None, "Polymorphic subclasses must specify {TYPE: str}, or {abstract: bool}"
+        assert type is not None, "Polymorphic subclasses must specify {TYPE: str} or {abstract: bool}"
 
         # Check that we dont override
         map = cls.__DERIVED__
@@ -34,47 +37,61 @@ class PolymorphicStruct(Struct, metaclass=PolymorphicMeta):
         # Register
         map[type] = cls
 
+
 S = TypeVar('S', bound=PolymorphicStruct)
+
 
 class Polymorphic(Parsable, Generic[S]):
     """ The container for PolymorphicStruct """
-    type: Optional[S] = None
+    value: Optional[S] = None
 
-    @utils.safeParse
-    def parse(self, data: Any):
-        # Check for None
-        if data is None:
-            self.changed = self.type is not None
-            self.type = None
-            return
-        
-        self.changed = False
+    def require(self) -> S:
+        if self.value is None:
+            name = self.genericName
+            err = f"Polymorphic[{name}] is missing!"
+            raise ParseError(err)
+        return self.value
 
+    def typeOf(self, data: Any):
         # Require Properties
-        if not utils.isMap(data):
+        if not isMap(data):
             raise ParseError("Expected a Map")
 
         # Get the type mapping
-        types = self.generic.__DERIVED__
+        derived = self.generic.__DERIVED__
 
         # Get the actual type
         type = data.get('type')
         if type is None:
             raise ParseError("Type is not specified!")
 
-        if type not in types:
-            types = ", ".join(types)
-            raise ParseError(f"Type must be one of: {types}")
+        if type not in derived:
+            derived = ", ".join(derived)
+            raise ParseError(f"Type must be one of: {derived}")
 
-        cls = types[type]
+        return derived[type]
 
-        # Initialize the actual class & not this wrapper
-        if not isinstance(self.type, cls):
-            self.type = cls()
+    @safeParse
+    def parse(self, data: Any):
+        data = data or {}
+
+        # Get old instance
+        V = self.value
+        self.value = None
+        self.changed = False
+
+        # Get target Type
+        T = self.typeOf(data)
+
+        # Reuse old or create new Instance
+        if isinstance(V, T):
+            self.value = V
+        else:
+            self.value = T()
 
         # Parse Data
-        utils.linkParse(self, self.type, data)
+        self.link(self.value, data)
 
     def format(self, F: Fmt) -> str:
-        text = "none" if self.type is None else self.type.format(F)
-        return self.what + text
+        text = "None" if self.value is None else self.value.format(F)
+        return self.what or text

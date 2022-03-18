@@ -3,7 +3,9 @@ from typing import Any
 from .error import ParseError
 from .indent import Fmt
 from .parsable import Parsable
-from . import utils
+from .utils import safeParse, formatIter, isParsableType
+from .types import isMap
+
 
 class Struct(Parsable):
     """ Auto Parsable base for annotated fields """
@@ -19,7 +21,7 @@ class Struct(Parsable):
     def initFields(self):
         fields = dict[str, Parsable]()
         for field, type in self.getAnnotations().items():
-            if utils.isParsableType(type):
+            if isParsableType(type):
                 parsable = type()
                 fields[field] = parsable
                 setattr(self, field, parsable)
@@ -28,15 +30,15 @@ class Struct(Parsable):
     def __init__(self) -> None:
         self._fields = self.initFields()
 
-    def validate(self):
+    def postParse(self):
         """ Validate the struct after parsing (changed=True and error=False)"""
 
-    @utils.safeParse
+    @safeParse
     def parse(self, data: Any):
         data = data or {}
 
         # Require a map
-        if not utils.isMap(data):
+        if not isMap(data):
             raise ParseError("Expected a Map of Properties")
 
         # Baseline for Change
@@ -44,11 +46,11 @@ class Struct(Parsable):
 
         # Update & Check for changes / errors
         for field, parsable in self._fields.items():
-            utils.linkParse(self, parsable, data.get(field))
+            self.link(parsable, data.get(field))
 
-        # Allow Derived class to validate
+        # Allow Derived class to post-parse
         if self.changed:
-            self.validate()
+            self.postParse()
 
     def format(self, F: Fmt) -> str:
-        return utils.formatIter(self, F, "{}:", self._fields.items())    
+        return formatIter(self, F, "{}:", self._fields.items())

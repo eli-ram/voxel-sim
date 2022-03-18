@@ -12,6 +12,7 @@ from .polymorphic import Polymorphic, PolymorphicStruct
 from .literal import (
     String,
     Float,
+    Bool,
     Int,
 )
 
@@ -19,8 +20,8 @@ __all__ = [
     # Basic classes
     'Fmt',
     'Parsable',
-    'ParseError',
     'CastError',
+    'ParseError',
     # Extended classes
     'Map',
     'Array',
@@ -30,6 +31,7 @@ __all__ = [
     'PolymorphicStruct',
     # Literals
     'Int',
+    'Bool',
     'Float',
     'String',
 ]

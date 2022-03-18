@@ -1,9 +1,10 @@
-from typing import Any, Dict, List, Optional, TypeVar
+from typing import Optional, TypeVar
 
 from .indent import Fmt
 from .generic import Generic
 from .parsable import Parsable
-from . import utils
+from .types import Any, Map, Array, isMap, isArray
+from .utils import safeParse
 
 T = TypeVar('T')
 
@@ -14,23 +15,22 @@ class Value(Parsable, Generic[T]):
     def fromNone(self) -> Optional[T]:
         return None
 
-    def fromMap(self, data: Dict[str, Any]) -> Optional[T]:
+    def fromMap(self, data: Map) -> Optional[T]:
         return self.generic(**data)
 
-    def fromArray(self, data: List[Any]) -> Optional[T]:
+    def fromArray(self, data: Array) -> Optional[T]:
         return self.generic(*data)
 
     def fromValue(self, data: Any) -> Optional[T]:
         return self.generic(data)
 
-    @utils.wrapCast
     def parseValue(self, data: Any) -> Optional[T]:
         """ Cast data to new value """
         if data is None:
             return self.fromNone()
-        elif utils.isMap(data):
+        elif isMap(data):
             return self.fromMap(data)
-        elif utils.isArray(data):
+        elif isArray(data):
             return self.fromArray(data)
         else:
             return self.fromValue(data)
@@ -44,15 +44,12 @@ class Value(Parsable, Generic[T]):
         return str(value)
 
     def hasChanged(self, old: Optional[T], new: Optional[T]):
-        if old is None:
-            return not new is None
-
-        if new is None:
-            return True
+        if old is None or new is None:
+            return not old is new
 
         return not self.isEqual(old, new)
 
-    @utils.safeParse
+    @safeParse
     def parse(self, data: Any):
         old = self.value
         new = self.parseValue(data)

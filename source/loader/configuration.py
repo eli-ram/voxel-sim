@@ -4,6 +4,7 @@ from .geometry import Geometry
 from .material import Material
 
 class Config(p.Struct):
+    
     size: p.Int
     resolution: p.Int
 

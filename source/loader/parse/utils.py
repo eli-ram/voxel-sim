@@ -1,6 +1,7 @@
-from typing import Any, Callable, Dict, Iterable, List, Tuple, Type, TypeVar
+from typing import Callable, Iterable, Tuple, Type, TypeVar
 from typing_extensions import TypeGuard
 
+from .types import Any, Map
 from .error import CastError, ParseError
 from .indent import Fmt
 from .parsable import Parsable
@@ -47,11 +48,13 @@ def wrapCast(method: Cast[P, T]):
             raise CastError(*e.args)
     return wrapper
 
-
-def linkParse(parent: Parsable, child: Parsable, data: Any):
-    child.parse(data)
-    parent.changed |= child.changed
-    parent.error |= child.error
+def annotations(cls: type) -> Map:
+    """ Get all the annotations on a class """
+    all = dict[str, Any]()
+    for C in reversed(cls.mro()):
+        if hasattr(C, '__annotations__'):
+            all.update(C.__annotations__)
+    return all
 
 
 def isParsableType(cls: Any) -> TypeGuard[Type[Parsable]]:
@@ -59,14 +62,6 @@ def isParsableType(cls: Any) -> TypeGuard[Type[Parsable]]:
     if hasattr(cls, '__origin__'):
         cls = getattr(cls, '__origin__')
     return isinstance(cls, type) and issubclass(cls, Parsable)
-
-
-def isMap(data: Any) -> TypeGuard[Dict[str, Any]]:
-    return isinstance(data, dict)
-
-
-def isArray(data: Any) -> TypeGuard[List[Any]]:
-    return isinstance(data, list)
 
 
 def formatIter(self: Parsable, F: Fmt, key: str, iter: Iterable[Tuple[Any, Parsable]]) -> str:

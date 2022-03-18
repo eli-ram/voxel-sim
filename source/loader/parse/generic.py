@@ -6,6 +6,15 @@ T = t.TypeVar('T')
 def value(method: t.Callable[[t.Any], T]) -> T:
     return property(method) # type: ignore
 
+class InferenceException(Exception):
+    """ Exception for failed inference """
+
+    def __init__(self, err: str, obj: object) -> None:
+        name = obj.__class__.__name__
+        file = i.getfile(obj.__class__)
+        where = f"(class: {name}) (file: '{file}')"
+        super().__init__(err, where, "Consider setting the {generic} field in the class.")
+
 class Generic(t.Generic[T]):
     _generic: t.Optional[t.Type[T]] = None
 
@@ -15,11 +24,23 @@ class Generic(t.Generic[T]):
             self._generic = _generic(self)
         return self._generic
 
+    @value
+    def genericName(self) -> str:
+        try:
+            return self.generic.__name__
+        except InferenceException:
+            return "Unknown"
+
 def _generic(obj: t.Generic[T]) -> t.Type[T]:
+    # Get Typed Class
     origin = getattr(obj, '__orig_class__', None)
     if origin is None:
-        name = obj.__class__.__name__
-        file = i.getfile(obj.__class__)
-        assert False, f"Cannot infer generic for class {name} (file: '{file}')"
-    generic, = origin.__args__
-    return generic
+        raise InferenceException("Cannot infer generic", obj)
+
+    # Get Type Tuple
+    generics = origin.__args__
+    if len(generics) != 1:
+        raise InferenceException("Too many generics", obj)
+
+    # Return First Generic
+    return generics[0]

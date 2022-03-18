@@ -3,7 +3,7 @@ from .indent import Fmt
 from .parsable import Parsable
 from .generic import Generic
 from .error import ParseError
-from . import utils
+from . import utils, types
 
 P = TypeVar('P', bound=Parsable)
 
@@ -17,7 +17,7 @@ class Array(Parsable, Generic[P]):
     def parse(self, data: Any):
         data = data or []
 
-        if not utils.isArray(data):
+        if not types.isArray(data):
             raise ParseError("Expected an Array")
 
         T = self.generic
@@ -39,10 +39,13 @@ class Array(Parsable, Generic[P]):
 
         # Parse & Check for changes / errors
         for parsable, value in zip(self.array, data):
-            utils.linkParse(self, parsable, value)
+            self.link(parsable, value)
 
     def format(self, F: Fmt) -> str:
         return utils.formatIter(self, F, "[{}]:", enumerate(self.array))
+
+    def __iter__(self):
+        return iter(self.array)
 
     def __getitem__(self, index: int) -> P:
         return self.array[index]

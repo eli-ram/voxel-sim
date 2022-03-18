@@ -3,7 +3,7 @@ from .indent import Fmt
 from .parsable import Parsable
 from .generic import Generic
 from .error import ParseError
-from . import utils
+from . import utils, types
 
 P = TypeVar('P', bound=Parsable)
 
@@ -17,7 +17,7 @@ class Map(Parsable, Generic[P]):
     def parse(self, data: Any):
         data = data or {}
 
-        if not utils.isMap(data):
+        if not types.isMap(data):
             raise ParseError("Expected a Map")
 
         T = self.generic
@@ -39,7 +39,7 @@ class Map(Parsable, Generic[P]):
 
         # Parse & Check changes / errors
         for key, parsable in self.map.items():
-            utils.linkParse(self, parsable, data.get(key))
+            self.link(parsable, data.get(key))
 
     def format(self, F: Fmt) -> str:
         return utils.formatIter(self, F, "[{}]:", self.map.items()) 
