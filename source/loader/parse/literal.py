@@ -10,7 +10,7 @@ class Int(Value[int]):
 
     @wrapCast
     def parseValue(self, data: Any):
-        return int(data)
+        return None if data is None else int(data)
 
     def toString(self, value: int) -> str:
         return f"{value:6}"
