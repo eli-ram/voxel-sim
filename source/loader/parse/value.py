@@ -66,5 +66,13 @@ class Value(Parsable, Generic[T]):
 
         return self.toString(self.value)
 
-    def __bool__(self) -> bool:
-        return self.value is not None
+    def exists(self):
+        return not self.value is None
+
+    def getOr(self, default: T) -> T:
+        if self.value is None:
+            return default
+        return self.value
+
+    def get(self) -> Optional[T]:
+        return self.value

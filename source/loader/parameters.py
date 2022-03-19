@@ -1,11 +1,12 @@
-from .parse.struct import Struct
-from .parse.literal import String
+from .parse import all as p
 from .transform import Transform
 
-class Surface(Struct):
-    type: String
+class Surface(p.PolymorphicStruct):
     transform: Transform
 
-class Parameters(Struct):
-   inner_surface: Surface
-   outer_surface: Surface
+class Circle(Surface, type="circle"):
+    pass
+
+class Parameters(p.Struct):
+   inner_surface: p.Polymorphic[Surface]
+   outer_surface: p.Polymorphic[Surface]

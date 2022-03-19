@@ -1,5 +1,6 @@
 from typing import Any
 
+from .types import isArray, isMap
 from .error import CastError
 from .value import Value
 from .utils import wrapCast
@@ -51,6 +52,10 @@ class Bool(Value[bool]):
     }
 
     def parseValue(self, data: Any):
+        if data is None:
+            return None
+        if isMap(data) or isArray(data):
+            raise CastError("Expected a Value")
         try:
             return self.MAP[data]
         except KeyError:

@@ -1,5 +1,7 @@
 config:
   size: 256
+  build: false
+  render: true
   resolution: 4
 
 materials:
@@ -19,11 +21,12 @@ geometry:
   - type: mesh
     operation: add
     material: BONE
-    properties:
-      file: "./meshes/test_bone.obj"
+    file: "./meshes/test_bone.obj"
     transform:
       position: [4.8, 2.6, 1.2]
-      rotation: [0.1, 3.0, 0.0, 0.0]
+      rotation: 
+        angle: 0.5
+        axis: [1.2, 2.0, 1.0]
       scale: 0.2
 
   - type: sphere
@@ -43,11 +46,13 @@ geometry:
 parameters:
   inner_surface:
     type: circle
-    radius: 0.2
-    center: [0.5, 0.5, 0.9]
-    normal: [0, 1, 0]
+    transform:
+      scale: 0.2
+      position: [0.5, 0.5, 0.9]
+      rotation: [1, 0, 1, 0]
   outer_surface:
     type: circle
-    radius: 0.2
-    center: [1.0, 1.0, 1.0]
-    normal: [0, -1, 0]
+    transform:
+      scale: 0.2
+      position: [1.0, 1.0, 1.0]
+      rotation: [1, 0, -1, 0]

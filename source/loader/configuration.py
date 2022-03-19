@@ -4,8 +4,9 @@ from .geometry import Geometry
 from .material import Material
 
 class Config(p.Struct):
-    
     size: p.Int
+    build: p.Bool
+    render: p.Bool
     resolution: p.Int
 
 class Configuration(p.Struct):

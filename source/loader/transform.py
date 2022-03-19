@@ -16,7 +16,7 @@ class Rotation(p.Value[glm.quat]):
 
     def fromMap(self, data: Dict[str, Any]):
         angle = data['angle']
-        axis = glm.vec3(*data['axis'])
+        axis = glm.vec3(data['axis'])
         return glm.angleAxis(angle, axis)
 
     def fromArray(self, data: List[Any]):
@@ -36,8 +36,11 @@ class Transform(p.Struct):
     position: Position
     scale: Scale
 
-    def validate(self):
+    matrix = glm.mat4()
+
+    def postParse(self):
         # TODO: combine into a matrix
+        M = glm.mat4()
         print("Transform:")
         if self.rotation:
             print(" - Has", self.rotation)
@@ -46,3 +49,4 @@ class Transform(p.Struct):
         if self.scale:
             print(" - Has", self.scale)
         print()
+        self.matrix = M
