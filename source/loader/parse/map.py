@@ -44,5 +44,8 @@ class Map(Parsable, Generic[P]):
     def format(self, F: Fmt) -> str:
         return utils.formatIter(self, F, "[{}]:", self.map.items()) 
 
+    def __iter__(self):
+        return iter(self.map.items())
+
     def __getitem__(self, key: str) -> P:
         return self.map[key]

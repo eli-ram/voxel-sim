@@ -28,14 +28,14 @@ geometry:
         angle: 0.5
         axis: [1.2, 2.0, 1.0]
       scale: 0.2
-
+  
   - type: sphere
     operation: add
-    material: STATIC
+    material: "STATIC"
     transform:
       position: [0, 0, 0]
       scale: 0.5
-
+  
   - type: sphere
     operation: add
     material: FORCE

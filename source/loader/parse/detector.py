@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 from threading import Thread, currentThread
 from typing import Any, Callable, Optional, TypeVar
 
@@ -10,15 +9,7 @@ import io
 import os
 import yaml
 import time
-import traceback
-
-
-@contextmanager
-def void_errors():
-    try:
-        yield
-    except Exception:
-        traceback.print_exc()
+import traceback    
 
 
 class FileChangeDetector:
@@ -86,14 +77,19 @@ class ParsableDetector(Generic[P]):
                 time.sleep(1.0)
                 continue
 
-            # Read content & log exceptions
-            with void_errors(), file.read() as f:
-                data = self.loadFile(f)
-                parser.parse(data)
-                if self.shouldLog(parser):
-                    self.logParsed(parser)
-                if parser.changed:
-                    callback(*args, parser)
+            try:
+                # Read content 
+                with file.read() as f:
+                    data = self.loadFile(f)
+                    parser.parse(data)
+                    if self.shouldLog(parser):
+                        self.logParsed(parser)
+                    if parser.changed:
+                        callback(*args, parser)
+
+            except Exception:
+                # log exceptions
+                traceback.print_exc()
 
         print(f"Stopped: {self}")
 

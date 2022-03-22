@@ -1,5 +1,6 @@
 from typing import Optional, TypeVar
 
+from .error import ParseError
 from .indent import Fmt
 from .generic import Generic
 from .parsable import Parsable
@@ -8,9 +9,16 @@ from .utils import safeParse
 
 T = TypeVar('T')
 
+
 class Value(Parsable, Generic[T]):
     """ Value Parsable base for literal fields """
     value: Optional[T] = None
+
+    def require(self) -> T:
+        if self.value is None:
+            err = f"Value[{self.genericName}] is missing!"
+            raise ParseError(err)
+        return self.value
 
     def fromNone(self) -> Optional[T]:
         return None
@@ -55,7 +63,7 @@ class Value(Parsable, Generic[T]):
         new = self.parseValue(data)
         self.value = new
         self.changed = self.hasChanged(old, new)
-        
+
     def format(self, F: Fmt) -> str:
         E = F.format.list_errors
         if E and self.error:

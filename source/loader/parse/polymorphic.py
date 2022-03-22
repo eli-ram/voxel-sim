@@ -47,8 +47,7 @@ class Polymorphic(Parsable, Generic[S]):
 
     def require(self) -> S:
         if self.value is None:
-            name = self.genericName
-            err = f"Polymorphic[{name}] is missing!"
+            err = f"Polymorphic[{self.genericName}] is missing!"
             raise ParseError(err)
         return self.value
 

@@ -8,8 +8,7 @@ import time
 
 @ParsableDetector[Configuration]
 def config(C: Configuration):
-    print("YEP")
-
+    C.log()
 
 def handler(signum: int, frame: Any):
     print(f"Interrupt: {signum} ({frame})")
