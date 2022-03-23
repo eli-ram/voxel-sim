@@ -7,7 +7,7 @@
 	"settings": {
 		"python.terminal.activateEnvInCurrentTerminal": true,
 		"python.terminal.executeInFileDir": true,
-		"python.analysis.typeCheckingMode": "strict",
+		"python.analysis.typeCheckingMode": "basic",
 		"python.analysis.diagnosticSeverityOverrides" : {
 			"reportMissingTypeStubs": "none",
 			"reportWildcardImportFromLibrary": "none"

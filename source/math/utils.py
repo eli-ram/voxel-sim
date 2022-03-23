@@ -2,7 +2,7 @@ from itertools import combinations
 from typing import Tuple
 import numpy as np
 
-def crop(data: np.ndarray[np.bool_]):
+def crop(data: 'np.ndarray[np.bool_]'):
     """ Get the offset for the minimal slice of the data """
     def span(axis: Tuple[int, ...]):
         B = data.any(axis)
