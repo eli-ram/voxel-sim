@@ -1,8 +1,14 @@
 from __future__ import annotations
-from typing import Dict
+
+from typing import Dict, Tuple
 
 import numpy as np
+
+from .box import Box
+from .data import Data
 from .operation import Operation
+
+Boxed = Tuple[Data, Box]
 
 class impl:
     __all__: Dict[Operation, impl] = {}
@@ -18,18 +24,35 @@ class impl:
             cls.__init_subclass__(op)
         return cls.__all__[op]
 
-    def where(self, parent: np.ndarray[np.bool_], child: np.ndarray[np.bool_]) -> np.ndarray[np.bool_]:
+    def apply(self, parent: Data, child: Data):
+        # Find intersection
+        B = Box.Intersection([parent.box, child.box])
+        if B.is_empty:
+            return
+
+        # Slice
+        P = parent[B]
+        C = child[B]
+
+        # Where
+        M = self.where(P, C)
+
+        # Apply
+        for p, c in zip(P.arrays(), C.arrays()):
+            p[M] = c[M]
+
+    def where(self, parent: Data, child: Data) -> np.ndarray[np.bool_]:
         raise NotImplementedError(f"Missing Operation: {self.OP}")
 
 
 class _(impl, op=Operation.INSIDE):
     def where(self, parent, child) -> np.ndarray[np.bool_]:
-        return parent & child
+        return parent.mask & child.mask
 
 class _(impl, op=Operation.OUTSIDE):
     def where(self, parent, child) -> np.ndarray[np.bool_]:
-        return ~parent & child
+        return ~parent.mask & child.mask
 
 class _(impl, op=Operation.OVERWRITE):
     def where(self, parent, child) -> np.ndarray[np.bool_]:
-        return child
+        return child.mask

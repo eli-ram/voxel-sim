@@ -1,5 +1,7 @@
 from dataclasses import dataclass
+
 from .colors import Color
+
 
 @dataclass
 class Material:
@@ -13,6 +15,7 @@ class Material:
 
     def __hash__(self):
         return self.id
+
 
 class MaterialStore:
 

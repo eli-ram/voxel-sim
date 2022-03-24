@@ -1,50 +1,82 @@
 from __future__ import annotations
 
 from itertools import combinations
-from typing import List, Tuple
+from typing import Iterable, List, Tuple
 
 import numpy as np
+
+int3 = Tuple[int, int, int]
+
+
+def _combine(boxes: Iterable[Box], start, stop):
+    # Discard boxes with no volume
+    boxes = [b for b in boxes if b.has_volume]
+
+    # No boxes -> empty box
+    if not boxes:
+        return Box.Empty()
+
+    # Combine the boxes
+    return Box(
+        start(np.stack([b.start for b in boxes]), axis=0),
+        stop(np.stack([b.stop for b in boxes]), axis=0),
+    )
+
+
+def _array(v: int3):
+    # Convert int tuple to array
+    return np.array(list(v), np.int64)
+
 
 class Box:
     """ A construct to handle shifted dense arrays """
 
-    @classmethod
-    def Empty(cls):
-        # Return an empty Box
-        Z = np.zeros(3, np.int64)
-        return cls(Z, Z)
-
-    @classmethod
-    def combine(cls, boxes: List[Box]) -> Box:
-        # Filter empty boxes
-        boxes = [box for box in boxes if not box.is_empty]
-
-        # There is no boxes
-        if not boxes:
-            return cls.Empty()
-
-        # Span all boxes
-        start = np.min(np.stack([b.start for b in boxes]), axis=0)
-        stop = np.max(np.stack([b.stop for b in boxes]), axis=0)
-        return cls(start, stop)
-
     def __init__(self, start: np.ndarray[np.int64], stop: np.ndarray[np.int64]):
         assert start.shape == stop.shape == (3,), \
             " [start] & [stop] must have a shape of (3,) "
-        assert np.all(start <= stop), \
-            " [start] must be less than or equal [stop] "
         self.start = start
         self.stop = stop
 
+    @staticmethod
+    def StartStop(start: int3, stop: int3) -> Box:
+        """ Create a box from [start] to [stop] """
+        return Box(_array(start), _array(stop))
+
+    @staticmethod
+    def OffsetShape(offset: int3, shape: int3) -> Box:
+        """ Create a box @ [offset] with [shape] """
+        start = _array(offset)
+        stop = start + _array(shape)
+        return Box(start, stop)
+
+    @staticmethod
+    def Empty():
+        """ Make an Empty Box """
+        return Box(np.zeros(3, np.int64), np.zeros(3, np.int64))
+
+    @staticmethod
+    def Union(boxes: Iterable[Box]) -> Box:
+        """ Create the union of multiple boxes """
+        return _combine(boxes, np.min, np.max)
+
+    @staticmethod
+    def Intersection(boxes: Iterable[Box]) -> Box:
+        """ Create the intersection of multiple boxes """
+        return _combine(boxes, np.max, np.min)
+
     @property
-    def shape(self):
+    def shape(self) -> int3:
         """ Get the shape of this box """
         return tuple(self.stop - self.start)
 
     @property
     def is_empty(self):
-        """ Check if this box is empty """
-        return (self.start == self.stop).any()
+        return (self.start >= self.stop).any()
+
+    @property
+    def has_volume(self):
+        """ Check if this box has volume """
+        return (self.start < self.stop).all()
 
     def overlap(self, other: Box):
         """ Check if the boxes overlap """
@@ -79,30 +111,27 @@ class Box:
         start, stop = np.array([span(a) for a in axes]).T
         return Box(start + self.start, stop + self.start)
 
-
     def __str__(self) -> str:
         return f"Box({self.start} -> {self.stop})"
 
+
 if __name__ == '__main__':
-    def a(a, b, c):
-        return np.array([a, b, c], np.int64)
-
-    A = Box(
-        a(1, 4, 4),
-        a(4, 8, 8),
+    A = Box.StartStop(
+        (1, 4, 4),
+        (4, 8, 8),
     )
 
-    B = Box(
-        a(4, 4, 4),
-        a(8, 8, 8),
+    B = Box.OffsetShape(
+        (4, 4, 4),
+        (4, 4, 4),
     )
 
-    C = Box(
-        a(5, 2, 6),
-        a(9, 6, 8),
+    C = Box.StartStop(
+        (5, 2, 6),
+        (9, 6, 8),
     )
 
-    D = Box.combine([A, B, C])
+    D = Box.Union([A, B, C])
 
     mask = np.full(A.shape, False)
     mask[2, 2, 2] = True
