@@ -9,7 +9,8 @@ from ..interactive.tasks import Task
 from ..math.mesh2voxels import mesh_to_voxels
 from ..utils.matrices import Hierarchy
 from ..data.colors import Color
-from ..data.voxels import Voxels, MaterialStore
+from ..data.voxels import Voxels
+from ..data.material import MaterialStore
 from ..utils.types import Array, F, int3, bool3, float3
 from .render import VoxelRenderer
 import numpy as np

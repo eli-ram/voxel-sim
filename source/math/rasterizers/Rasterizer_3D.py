@@ -133,8 +133,8 @@ class Rasterizer_3D:
         """
 
         # Cut away coordinates & points that misses
-        coords = coords[hits, :]
-        points = points[hits, :]
+        coords: np.ndarray[np.float64] = coords[hits, :] # type: ignore
+        points: np.ndarray[np.float64] = points[hits, :] # type: ignore
 
         # Calculate points on the triangle plane
         P = self.proj(triangle, points)

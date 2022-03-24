@@ -10,9 +10,6 @@ from .box import Box
 int3 = Tuple[int, int, int]
 
 
-
-
-
 @dataclass
 class Data:
     # The position & volume of the data

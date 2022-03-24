@@ -32,6 +32,7 @@ class Geometry(p.PolymorphicStruct):
         print(f"{I} {key} => {color}")
 
 class GeometryArray(Geometry, type='array'):
+    material: None
     children: p.Array[p.Polymorphic[Geometry]]
 
     def checkMaterials(self, materials: Materials):
