@@ -5,6 +5,7 @@ from .data import Data
 
 
 class Factory(abc.ABC):
+    # NOTE: this class is not actually useful
 
     @abc.abstractmethod
     def get_box(self) -> Box: ...
@@ -21,7 +22,7 @@ class Factory(abc.ABC):
 class Mesh(Factory):
     """ Mesh-flow
     - Transform mesh to define box
-    - Trnasform mesh to 3d-raster
+    - Transform mesh to 3d-raster
     """
 
 
@@ -29,4 +30,4 @@ class Function(Factory):
     """ Functional-flow
     - Transform function to define box
     - Inverse Transform coords to sample function
-    """
+    """ 
