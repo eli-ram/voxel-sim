@@ -1,8 +1,8 @@
+from source.data.mesh import Geometry, Mesh
 from .utils import remove_padding_grid
 from .rasterizers.np_raster import Z_Hash_Rasterizer
 from .rasterizers.RasterDirection import Raster_Direction_3D
 
-from ..utils.mesh.simplemesh import Geometry, SimpleMesh
 from ..utils.types import int3, Array, F, I, B
 from ..debug.time import time
 
@@ -17,7 +17,7 @@ Resources:
 """
 
 @time("mesh_to_voxels")
-def mesh_to_voxels(mesh: SimpleMesh, transform: 'Array[F]', voxels: int3):
+def mesh_to_voxels(mesh: Mesh, transform: 'Array[F]', voxels: int3):
     V, I = _transform(mesh, transform)
     Z = _rasterize(V, I, voxels, 'Z')
     X = _rasterize(V, I, voxels, 'X')
@@ -25,7 +25,7 @@ def mesh_to_voxels(mesh: SimpleMesh, transform: 'Array[F]', voxels: int3):
     return remove_padding_grid(Z & X & Y)
  
 
-def _transform(mesh: SimpleMesh, transform: 'Array[F]'):
+def _transform(mesh: Mesh, transform: 'Array[F]'):
     assert mesh.geometry == Geometry.Triangles, \
         " Mesh must be made up of triangles! "
 

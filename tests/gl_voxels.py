@@ -1,29 +1,36 @@
 # pyright: reportUnusedImport=false, reportUnusedFunction=false
 import __init__
-from typing import Any
+
+# Packages
+import glm
+import numpy as np
+from OpenGL.GL import *
+
+# Data
+from source.data.colors import Color, Colors
+from source.data.mesh import Mesh
+
+# Debug
+from source.debug.time import time
 
 # Interactive
 from source.interactive.animator import Animator
+from source.interactive.scene import Scene, SceneBase, Transform, Void
 from source.interactive.window import Window
-from source.interactive.scene import SceneBase, Scene, Transform, Void
-from source.utils.mesh.simplemesh import SimpleMesh
 
-# Other
+# Utils
+from source.utils import (
+    directory as d,
+    matrices as m,
+    mesh_loader as l,
+    shapes as s,
+)
 from source.utils.wireframe.deformation import DeformationWireframe
 from source.utils.wireframe.wireframe import Wireframe
-from source.utils.mesh.shapes import line_cube, origin, simplex
-from source.utils.mesh_loader import loadMesh
-from source.utils.directory import cwd, script_dir
-from source.utils.matrices import OrbitCamera
-from source.voxels.proxy import VoxelProxy
-from source.utils.types import Array, F
-from source.data.colors import Color, Colors
-from source.debug.time import time
 
-# Packages
-from OpenGL.GL import *
-import numpy as np
-import glm
+# Voxels
+from source.voxels.proxy import VoxelProxy
+
 
 
 def time_to_t(time: float, duration: float, padding: float):
@@ -36,13 +43,13 @@ def time_to_t(time: float, duration: float, padding: float):
 class Voxels(Window):
 
     BONE = False
-    mesh: SimpleMesh
+    mesh: Mesh
     model: Transform
     truss: DeformationWireframe
 
     def setup(self):
         self.scene = SceneBase((0.3, 0.2, 0.5))
-        self.camera = OrbitCamera(
+        self.camera = m.OrbitCamera(
             distance=1.25,
             svivel_speed=0.005,
         )
@@ -59,12 +66,12 @@ class Voxels(Window):
         self.animator = Animator('animation.gif', delta=0.5)
 
         # Outline for Voxels
-        self.scene.add(Wireframe(line_cube()).setColor(Colors.BLACK))
+        self.scene.add(Wireframe(s.line_cube()).setColor(Colors.BLACK))
 
         # 3D-crosshair for camera
         self.move_cross = Transform(
-            transform=glm.mat4(),
-            mesh=Wireframe(origin(0.05)).setColor(Color(1, 0.5, 0)),
+            transform=glm.scale(glm.vec3(0.05, 0.05, 0.05)),
+            mesh=Wireframe(s.origin_marker()).setColor(Color(1, 0.5, 0)),
             hidden=True,
         )
         self.scene.add(self.move_cross)
@@ -118,11 +125,11 @@ class Voxels(Window):
 
     def build(self):
         if self.BONE:
-            @cwd(script_dir(__file__), '..', 'meshes')
+            @d.cwd(d.script_dir(__file__), '..', 'meshes')
             @time("mesh")
             def compute():
                 # Load Bone Model
-                return loadMesh('test_bone.obj')
+                return l.loadMesh('test_bone.obj')
 
             self.model.transform = (
                 glm.translate(glm.vec3(0.5, 0.5, -1.8)) *
@@ -134,7 +141,7 @@ class Voxels(Window):
         else:
             def compute():
                 # Load Simplex Model
-                return simplex()
+                return s.simplex()
 
             self.model.transform = (
                 glm.translate(glm.vec3(0.1, 0.1, 0.2)) *
@@ -142,7 +149,7 @@ class Voxels(Window):
                 glm.rotate(glm.radians(10.0), glm.vec3(0, 0, 1))
             )
 
-        def complete(mesh: SimpleMesh):
+        def complete(mesh: Mesh):
             self.mesh = mesh
             self.model.mesh = Wireframe(mesh)\
                 .setColor(Color(0.8, 0.8, 1.0))
@@ -220,7 +227,7 @@ class Voxels(Window):
 if __name__ == '__main__':
     size = 900
     window = Voxels(size, size, "voxels")
-    from source.debug.performance import performance, GPU
+    from source.debug.performance import GPU, performance
 
     @window.keys.action("P")
     def perf():

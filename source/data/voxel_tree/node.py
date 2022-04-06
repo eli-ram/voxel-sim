@@ -31,7 +31,7 @@ class VoxelNode:
 
     @classmethod
     def Parent(cls, op: Operation, nodes: List[VoxelNode]):
-        return cls(op, cls.process(nodes).crop())
+        return cls(op, cls.process(nodes))
 
 
 def test_nodes():

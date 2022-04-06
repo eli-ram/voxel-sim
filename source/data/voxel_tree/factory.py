@@ -25,6 +25,8 @@ class Mesh(Factory):
     - Transform mesh to 3d-raster
     """
 
+    def __init__(self) -> None:
+        super().__init__()
 
 class Function(Factory):
     """ Functional-flow

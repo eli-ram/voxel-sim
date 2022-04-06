@@ -8,10 +8,10 @@ from . import utils, types
 P = TypeVar('P', bound=Parsable)
 
 class Map(Parsable, Generic[P]):
-    map: Dict[str, P]
+    _map: Dict[str, P]
 
     def __init__(self) -> None:
-        self.map = {}
+        self._map = {}
 
     @utils.safeParse
     def parse(self, data: Any):
@@ -21,7 +21,7 @@ class Map(Parsable, Generic[P]):
             raise ParseError("Expected a Map")
 
         T = self.generic
-        V = set(self.map)
+        V = set(self._map)
         D = set(data)
 
         # Baseline for change
@@ -30,22 +30,30 @@ class Map(Parsable, Generic[P]):
         # Create
         for key in D - V:
             print(f"Create: {key}")
-            self.map[key] = T()
+            self._map[key] = T()
 
         # Delete
         for key in V - D:
             print(f"Delete: {key}")
-            self.map.pop(key)
+            self._map.pop(key)
 
         # Parse & Check changes / errors
-        for key, parsable in self.map.items():
+        for key, parsable in self._map.items():
             self.link(parsable, data.get(key))
 
+        # Use Values if all ok
+        if self.changed and not self.error:
+            self.post_validate()
+
+    def post_validate(self):
+        """ Validate values if needed """
+
+
     def format(self, F: Fmt) -> str:
-        return utils.formatIter(self, F, "[{}]:", self.map.items()) 
+        return utils.formatIter(self, F, "[{}]:", self._map.items()) 
 
     def __iter__(self):
-        return iter(self.map.items())
+        return iter(self._map.items())
 
     def __getitem__(self, key: str) -> P:
-        return self.map[key]
+        return self._map[key]

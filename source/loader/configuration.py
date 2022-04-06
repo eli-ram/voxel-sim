@@ -1,13 +1,21 @@
 from .parse import all as p
 from .parameters import Parameters
 from .geometry import Geometry
-from .material import Material
+from .material import MaterialStore
+from .box import Box
 
 
 class Config(p.Struct):
-    size: p.Int
+    # Build Voxels
     build: p.Bool
+
+    # Render Raw Geometry
     render: p.Bool
+
+    # Constrain Voxel Region
+    region: Box
+
+    # Render Resolution per voxel
     resolution: p.Int
 
 
@@ -16,8 +24,8 @@ class Configuration(p.Struct):
     config: Config
 
     # Defined Materials
-    materials: p.Map[Material]
-
+    materials: MaterialStore
+    
     # Application order of Geometry
     geometry: p.Array[p.Polymorphic[Geometry]]
 
@@ -26,13 +34,4 @@ class Configuration(p.Struct):
 
     def postParse(self):
         for child in self.geometry:
-            child.require().checkMaterials(self.materials.map)
-
-    def log(self):
-        print("Materials:")
-        for key, value in self.materials:
-            print(f"{key} => {value.color.value}")
-        print("Geometry:")
-        for index, value in enumerate(self.geometry.array):
-            print(f"[{index}]:", end='')
-            value.require().logMaterials(I="")
+            child.require().loadMaterial(self.materials.get())

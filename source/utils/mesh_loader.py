@@ -1,5 +1,6 @@
 import numpy as np
-from .mesh.simplemesh import Geometry, SimpleMesh
+
+from source.data.mesh import Geometry, Mesh
 from pywavefront import (  # type: ignore
     wavefront as w,
     mesh as m,
@@ -19,8 +20,9 @@ def yieldMeshes(file: str, cache: bool = False):
     # Allow the creation of cache files, must be deleted manually
     scene = w.Wavefront(file, cache=cache)
 
-    meshes: list[m.Mesh] = getattr(scene, 'mesh_list')
 
+    meshes: list[m.Mesh] = scene.mesh_list
+    
     for mesh in meshes:
         yield getSimpleMesh(mesh)
 
@@ -33,18 +35,16 @@ def getSimpleMesh(mesh: m.Mesh):
 
     # Split stacked vertices into vertex array & index array
     V, I = np.unique(stacked, return_inverse=True, axis=0)
-    U: np.ndarray[np.uint16] = I.astype(np.uint16) # type: ignore
+    U = I.astype(np.uint32)
+    
+    return Mesh(V, U, Geometry.Triangles)
 
-    return SimpleMesh(V, U, Geometry.Triangles)
 
-
-def getVertices(material: l.Material) -> 'np.ndarray[np.float32]':
+def getVertices(m: l.Material) -> 'np.ndarray[np.float32]':
     """ Extract vertices from material """
-    values = getattr(material, 'vertices')
-    vertex_size = getattr(material, 'vertex_size')
     # Get Vertices ordered in rows
-    vertices = np.array(values, dtype=np.float32)  # type: ignore
-    vertices = np.reshape(vertices, (-1, vertex_size))
+    vertices = np.array(m.vertices, dtype=np.float32)  # type: ignore
+    vertices = np.reshape(vertices, (-1, m.vertex_size))
 
     # Cut out everything except position
     return vertices[:, -3:]

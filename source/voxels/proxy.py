@@ -1,4 +1,5 @@
 from typing import Callable
+from source.data.mesh import Mesh
 from source.math.truss2stress import fem_simulate
 
 from source.math.voxels2truss import voxels2truss
@@ -53,7 +54,7 @@ class VoxelProxy:
         M = self.materials[material]
         self.data.set_force(M, force)
 
-    def add_mesh(self, mesh: SimpleMesh, transform: glm.mat4, strength: float, material: str):
+    def add_mesh(self, mesh: Mesh, transform: glm.mat4, strength: float, material: str):
         task = AddMeshTask(self)
         task.setMaterial(material)
         task.setMesh(mesh, transform, strength)
@@ -98,7 +99,7 @@ class AddBoxTask(ProxyTask):
 
 class AddMeshTask(AddBoxTask):
 
-    def setMesh(self, mesh: SimpleMesh, transform: glm.mat4, strength: float):
+    def setMesh(self, mesh: Mesh, transform: glm.mat4, strength: float):
         self.mesh = mesh
         self.transform = Hierarchy.copy(transform)[:3, :]
         self.strength = strength

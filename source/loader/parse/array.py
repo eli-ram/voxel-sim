@@ -8,10 +8,10 @@ from . import utils, types
 P = TypeVar('P', bound=Parsable)
 
 class Array(Parsable, Generic[P]):
-    array: List[P]
+    _array: List[P]
 
     def __init__(self) -> None:
-        self.array = []
+        self._array = []
 
     @utils.safeParse
     def parse(self, data: Any):
@@ -21,7 +21,7 @@ class Array(Parsable, Generic[P]):
             raise ParseError("Expected an Array")
 
         T = self.generic
-        V = len(self.array)
+        V = len(self._array)
         D = len(data)
 
         # Baseline for change
@@ -30,22 +30,22 @@ class Array(Parsable, Generic[P]):
         # Create
         for index in range(V, D):
             print(f"Create: {index}")
-            self.array.append(T())
+            self._array.append(T())
 
         # Delete
         for index in range(V, D, -1):
             print(f"Delete: {index}")
-            self.array.pop()
+            self._array.pop()
 
         # Parse & Check for changes / errors
-        for parsable, value in zip(self.array, data):
+        for parsable, value in zip(self._array, data):
             self.link(parsable, value)
 
     def format(self, F: Fmt) -> str:
-        return utils.formatIter(self, F, "[{}]:", enumerate(self.array))
+        return utils.formatIter(self, F, "[{}]:", enumerate(self._array))
 
     def __iter__(self):
-        return iter(self.array)
+        return iter(self._array)
 
     def __getitem__(self, index: int) -> P:
-        return self.array[index]
+        return self._array[index]

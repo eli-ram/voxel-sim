@@ -12,13 +12,13 @@ T = TypeVar('T')
 
 class Value(Parsable, Generic[T]):
     """ Value Parsable base for literal fields """
-    value: Optional[T] = None
+    _value: Optional[T] = None
 
     def require(self) -> T:
-        if self.value is None:
+        if self._value is None:
             err = f"Value[{self.genericName}] is missing!"
             raise ParseError(err)
-        return self.value
+        return self._value
 
     def fromNone(self) -> Optional[T]:
         return None
@@ -59,9 +59,9 @@ class Value(Parsable, Generic[T]):
 
     @safeParse
     def parse(self, data: Any):
-        old = self.value
+        old = self._value
         new = self.parseValue(data)
-        self.value = new
+        self._value = new
         self.changed = self.hasChanged(old, new)
 
     def format(self, F: Fmt) -> str:
@@ -69,18 +69,18 @@ class Value(Parsable, Generic[T]):
         if E and self.error:
             return self.what
 
-        if self.value is None:
+        if self._value is None:
             return "none"
 
-        return self.toString(self.value)
+        return self.toString(self._value)
 
     def exists(self):
-        return not self.value is None
+        return not self._value is None
 
     def getOr(self, default: T) -> T:
-        if self.value is None:
+        if self._value is None:
             return default
-        return self.value
+        return self._value
 
     def get(self) -> Optional[T]:
-        return self.value
+        return self._value

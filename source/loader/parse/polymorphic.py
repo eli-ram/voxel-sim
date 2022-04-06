@@ -43,13 +43,16 @@ S = TypeVar('S', bound=PolymorphicStruct)
 
 class Polymorphic(Parsable, Generic[S]):
     """ The container for PolymorphicStruct """
-    value: Optional[S] = None
+    _value: Optional[S] = None
 
     def require(self) -> S:
-        if self.value is None:
+        if self._value is None:
             err = f"Polymorphic[{self.genericName}] is missing!"
             raise ParseError(err)
-        return self.value
+        return self._value
+
+    def get(self) -> Optional[S]:
+        return self._value
 
     def typeOf(self, data: Any):
         # Require Properties
@@ -75,8 +78,8 @@ class Polymorphic(Parsable, Generic[S]):
         data = data or {}
 
         # Get old instance
-        V = self.value
-        self.value = None
+        V = self._value
+        self._value = None
         self.changed = False
 
         # Get target Type
@@ -84,13 +87,13 @@ class Polymorphic(Parsable, Generic[S]):
 
         # Reuse old or create new Instance
         if isinstance(V, T):
-            self.value = V
+            self._value = V
         else:
-            self.value = T()
+            self._value = T()
 
         # Parse Data
-        self.link(self.value, data)
+        self.link(self._value, data)
 
     def format(self, F: Fmt) -> str:
-        text = "None" if self.value is None else self.value.format(F)
+        text = "None" if self._value is None else self._value.format(F)
         return self.what or text

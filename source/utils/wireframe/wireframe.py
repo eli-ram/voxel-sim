@@ -2,22 +2,24 @@ from OpenGL.GL import *
 import numpy as np
 
 from .shaders.wireframeshader import WireframeShader
-from ..mesh.simplemesh import SimpleMesh
 from ..matrices import Hierarchy
 from ..buffer import BufferConfig
-from ...data.colors import Color, Colors
+from source.data import (
+    mesh as m,
+    colors as c,
+)
 
 class Wireframe:
 
-    def __init__(self, mesh: SimpleMesh):
+    def __init__(self, mesh: m.Mesh):
         self._V = BufferConfig('vertices').single(mesh.vertices)
-        self._I = BufferConfig('indices').single(mesh.indices.astype(np.uint32))
+        self._I = BufferConfig('indices').single(mesh.indices)
         self._S = WireframeShader.get()
         self._G = mesh.geometry.value
-        self._c = Colors.WHITE
+        self._c = c.Colors.WHITE
         self._w = 1.0
 
-    def setColor(self, color: Color):
+    def setColor(self, color: c.Color):
         self._c = color
         return self
 
