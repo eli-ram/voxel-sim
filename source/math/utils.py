@@ -18,10 +18,10 @@ def crop(data: 'np.ndarray[np.bool_]'):
 
     return offset, slices
     
-def remove_padding_strength(strength: np.ndarray[np.float32]):
+def remove_padding_strength(strength: 'np.ndarray[np.float32]'):
     offset, slices = crop(strength > 0.0)
     return offset, strength[slices]
 
-def remove_padding_grid(grid: np.ndarray[np.bool_]):
+def remove_padding_grid(grid: 'np.ndarray[np.bool_]'):
     offset, slices = crop(grid)
     return offset, grid[slices]
