@@ -1,8 +1,12 @@
-from typing import Any, Dict, List
+from typing_extensions import TypeGuard
+from typing import Any, Dict, List, Optional, TypeVar
 from .parse import all as p
 from .vector import Vector
 import glm
 
+T = TypeVar('T')
+def _(v: Optional[T]) -> TypeGuard[T]:
+    return v is not None
 
 class Position(Vector):
     default = glm.vec3()
@@ -42,11 +46,11 @@ class Transform(p.Struct):
         # TODO: combine into a matrix
         M = glm.mat4()
         print("Transform:")
-        if self.rotation:
-            print(" - Has", self.rotation)
-        if self.position:
-            print(" - Has", self.position)
-        if self.scale:
-            print(" - Has", self.scale)
+        if _(rot := self.rotation.get()):
+            print(rot)
+        if _(pos := self.position.get()):
+            print(pos)
+        if _(scale := self.scale.get()):
+            print(scale)
         print()
         self.matrix = M

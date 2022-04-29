@@ -1,5 +1,5 @@
 from queue import Queue
-from threading import Thread
+from threading import Event, Thread
 from typing import Any, List, Set, Optional, Callable, TypeVar
 
 
@@ -69,6 +69,15 @@ class TaskQueue:
 
     def run(self, compute: Callable[[], Value], complete: Callable[[Value], None], tag: Optional[str] = None):
         self.add(FunctionalTask(compute, complete, tag))
+
+    def sync(self, value: Value, synchronize: Callable[[Value], None], tag: Optional[str] = None):
+        processed = Event()
+        def complete(value: Value):
+            synchronize(value)
+            processed.set()
+        self.run(lambda:value, complete, tag)
+        processed.wait()
+
 
     def sequence(self, *tasks: Task, tag: Optional[str] = None):
         SequenceTask(self, list(tasks), tag).next()

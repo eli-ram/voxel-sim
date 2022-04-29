@@ -15,6 +15,7 @@ Cast = Callable[[P, Any], T]
 
 def _err(e: Exception) -> str:
     name = e.__class__.__name__
+    print("args:", e.args)
     args = ", ".join(e.args)
     return f"{name}[{args}]"
 
@@ -37,6 +38,7 @@ def safeParse(method: Parse[P]):
         except Exception as e:
             self.error = True
             self.what = _err(e) + _trace(e)
+        return (self.changed, self.error)
     return safely
 
 
@@ -47,6 +49,7 @@ def wrapCast(method: Cast[P, T]):
         except Exception as e:
             raise CastError(*e.args)
     return wrapper
+
 
 def annotations(cls: type) -> Map:
     """ Get all the annotations on a class """

@@ -47,12 +47,16 @@ class Polymorphic(Parsable, Generic[S]):
 
     def require(self) -> S:
         if self._value is None:
-            err = f"Polymorphic[{self.genericName}] is missing!"
+            type = Generic.name(self)
+            err = f"Polymorphic[{type}] is missing!"
             raise ParseError(err)
         return self._value
 
     def get(self) -> Optional[S]:
         return self._value
+
+    def ok(self) -> bool:
+        return self._value is not None
 
     def typeOf(self, data: Any):
         # Require Properties
@@ -60,8 +64,8 @@ class Polymorphic(Parsable, Generic[S]):
             raise ParseError("Expected a Map")
 
         # Get the type mapping
-        derived = self.generic.__DERIVED__
-
+        derived = Generic.get(self).__DERIVED__
+        
         # Get the actual type
         type = data.get('type')
         if type is None:
@@ -86,13 +90,13 @@ class Polymorphic(Parsable, Generic[S]):
         T = self.typeOf(data)
 
         # Reuse old or create new Instance
-        if isinstance(V, T):
-            self._value = V
-        else:
-            self._value = T()
+        parsable = V if isinstance(V, T) else T()
 
         # Parse Data
-        self.link(self._value, data)
+        self.link(parsable.parse(data))
+
+        # Save
+        self._value = parsable
 
     def format(self, F: Fmt) -> str:
         text = "None" if self._value is None else self._value.format(F)

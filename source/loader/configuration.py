@@ -4,6 +4,8 @@ from .geometry import Geometry
 from .material import MaterialStore
 from .box import Box
 
+from source.interactive import scene as s
+
 
 class Config(p.Struct):
     # Build Voxels
@@ -32,6 +34,21 @@ class Configuration(p.Struct):
     # Machine Learning Parameters
     parameters: Parameters
 
-    def postParse(self):
+    def __iter__(self):
         for child in self.geometry:
-            child.require().loadMaterial(self.materials.get())
+            geometry = child.get()
+            if geometry is None:
+                continue
+            if geometry.error:
+                continue
+            yield geometry
+
+    def postParse(self):
+        store = self.materials.get()
+        for child in self:
+            child.loadMaterial(store)
+
+    def getRender(self) -> s.Render:
+        children = [c.getRender() for c in self]
+        return s.Scene(children=children)
+

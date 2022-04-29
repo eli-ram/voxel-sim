@@ -1,4 +1,6 @@
 from typing import Any, Dict, List, NamedTuple
+
+from source.loader.parse.utils import safeParse
 from .parse import all as p
 from .vector import Vector
 from source.data import (
@@ -46,7 +48,9 @@ class MaterialStore(p.Map[Material]):
 class MaterialKey(p.String):
     _cache: m.Material
 
+    @safeParse
     def load(self, store: m.MaterialStore):
+        """ Load the material from the store """
         key = self._value
 
         if key is None:
@@ -59,4 +63,5 @@ class MaterialKey(p.String):
         self._cache = store[key]
 
     def get(self):
+        """ Get the cached material """
         return self._cache

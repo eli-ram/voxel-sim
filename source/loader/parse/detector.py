@@ -47,9 +47,6 @@ class ParsableDetector(Generic[P]):
         self._args = args
         self.start()
 
-    def shouldLog(self, parser: P) -> bool:
-        return self.LOG and (parser.changed or parser.error)
-
     def logParsed(self, parser: P):
         print(
             f"\n[#] Parsed: '{self._file}'"
@@ -65,7 +62,7 @@ class ParsableDetector(Generic[P]):
         file = FileChangeDetector(self._file)
         args = self._args
         thread = currentThread()
-        parser = self.generic()
+        parsable = Generic.get(self)()
         callback = self._callback
 
         print(f"Staring: {self}")
@@ -81,11 +78,11 @@ class ParsableDetector(Generic[P]):
                 # Read content 
                 with file.read() as f:
                     data = self.loadFile(f)
-                    parser.parse(data)
-                    if self.shouldLog(parser):
-                        self.logParsed(parser)
-                    if parser.changed:
-                        callback(*args, parser)
+                    changed, error = parsable.parse(data)
+                    if self.LOG and (changed or error):
+                        self.logParsed(parsable)
+                    if changed:
+                        callback(*args, parsable)
 
             except Exception:
                 # log exceptions

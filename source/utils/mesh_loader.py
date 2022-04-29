@@ -1,3 +1,4 @@
+import os
 import numpy as np
 
 from source.data.mesh import Geometry, Mesh
@@ -6,6 +7,15 @@ from pywavefront import (  # type: ignore
     mesh as m,
     material as l,
 )
+
+__cache__ = dict[str, Mesh]()
+
+def cacheMesh(file: str):
+    """ Load or get Cached mesh """
+    path = os.path.abspath(file)
+    if path not in __cache__:
+        __cache__[path] = loadMesh(file)
+    return __cache__[path]
 
 def loadMesh(file: str, cache: bool = False):
     """ Only load the first mesh """

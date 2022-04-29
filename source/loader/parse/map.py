@@ -20,7 +20,7 @@ class Map(Parsable, Generic[P]):
         if not types.isMap(data):
             raise ParseError("Expected a Map")
 
-        T = self.generic
+        T = Generic.get(self)
         V = set(self._map)
         D = set(data)
 
@@ -39,7 +39,7 @@ class Map(Parsable, Generic[P]):
 
         # Parse & Check changes / errors
         for key, parsable in self._map.items():
-            self.link(parsable, data.get(key))
+            self.link(parsable.parse(data.get(key)))
 
         # Use Values if all ok
         if self.changed and not self.error:

@@ -46,7 +46,8 @@ class Struct(Parsable):
 
         # Update & Check for changes / errors
         for field, parsable in self._fields.items():
-            self.link(parsable, data.get(field))
+            self.link(parsable.parse(data.get(field)))
+            if self.error: print(field)
 
         # Allow Derived class to post-parse
         if self.changed:

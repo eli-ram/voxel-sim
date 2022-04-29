@@ -66,6 +66,7 @@ class SceneBase:
 
     def add(self, child: Render):
         self.children.append(child)
+        return child
 
     def insert(self, index: int, child: Render):
         self.children.insert(index, child)

@@ -5,7 +5,6 @@ __all__ = [
     "get",
 ]
 
-@staticmethod
 def _attr(channel: int) -> float:
     def get(self: 'Color') -> float:
         return self.value[channel]

@@ -68,6 +68,7 @@ class OrbitCamera:
     distance: float = 1.0
     svivel_speed: float = 1.0
     move_speed: float = 0.001
+    is_active: bool = False
     pan_mode: bool = False
 
     @property
@@ -76,6 +77,9 @@ class OrbitCamera:
         h_s, v_s = glm.sin(V)
         h_c, v_c = glm.cos(V)
         return glm.vec3(v_c * h_s, v_c * h_c, v_s)
+
+    def SetActive(self, active: bool):
+        self.is_active = active
 
     def SetPan(self, pan: bool):
         self.pan_mode = pan
@@ -117,6 +121,8 @@ class OrbitCamera:
             self.distance = e
 
     def Cursor(self, dx: float, dy: float):
+        if not self.is_active:
+            return
         if self.pan_mode:
             self.Move(dx, dy)
         else:

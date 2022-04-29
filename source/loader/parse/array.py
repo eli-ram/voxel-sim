@@ -20,7 +20,7 @@ class Array(Parsable, Generic[P]):
         if not types.isArray(data):
             raise ParseError("Expected an Array")
 
-        T = self.generic
+        T = Generic.get(self)
         V = len(self._array)
         D = len(data)
 
@@ -39,7 +39,7 @@ class Array(Parsable, Generic[P]):
 
         # Parse & Check for changes / errors
         for parsable, value in zip(self._array, data):
-            self.link(parsable, value)
+            self.link(parsable.parse(value))
 
     def format(self, F: Fmt) -> str:
         return utils.formatIter(self, F, "[{}]:", enumerate(self._array))

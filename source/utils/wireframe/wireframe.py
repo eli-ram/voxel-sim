@@ -10,6 +10,7 @@ from source.data import (
 )
 
 class Wireframe:
+    """ Render A Wireframe """
 
     def __init__(self, mesh: m.Mesh):
         self._V = BufferConfig('vertices').single(mesh.vertices)

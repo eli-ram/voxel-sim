@@ -1,4 +1,4 @@
-from typing import Optional, TypeVar
+from typing import Callable, Optional, TypeVar
 
 from .error import ParseError
 from .indent import Fmt
@@ -9,14 +9,22 @@ from .utils import safeParse
 
 T = TypeVar('T')
 
+def value(method: Callable[[Any], T]) -> T:
+    return property(method) # type: ignore
+
 
 class Value(Parsable, Generic[T]):
     """ Value Parsable base for literal fields """
     _value: Optional[T] = None
 
+    @value
+    def generic(self):
+        return Generic.get(self)
+
     def require(self) -> T:
         if self._value is None:
-            err = f"Value[{self.genericName}] is missing!"
+            type = Generic.name(self)
+            err = f"Value[{type}] is missing!"
             raise ParseError(err)
         return self._value
 

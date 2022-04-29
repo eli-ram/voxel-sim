@@ -104,7 +104,7 @@ class Voxels(Window):
         @B.toggle("LEFT")
         def toggle_move(move: bool):
             self.move_cross.visible(move)
-            self.move_active = move
+            self.camera.SetActive(move)
 
         # Bind alpha controls
         K.action("U")(lambda: self.alpha(True))
@@ -217,8 +217,7 @@ class Voxels(Window):
         self.scene.render()
 
     def cursor(self, x: float, y: float, dx: float, dy: float):
-        if self.move_active:
-            self.camera.Cursor(dx, dy)
+        self.camera.Cursor(dx, dy)
 
     def scroll(self, value: float):
         self.camera.Zoom(value)
