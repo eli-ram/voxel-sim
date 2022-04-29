@@ -1,6 +1,7 @@
 from typing import Protocol
 from ..graphics.matrices import Hierarchy
 from ..utils.types import float3
+from source.data import colors
 from dataclasses import dataclass, field
 from OpenGL.GL import *
 import glm
@@ -58,9 +59,9 @@ class Void:
 class SceneBase:
     children: list[Render]
 
-    def __init__(self, background: float3, alpha: float = 1.0):
+    def __init__(self, background: colors.Color):
         glEnable(GL_DEPTH_TEST)
-        glClearColor(*background, alpha)
+        glClearColor(*background.value)
         self.stack = Hierarchy()
         self.children = []
 

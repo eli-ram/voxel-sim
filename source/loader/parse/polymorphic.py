@@ -6,7 +6,6 @@ from .literal import String
 from .generic import Generic
 from .parsable import Parsable
 from .types import Any, isMap
-from .utils import safeParse
 
 
 class PolymorphicMeta(type):
@@ -77,26 +76,21 @@ class Polymorphic(Parsable, Generic[S]):
 
         return derived[type]
 
-    @safeParse
-    def parse(self, data: Any):
+    def dataParse(self, data: Any):
         data = data or {}
 
         # Get old instance
         V = self._value
         self._value = None
-        self.changed = False
 
         # Get target Type
         T = self.typeOf(data)
 
         # Reuse old or create new Instance
-        parsable = V if isinstance(V, T) else T()
+        self._value = V if isinstance(V, T) else T()
 
         # Parse Data
-        self.link(parsable.parse(data))
-
-        # Save
-        self._value = parsable
+        yield self._value, data
 
     def format(self, F: Fmt) -> str:
         text = "None" if self._value is None else self._value.format(F)

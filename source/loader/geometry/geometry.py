@@ -21,8 +21,6 @@ def void_on_error(method):
         try:
             return method(self, *args, **kwargs)
         except:
-            name = self.__class__.__name__
-            print(f"[{name}] Voided Render!")
             print_exc()
             return s.Void()
     return wrap
@@ -38,8 +36,7 @@ class Geometry(p.PolymorphicStruct):
     transform: Transform
 
     def loadMaterial(self, store: m.MaterialStore):
-        self.material.load(store)
-        self.error |= self.material.error
+        self.error |= self.material.load(store)
 
     def getMesh(self) -> mesh.Mesh:
         raise NotImplementedError()

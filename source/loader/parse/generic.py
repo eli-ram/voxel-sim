@@ -17,6 +17,10 @@ class InferenceException(Exception):
 
 class Generic(t.Generic[T]):
 
+    def __init__(self) -> None:
+        if not hasattr(self.__class__, 'generic'):
+            self.generic = Generic.load(self)
+
     @staticmethod
     def load(obj: 'Generic[T]') -> t.Type[T]:
         # Get Typed Class
@@ -34,9 +38,9 @@ class Generic(t.Generic[T]):
 
     @staticmethod
     def get(obj: 'Generic[T]') -> t.Type[T]:
-        if not hasattr(obj, '__generic__'):
-            setattr(obj, '__generic__', Generic.load(obj))
-        return getattr(obj, '__generic__')
+        if not hasattr(obj, 'generic'):
+            setattr(obj, 'generic', Generic.load(obj))
+        return getattr(obj, 'generic')
 
     @staticmethod
     def name(obj: 'Generic[T]') -> str:

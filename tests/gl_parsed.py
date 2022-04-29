@@ -63,12 +63,17 @@ class Voxels(w.Window):
 
         # Use Config In synchronized context
         def synchronized(config: Configuration):
-            self.buildScene(config.getRender())
+            self.buildScene(
+                config.getRender(), 
+                background=config.config.background.get(),
+            )
 
         self.tasks.sync(config, synchronized)
 
-    def buildScene(self, *extra: s.Render):
-        self.scene = s.SceneBase((0.3, 0.2, 0.5))
+    def buildScene(self, *extra: s.Render, background = None):
+        if background is None:
+            background = Color(0.3, 0.2, 0.5)
+        self.scene = s.SceneBase(background)
         self.scene.add(self.origin)
         for render in extra:
             self.scene.add(render)
@@ -79,8 +84,8 @@ class Voxels(w.Window):
         self.scene.stack.SetPerspective(
             fovy=glm.radians(45.0),
             aspect=(width / height),
-            near=0.01,
-            far=100.0,
+            near=0.001,
+            far=1000.0,
         )
 
     def update(self, time: float, delta: float):

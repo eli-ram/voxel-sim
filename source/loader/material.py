@@ -1,6 +1,5 @@
 from typing import Any, Dict, List, NamedTuple
 
-from source.loader.parse.utils import safeParse
 from .parse import all as p
 from .vector import Vector
 from source.data import (
@@ -8,10 +7,12 @@ from source.data import (
     material as m,
 )
 
+
 class Locks(NamedTuple):
     x: bool = False
     y: bool = False
     z: bool = False
+
 
 class Color(p.Value[colors.Color]):
     def fromNone(self):
@@ -25,18 +26,20 @@ class Color(p.Value[colors.Color]):
 
     def fromValue(self, data: Any):
         return colors.get(data)
-        
+
+
 class Material(p.Struct):
     color: Color
     strength: p.Float
     locks: p.Value[Locks]
     force: Vector
 
+
 class MaterialStore(p.Map[Material]):
     generic = Material
     _cache: m.MaterialStore
 
-    def post_validate(self):
+    def postParse(self):
         store = m.MaterialStore()
         for key, value in self:
             store.create(key, value.color.require())
@@ -45,22 +48,24 @@ class MaterialStore(p.Map[Material]):
     def get(self):
         return self._cache
 
+
 class MaterialKey(p.String):
     _cache: m.Material
 
-    @safeParse
     def load(self, store: m.MaterialStore):
         """ Load the material from the store """
-        key = self._value
+        with self.capture():
+            key = self._value
 
-        if key is None:
-            raise p.ParseError("Missing material key!")
+            if key is None:
+                raise p.ParseError("Missing material key!")
 
-        if key not in store:
-            err = f"Material does not exist! (key: {key})"
-            raise p.ParseError(err)
+            if key not in store:
+                raise p.ParseError(f"Material does not exist! (key: {key})")
 
-        self._cache = store[key]
+            self._cache = store[key]
+
+        return self.error
 
     def get(self):
         """ Get the cached material """

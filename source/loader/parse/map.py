@@ -13,8 +13,7 @@ class Map(Parsable, Generic[P]):
     def __init__(self) -> None:
         self._map = {}
 
-    @utils.safeParse
-    def parse(self, data: Any):
+    def dataParse(self, data: Any):
         data = data or {}
 
         if not types.isMap(data):
@@ -29,25 +28,15 @@ class Map(Parsable, Generic[P]):
 
         # Create
         for key in D - V:
-            print(f"Create: {key}")
             self._map[key] = T()
 
         # Delete
         for key in V - D:
-            print(f"Delete: {key}")
             self._map.pop(key)
 
         # Parse & Check changes / errors
         for key, parsable in self._map.items():
-            self.link(parsable.parse(data.get(key)))
-
-        # Use Values if all ok
-        if self.changed and not self.error:
-            self.post_validate()
-
-    def post_validate(self):
-        """ Validate values if needed """
-
+            yield parsable, data.get(key)
 
     def format(self, F: Fmt) -> str:
         return utils.formatIter(self, F, "[{}]:", self._map.items()) 

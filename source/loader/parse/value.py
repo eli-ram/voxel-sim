@@ -5,7 +5,6 @@ from .indent import Fmt
 from .generic import Generic
 from .parsable import Parsable
 from .types import Any, Map, Array, isMap, isArray
-from .utils import safeParse
 
 T = TypeVar('T')
 
@@ -16,10 +15,6 @@ def value(method: Callable[[Any], T]) -> T:
 class Value(Parsable, Generic[T]):
     """ Value Parsable base for literal fields """
     _value: Optional[T] = None
-
-    @value
-    def generic(self):
-        return Generic.get(self)
 
     def require(self) -> T:
         if self._value is None:
@@ -32,13 +27,13 @@ class Value(Parsable, Generic[T]):
         return None
 
     def fromMap(self, data: Map) -> Optional[T]:
-        return self.generic(**data)
+        return Generic.get(self)(**data)
 
     def fromArray(self, data: Array) -> Optional[T]:
-        return self.generic(*data)
+        return Generic.get(self)(*data)
 
     def fromValue(self, data: Any) -> Optional[T]:
-        return self.generic(data)
+        return Generic.get(self)(data)
 
     def parseValue(self, data: Any) -> Optional[T]:
         """ Cast data to new value """
@@ -65,8 +60,7 @@ class Value(Parsable, Generic[T]):
 
         return not self.isEqual(old, new)
 
-    @safeParse
-    def parse(self, data: Any):
+    def dataParse(self, data: Any):
         old = self._value
         new = self.parseValue(data)
         self._value = new

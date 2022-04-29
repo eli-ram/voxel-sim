@@ -13,8 +13,7 @@ class Array(Parsable, Generic[P]):
     def __init__(self) -> None:
         self._array = []
 
-    @utils.safeParse
-    def parse(self, data: Any):
+    def dataParse(self, data: Any):
         data = data or []
 
         if not types.isArray(data):
@@ -28,18 +27,16 @@ class Array(Parsable, Generic[P]):
         self.changed = V != D
 
         # Create
-        for index in range(V, D):
-            print(f"Create: {index}")
+        for _ in range(V, D):
             self._array.append(T())
 
         # Delete
-        for index in range(V, D, -1):
-            print(f"Delete: {index}")
+        for _ in range(V, D, -1):
             self._array.pop()
 
         # Parse & Check for changes / errors
         for parsable, value in zip(self._array, data):
-            self.link(parsable.parse(value))
+            yield parsable, value
 
     def format(self, F: Fmt) -> str:
         return utils.formatIter(self, F, "[{}]:", enumerate(self._array))

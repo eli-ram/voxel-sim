@@ -1,3 +1,5 @@
+import os
+from traceback import print_exc
 from ..parse import all as p
 from .geometry import Geometry
 from source.data import mesh as m
@@ -9,9 +11,12 @@ class Mesh(Geometry, type='mesh'):
 
     def postParse(self):
         file = self.file.require()
-        self.mesh = cacheMesh(file)
+        file = os.path.abspath(file)
+
+        try:
+            self.mesh = cacheMesh(file)
+        except FileNotFoundError as e:
+            raise p.ParseError(f"File Not Found: \"{file}\"")
         
     def getMesh(self) -> m.Mesh:
-        if not hasattr(self, 'mesh'):
-            raise NotImplementedError("Validation Error...")
         return self.mesh

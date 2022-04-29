@@ -1,7 +1,7 @@
 from .parse import all as p
 from .parameters import Parameters
 from .geometry import Geometry
-from .material import MaterialStore
+from .material import Color, MaterialStore
 from .box import Box
 
 from source.interactive import scene as s
@@ -19,6 +19,9 @@ class Config(p.Struct):
 
     # Render Resolution per voxel
     resolution: p.Int
+
+    # Background color
+    background: Color
 
 
 class Configuration(p.Struct):

@@ -2,45 +2,13 @@ from typing import Callable, Iterable, Tuple, Type, TypeVar
 from typing_extensions import TypeGuard
 
 from .types import Any, Map
-from .error import CastError, ParseError
+from .error import CastError
 from .indent import Fmt
 from .parsable import Parsable
-import traceback
 
 T = TypeVar('T')
 P = TypeVar('P', bound=Parsable)
-Parse = Callable[[P, Any], None]
 Cast = Callable[[P, Any], T]
-
-
-def _err(e: Exception) -> str:
-    name = e.__class__.__name__
-    print("args:", e.args)
-    args = ", ".join(e.args)
-    return f"{name}[{args}]"
-
-
-def _trace(e: Exception) -> str:
-    _, *trace = traceback.format_tb(e.__traceback__, None)
-    where = "\n" + "\n".join(trace)
-    return where.replace('\n', '\n\t|')
-
-
-def safeParse(method: Parse[P]):
-    def safely(self: P, data: Any):
-        try:
-            self.error = False
-            self.what = ""
-            method(self, data)
-        except ParseError as e:
-            self.error = True
-            self.what = _err(e)
-        except Exception as e:
-            self.error = True
-            self.what = _err(e) + _trace(e)
-        return (self.changed, self.error)
-    return safely
-
 
 def wrapCast(method: Cast[P, T]):
     def wrapper(self: P, data: Any) -> T:

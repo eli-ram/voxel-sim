@@ -81,7 +81,7 @@ class ParsableDetector(Generic[P]):
                     changed, error = parsable.parse(data)
                     if self.LOG and (changed or error):
                         self.logParsed(parsable)
-                    if changed:
+                    if changed and not error:
                         callback(*args, parsable)
 
             except Exception:
