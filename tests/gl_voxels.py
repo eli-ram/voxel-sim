@@ -7,11 +7,12 @@ import numpy as np
 from OpenGL.GL import *
 
 # Data
-from source.data.colors import Color, Colors
+from source.data.colors import Color, get
 from source.data.mesh import Mesh
 
 # Debug
 from source.debug.time import time
+from source.graphics import matrices as m
 
 # Interactive
 from source.interactive.animator import Animator
@@ -21,7 +22,6 @@ from source.interactive.window import Window
 # Utils
 from source.utils import (
     directory as d,
-    matrices as m,
     mesh_loader as l,
     shapes as s,
 )
@@ -57,8 +57,8 @@ class Voxels(Window):
         resolution = 2**10
         self.voxels = VoxelProxy(shape, resolution)
         self.voxels.createMaterials({
-            "STATIC": Colors.BLUE,
-            "FORCE": Colors.RED,
+            "STATIC": get.BLUE,
+            "FORCE": get.RED,
             "BONE": Color(0.3, 0.5, 0.3, 0.1),
         })
 
@@ -66,7 +66,7 @@ class Voxels(Window):
         self.animator = Animator('animation.gif', delta=0.5)
 
         # Outline for Voxels
-        self.scene.add(Wireframe(s.line_cube()).setColor(Colors.BLACK))
+        self.scene.add(Wireframe(s.line_cube()).setColor(get.BLACK))
 
         # 3D-crosshair for camera
         self.move_cross = Transform(

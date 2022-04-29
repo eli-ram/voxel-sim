@@ -1,4 +1,4 @@
-from ...utils.shaders import ShaderCache, ShaderUniforms, ShaderAttributes
+from ...graphics.shaders import ShaderCache, ShaderUniforms, ShaderAttributes
 
 
 class RenderAttributes(ShaderAttributes):

@@ -1,19 +1,26 @@
 import numpy as np
 
-__all__ = ['Color', 'Colors']
+__all__ = [
+    "Color",
+    "get",
+]
 
+@staticmethod
 def _attr(channel: int) -> float:
     def get(self: 'Color') -> float:
         return self.value[channel]
+
     def set(self: 'Color', value: float):
         self.value[channel] = value
-    return property(get, set) # type: ignore
+
+    return property(get, set)  # type: ignore
+
 
 class Color:
     value: 'np.ndarray[np.float32]'
 
     def __init__(self, r: float, g: float, b: float, a: float = 1.0):
-        self.value = np.array([r, g, b, a], dtype=np.float32) # type: ignore
+        self.value = np.array([r, g, b, a], dtype=np.float32)  # type: ignore
 
     r = _attr(0)
     g = _attr(1)
@@ -30,19 +37,32 @@ class Color:
 
     def __eq__(self, other: object):
         return (
-            isinstance(other, Color) and 
+            isinstance(other, Color) and
             not (self.value != other.value).any()
         )
 
-class Colors:
+
+_ = lambda *v: Color(*v)
+
+
+class get:
+
+    def __new__(cls, name: str) -> Color:
+        return getattr(cls, name.upper())
 
     @classmethod
     def get(cls, name: str) -> Color:
         return getattr(cls, name.upper())
 
-    WHITE = Color(1.0, 1.0, 1.0)
-    GRAY = Color(0.5, 0.5, 0.5)
-    BLACK = Color(0.0, 0.0, 0.0)
-    RED = Color(1.0, 0.0, 0.0)
-    GREEN = Color(0.0, 1.0, 0.0)
-    BLUE = Color(0.0, 0.0, 1.0)
+    WHITE =\
+        _(1.0, 1.0, 1.0)
+    GRAY =\
+        _(0.5, 0.5, 0.5)
+    BLACK =\
+        _(0.0, 0.0, 0.0)
+    RED =\
+        _(1.0, 0.0, 0.0)
+    GREEN =\
+        _(0.0, 1.0, 0.0)
+    BLUE =\
+        _(0.0, 0.0, 1.0)

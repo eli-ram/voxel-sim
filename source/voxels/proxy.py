@@ -3,13 +3,15 @@ from source.data.mesh import Mesh
 from source.math.truss2stress import fem_simulate
 
 from source.math.voxels2truss import voxels2truss
+from source.data import (
+    colors,
+    mesh,
+)
 
 from ..utils.wireframe.deformation import DeformationWireframe
-from ..utils.mesh.simplemesh import Geometry, SimpleMesh
 from ..interactive.tasks import Task
 from ..math.mesh2voxels import mesh_to_voxels
-from ..utils.matrices import Hierarchy
-from ..data.colors import Color
+from ..graphics.matrices import Hierarchy
 from ..data.voxels import Voxels
 from ..data.material import MaterialStore
 from ..utils.types import Array, F, int3, bool3, float3
@@ -29,7 +31,7 @@ class VoxelProxy:
         self.graphics = VoxelRenderer(shape, res)
         self.materials = MaterialStore()
 
-    def createMaterials(self, map: dict[str, Color]):
+    def createMaterials(self, map: dict[str, colors.Color]):
         for k, v in map.items():
             self.materials.create(k, v)
         self.update_colors()        
@@ -128,7 +130,7 @@ class FemSimulateTask(ProxyTask):
             print("Fem simulation failed & produced nan")
             np.nan_to_num(D, copy=False)
 
-        self.M = SimpleMesh(truss.nodes, truss.edges, Geometry.Lines)
+        self.M = mesh.Mesh(truss.nodes, truss.edges, mesh.Geometry.Lines)
         self.D = D
 
     def complete(self):

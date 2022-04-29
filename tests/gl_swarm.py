@@ -2,7 +2,7 @@ import __init__
 import numpy as np
 from source.interactive.window import Window
 from source.swarm.shaders.swarmshader import RectCache
-from source.utils import Animated
+from source.utils.animated import Animated
 from source.swarm import Swarm
 from OpenGL.GL import *
 

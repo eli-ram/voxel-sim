@@ -2,7 +2,7 @@ from typing import Any, Dict, List, NamedTuple
 from .parse import all as p
 from .vector import Vector
 from source.data import (
-    colors as c,
+    colors,
     material as m,
 )
 
@@ -11,18 +11,18 @@ class Locks(NamedTuple):
     y: bool = False
     z: bool = False
 
-class Color(p.Value[c.Color]):
+class Color(p.Value[colors.Color]):
     def fromNone(self):
-        return c.Colors.WHITE
+        return colors.get.WHITE
 
     def fromMap(self, data: Dict[str, Any]):
-        return c.Color(**data)
+        return colors.Color(**data)
 
     def fromArray(self, data: List[Any]):
-        return c.Color(*data)
+        return colors.Color(*data)
 
     def fromValue(self, data: Any):
-        return c.Colors.get(data)
+        return colors.get(data)
         
 class Material(p.Struct):
     color: Color

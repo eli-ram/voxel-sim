@@ -7,9 +7,9 @@ import numpy as np
 
 from .shaders.swarmshader import ComputeCache, RenderCache, FadeCache
 from ..utils.types import int2
-from ..utils.texture import Texture2D, TextureSet
+from ..graphics.texture import Texture2D, TextureSet
 from ..utils.directory import cwd, script_dir
-from ..utils.framebuffer import Framebuffer
+from ..graphics.framebuffer import Framebuffer
 
 class Swarm:
 

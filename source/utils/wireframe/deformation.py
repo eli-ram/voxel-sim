@@ -4,28 +4,29 @@ from OpenGL.GL import *
 import numpy as np
 
 from .shaders.deformationshader import DeformationShader
-from ..matrices import Hierarchy
-from ..buffer import BufferConfig
-from ..mesh.simplemesh import Geometry, SimpleMesh
-from ..types import Array, F
-from ...data.colors import Color, Colors
+from ...graphics.matrices import Hierarchy
+from ...graphics.buffer import BufferConfig
 
+from source.data import (
+    mesh as m,
+    colors,
+)
 
 class DeformationWireframe:
 
-    def __init__(self, mesh: SimpleMesh, offset: 'Array[F]'):
-        assert mesh.geometry == Geometry.Lines, \
+    def __init__(self, mesh: m.Mesh, offset: 'np.ndarray[np.float32]'):
+        assert mesh.geometry == m.Geometry.Lines, \
             "Is only defined for lines!"
         assert mesh.vertices.shape == offset.shape, \
             "Offsets must match vertices!"
-        self.color = Colors.WHITE
+        self.color = colors.get.WHITE
         self.width = 1.0
         self.buffer = BufferConfig('vertices').combine(mesh.vertices, offset)
         self.indices = BufferConfig('indices').single(mesh.indices.astype(np.uint32))
         self.shader = DeformationShader.get()
         self.deformation = 0.0
 
-    def setColor(self, color: Color):
+    def setColor(self, color: colors.Color):
         self.color = color
         return self
 
@@ -113,6 +114,6 @@ def test_case():
 
     D, _ = fem_simulate(T, 1E1)
 
-    M = SimpleMesh(T.nodes, T.edges, Geometry.Lines)
+    M = m.Mesh(T.nodes, T.edges, m.Geometry.Lines)
 
     return DeformationWireframe(M, D).setWidth(5.0)

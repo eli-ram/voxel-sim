@@ -4,9 +4,9 @@ import numpy as np
 import glm
 
 from .shaders.voxelshader import VoxelShader
-from ..utils.matrices import Hierarchy
-from ..utils.texture import Format, Sample, Texture1D, Texture3D, TextureProps, Wrap
-from ..utils.buffer import BufferConfig
+from ..graphics.matrices import Hierarchy
+from ..graphics.texture import Format, Sample, Texture1D, Texture3D, TextureProps, Wrap
+from ..graphics.buffer import BufferConfig
 from ..utils.types import int3
 
 class VoxelRenderer:

@@ -1,4 +1,4 @@
-from ...shaders import ShaderAttributes, ShaderUniforms, ShaderCache
+from ....graphics.shaders import ShaderAttributes, ShaderUniforms, ShaderCache
 
 
 class DeformationAttributes(ShaderAttributes):

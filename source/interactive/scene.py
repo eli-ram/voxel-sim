@@ -1,5 +1,5 @@
 from typing import Protocol
-from ..utils.matrices import Hierarchy
+from ..graphics.matrices import Hierarchy
 from ..utils.types import float3
 from dataclasses import dataclass, field
 from OpenGL.GL import *

@@ -1,5 +1,4 @@
 # pyright: reportUnknownVariableType=false
-from typing import Any
 from ..utils.directory import script_dir, cwd
 from .parse.detector import ParsableDetector
 from .configuration import Configuration
@@ -8,10 +7,7 @@ import time
 
 @ParsableDetector[Configuration]
 def config(C: Configuration):
-    C.log()
-
-def handler(signum: int, frame: Any):
-    print(f"Interrupt: {signum} ({frame})")
+    print(" // // ")
 
 
 def sleep():
