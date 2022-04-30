@@ -45,11 +45,12 @@ class Transform(p.Struct):
     def postParse(self):
         # TODO: combine into a matrix
         M = glm.mat4()
-        if _(scale := self.scale.get()):
-            M *= glm.scale(scale)
         if _(pos := self.position.get()):
             M *= glm.translate(pos)
         if _(rot := self.rotation.get()):
             rot = glm.normalize(rot)
             M *= glm.mat4_cast(rot)
+        if _(scale := self.scale.get()):
+            M *= glm.scale(scale)
         self.matrix = M
+        print(f'transform:\n{M}')

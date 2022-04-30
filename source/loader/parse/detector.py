@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from threading import Thread, currentThread
 from typing import Any, Callable, Optional, TypeVar
 
@@ -11,6 +12,12 @@ import yaml
 import time
 import traceback    
 
+@contextmanager
+def capture():
+    try:
+        yield
+    except:
+        traceback.print_exc()
 
 class FileChangeDetector:
 
@@ -68,25 +75,28 @@ class ParsableDetector(Generic[P]):
         print(f"Staring: {self}")
         # Run loop
         while self._thread is thread:
+            time.sleep(1.0)
 
             # Await File change
             if not file.changed():
-                time.sleep(1.0)
                 continue
 
-            try:
-                # Read content 
-                with file.read() as f:
-                    data = self.loadFile(f)
-                    changed, error = parsable.parse(data)
-                    if self.LOG and (changed or error):
-                        self.logParsed(parsable)
-                    if changed and not error:
-                        callback(*args, parsable)
+            # Read Content 
+            with capture(), file.read() as f:
+                data = self.loadFile(f)
 
-            except Exception:
-                # log exceptions
-                traceback.print_exc()
+            # Parse Content                
+            changed, error = parsable.parse(data)
+
+            # Log Content
+            if self.LOG and (changed or error):
+                with capture():
+                    self.logParsed(parsable)
+            
+            # Use Content
+            if changed and not error:
+                with capture():
+                    callback(*args, parsable)
 
         print(f"Stopped: {self}")
 
