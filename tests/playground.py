@@ -5,8 +5,14 @@ import sys
 import numpy as np
 from source.math.truss2stress import fem_simulate, stress_matrix
 from source.data.truss import Truss
-from source.loader.test import test_load
+from source.utils.shapes import sphere
+# from source.loader.test import test_load
 # from source.data.voxel_tree.node import test_nodes
+
+def test_sphere():
+    S = sphere()
+    print(S.vertices)
+    print(S.indices)
 
 def x_test_sparse():
     T = Truss(

@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 from threading import Thread, currentThread
 from typing import Any, Callable, Optional, TypeVar
 
@@ -11,13 +10,6 @@ import os
 import yaml
 import time
 import traceback    
-
-@contextmanager
-def capture():
-    try:
-        yield
-    except:
-        traceback.print_exc()
 
 class FileChangeDetector:
 
@@ -66,39 +58,45 @@ class ParsableDetector(Generic[P]):
         return yaml.safe_load(file)
 
     def run(self):
-        file = FileChangeDetector(self._file)
-        args = self._args
-        thread = currentThread()
-        parsable = Generic.get(self)()
-        callback = self._callback
+        S = self
+        F = FileChangeDetector(S._file)
+        A = S._args
+        T = currentThread()
+        D = Generic.get(S)()
+        C = S._callback
 
-        print(f"Staring: {self}")
-        # Run loop
-        while self._thread is thread:
+        def poll():
             time.sleep(1.0)
 
             # Await File change
-            if not file.changed():
-                continue
+            if not F.changed():
+                return
 
             # Read Content 
-            with capture(), file.read() as f:
-                data = self.loadFile(f)
+            with F.read() as f:
+                data = S.loadFile(f)
 
             # Parse Content                
-            changed, error = parsable.parse(data)
+            changed, error = D.parse(data)
 
             # Log Content
-            if self.LOG and (changed or error):
-                with capture():
-                    self.logParsed(parsable)
+            if S.LOG and (changed or error):
+                S.logParsed(D)
             
             # Use Content
             if changed and not error:
-                with capture():
-                    callback(*args, parsable)
+                C(*A, D)
 
-        print(f"Stopped: {self}")
+        print(f"Staring: {S}")
+
+        # Run loop
+        while T is S._thread:
+            try: 
+                poll()
+            except:
+                traceback.print_exc()
+
+        print(f"Stopped: {S}")
 
     def __str__(self) -> str:
         name = self.__class__.__name__

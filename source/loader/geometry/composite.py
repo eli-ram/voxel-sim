@@ -1,5 +1,4 @@
-from ..parse import all as p
-from .geometry import Geometry
+from .geometry import Geometry, GeometryArray
 from source.interactive import (
     scene as s,
 )
@@ -11,19 +10,13 @@ class Composite(Geometry, type='composite'):
     material: None
 
     # The list of children
-    children: p.Array[p.Polymorphic[Geometry]]
-
-    def __iter__(self):
-        for child in self.children:
-            if geometry := child.get():
-                yield geometry
-
+    children: GeometryArray
+    
     def loadMaterial(self, store):
-        for child in self:
-            child.loadMaterial(store)
+        self.children.loadMaterials(store)
 
     def getRender(self) -> s.Render:
         matrix = self.transform.matrix
-        children = [c.getRender() for c in self]
+        children = self.children.getRenders()
         return s.Scene(matrix, children)
 

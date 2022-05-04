@@ -98,11 +98,12 @@ class VoxelRenderer:
         self.colors.bind(1)
 
         # Calculate full MVP transform
-        MVP = m.MVP * self.transform
+        MVP = m.makeMVP * self.transform
 
         # Bind Uniforms & Render
         with self.shader as (A, U):
-            glUniformMatrix4fv(U.MVP, 1, GL_TRUE, m.ptr(MVP))
+            MVP = m.makeMVP()
+            glUniformMatrix4fv(U.MVP, 1, GL_FALSE, glm.value_ptr(MVP))
             glUniform1i(U.LAYER_DIR, self.getLayerDirection(m))
             # TODO: scale alpha by voxel-layer-ratio ?
             glUniform1f(U.MOD_ALPHA, self.alpha)

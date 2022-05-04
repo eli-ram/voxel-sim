@@ -1,4 +1,5 @@
 from OpenGL.GL import *
+import glm
 import numpy as np
 
 from .shaders.wireframeshader import WireframeShader
@@ -34,7 +35,8 @@ class Wireframe:
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
         glLineWidth(self._w)
         with self._S as (A, U), V, I:
-            glUniformMatrix4fv(U.MVP, 1, GL_TRUE, m.ptr(m.MVP))
+            MVP = m.makeMVP()
+            glUniformMatrix4fv(U.MVP, 1, GL_FALSE, glm.value_ptr(MVP))
             glUniform4fv(U.COLOR, 1, self._c.value)
             with V as (pos,):
                 V.attribute(pos, A.pos)

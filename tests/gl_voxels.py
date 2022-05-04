@@ -48,7 +48,8 @@ class Voxels(Window):
     truss: DeformationWireframe
 
     def setup(self):
-        self.scene = SceneBase((0.3, 0.2, 0.5))
+        color = Color(0.3, 0.2, 0.5)
+        self.scene = SceneBase(color)
         self.camera = m.OrbitCamera(
             distance=1.25,
             svivel_speed=0.005,

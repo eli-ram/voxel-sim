@@ -24,7 +24,8 @@ class Rotation(p.Value[glm.quat]):
         return glm.angleAxis(angle, axis)
 
     def fromArray(self, data: List[Any]):
-        return glm.quat(*data)
+        quat = glm.quat(*data)
+        return glm.normalize(quat)
 
     def fromValue(self, data: Any):
         raise p.CastError("Expected a Map or an Array")
@@ -43,14 +44,22 @@ class Transform(p.Struct):
     matrix = glm.mat4()
 
     def postParse(self):
-        # TODO: combine into a matrix
         M = glm.mat4()
-        if _(pos := self.position.get()):
-            M *= glm.translate(pos)
         if _(rot := self.rotation.get()):
-            rot = glm.normalize(rot)
-            M *= glm.mat4_cast(rot)
+            M = glm.mat4_cast(rot)
         if _(scale := self.scale.get()):
-            M *= glm.scale(scale)
+            M = glm.scale(M, scale)
+        if _(pos := self.position.get()):
+            M = glm.translate(M, pos)
+        self.matrix = M
+
+class TransformArray(p.Array[Transform]):
+    generic = Transform
+    matrix = glm.mat4()
+
+    def postParse(self):
+        M = glm.mat4()
+        for t in self:
+            M = t.matrix * M
         self.matrix = M
         print(f'transform:\n{M}')

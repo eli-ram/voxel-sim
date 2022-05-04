@@ -5,22 +5,19 @@ import glm
 from glm_typing import F32Vector3
 import numpy as np
 
-I = glm.mat4()
 Vec = F32Vector3
-
 
 @dataclass
 class Hierarchy:
-    M: glm.mat4 = I
-    V: glm.mat4 = I
-    P: glm.mat4 = I
-
+    M = glm.mat4()
+    V = glm.mat4()
+    P = glm.mat4()
+    
     @property
     def MV(self) -> glm.mat4:
         return self.V * self.M
 
-    @property
-    def MVP(self) -> glm.mat4:
+    def makeMVP(self) -> glm.mat4:
         return self.P * self.V * self.M
 
     @contextmanager
@@ -50,14 +47,16 @@ class Hierarchy:
 
     @classmethod
     def ptr(cls, m: glm.mat4):
+        return glm.value_ptr(m)
         # Current correct matrix ptr, when passing to shaders
         cls.BUFFER_MATRIX[...] = m
         return cls.BUFFER_MATRIX
 
     @classmethod
     def copy(cls, m: glm.mat4):
-        return cls.ptr(m).copy()
-
+        cls.BUFFER_MATRIX[...] = m
+        return cls.BUFFER_MATRIX.copy()
+        
 
 @dataclass
 class OrbitCamera:

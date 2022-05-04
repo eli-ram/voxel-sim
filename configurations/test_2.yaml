@@ -22,28 +22,33 @@ materials:
     locks: [true, true, true]
 
 geometry:
-  - type: mesh
-    file: "../meshes/test_bone.obj"
-    operation: add
-    material: BONE
+  - type: composite
     transform:
-      position: [0, 0.1, 0]
-      # rotation: [0, 0, 0, 1]
-      scale: 0.2
+      - scale: 0.8
+        position: [0, 0, 0]
+    children:
+      - type: mesh
+        file: "../meshes/test_bone.obj"
+        operation: add
+        material: BONE
+        transform:
+          - position: [0, 0.14, 0]
+          # rotation: [0, 0, 0, 1]
+            scale: 0.3
 
-  - type: sphere
-    operation: add 
-    material: FORCES
-    transform:
-      position: [0, 1, 0]
-      scale: 0.4
+      - type: sphere
+        operation: add 
+        material: FORCES
+        transform:
+          - scale: 0.13
+          - position: [-0.02, 1.05, 0]
 
-  - type: sphere
-    operation: add
-    material: STATIC
-    transform:
-      position: [0, 0, 0]
-      scale: 0.4
+      - type: sphere
+        operation: add
+        material: STATIC
+        transform:
+          - scale: 0.12
+          - position: [0, 0, 0]
 
 parameters:
   inner_surface:

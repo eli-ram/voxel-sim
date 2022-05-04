@@ -41,8 +41,8 @@ class Voxels(w.Window):
 
         # Create Camera Origin
         self.origin = s.Transform(
-            transform=glm.scale(glm.vec3(0.05, 0.05, 0.05)),
-            mesh=Wireframe(origin_marker()).setColor(Color(1, 0.5, 0)),
+            transform=glm.mat4(),
+            mesh=Wireframe(origin_marker(0.5)).setColor(Color(1, 0.5, 0)),
             hidden=True,
         )
 
@@ -71,12 +71,23 @@ class Voxels(w.Window):
         self.tasks.sync(config, synchronized)
 
     def buildScene(self, *extra: s.Render, background = None):
+        # Pick Background color
         if background is None:
             background = Color(0.3, 0.2, 0.5)
-        self.scene = s.SceneBase(background)
-        self.scene.add(self.origin)
-        for render in extra:
-            self.scene.add(render)
+
+        # Construct a new scene
+        S = s.SceneBase(background)
+
+        # Add Render Objects
+        for render in [self.origin, *extra]:
+            S.add(render)
+
+        # Jank way to keep camera & perspective...
+        if hasattr(self, 'scene'):
+            S.stack = self.scene.stack
+
+        # Use new scene
+        self.scene = S
 
     def resize(self, width: int, height: int):
         self.animator.resize(width, height)
@@ -93,8 +104,8 @@ class Voxels(w.Window):
         time, delta = self.animator.update(time, delta)
 
         # Update Camera Matrix
-        self.scene.stack.V = self.camera.Compute()
-        self.origin.transform = glm.translate(self.camera.center)
+        self.scene.setCamera(self.camera.Compute())
+        self.origin.transform = glm.translate(-self.camera.center)
 
     def render(self):
         self.scene.render()

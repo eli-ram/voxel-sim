@@ -1,6 +1,6 @@
 from .parse import all as p
 from .parameters import Parameters
-from .geometry import Geometry
+from .geometry import GeometryArray
 from .material import Color, MaterialStore
 from .box import Box
 
@@ -32,26 +32,16 @@ class Configuration(p.Struct):
     materials: MaterialStore
     
     # Application order of Geometry
-    geometry: p.Array[p.Polymorphic[Geometry]]
-
+    geometry: GeometryArray
+    
     # Machine Learning Parameters
     parameters: Parameters
 
-    def __iter__(self):
-        for child in self.geometry:
-            geometry = child.get()
-            if geometry is None:
-                continue
-            if geometry.error:
-                continue
-            yield geometry
-
     def postParse(self):
         store = self.materials.get()
-        for child in self:
-            child.loadMaterial(store)
+        self.geometry.loadMaterials(store)
 
     def getRender(self) -> s.Render:
-        children = [c.getRender() for c in self]
+        children = self.geometry.getRenders()
         return s.Scene(children=children)
 

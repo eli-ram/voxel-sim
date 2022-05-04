@@ -1,6 +1,5 @@
 from typing import Protocol
 from ..graphics.matrices import Hierarchy
-from ..utils.types import float3
 from source.data import colors
 from dataclasses import dataclass, field
 from OpenGL.GL import *
@@ -64,6 +63,9 @@ class SceneBase:
         glClearColor(*background.value)
         self.stack = Hierarchy()
         self.children = []
+
+    def setCamera(self, m: glm.mat4):
+        self.stack.V = m
 
     def add(self, child: Render):
         self.children.append(child)
