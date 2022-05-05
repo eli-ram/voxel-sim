@@ -33,8 +33,8 @@ geometry:
         material: BONE
         transform:
           - position: [0, 0.14, 0]
+          - scale: 0.3
           # rotation: [0, 0, 0, 1]
-            scale: 0.3
 
       - type: sphere
         operation: add 
