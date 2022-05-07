@@ -1,6 +1,6 @@
-from typing import Protocol
+from typing import List, Protocol
 from ..graphics.matrices import Hierarchy
-from source.data import colors
+from source.data.colors import Color
 from dataclasses import dataclass, field
 from OpenGL.GL import *
 import glm
@@ -58,11 +58,16 @@ class Void:
 class SceneBase:
     children: list[Render]
 
-    def __init__(self, background: colors.Color):
+    def __init__(self):
         glEnable(GL_DEPTH_TEST)
-        glClearColor(*background.value)
         self.stack = Hierarchy()
         self.children = []
+
+    def setBackground(self, color: Color):
+        glClearColor(*color.value)
+
+    def setChildren(self, children: List[Render]):
+        self.children = children
 
     def setCamera(self, m: glm.mat4):
         self.stack.V = m

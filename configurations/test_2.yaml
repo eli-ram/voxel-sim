@@ -7,6 +7,9 @@ config:
     r: 0.7
     g: 0.8
     b: 0.8
+  region:
+    start: [-1, -2, -1]
+    stop: [1, 1, 1] 
 
 materials:
   BONE:
@@ -22,32 +25,35 @@ materials:
     locks: [true, true, true]
 
 geometry:
+  - type: sphere
+    material: BONE
+
+other:
   - type: composite
     transform:
-      - scale: 0.8
+      - scale: 1.0
         position: [0, 0, 0]
     children:
+      - type: sphere
+        operation: add 
+        material: FORCES
+        transform:
+          - scale: 1.0
+          - position: [0, 0, 0]
       - type: mesh
         file: "../meshes/test_bone.obj"
         operation: add
         material: BONE
         transform:
-          - position: [0, 0.14, 0]
-          - scale: 0.3
+          - position: [0, 0, 0]
+          - scale: 1.0
+          - position: [0, 0, 0]
           # rotation: [0, 0, 0, 1]
-
-      - type: sphere
-        operation: add 
-        material: FORCES
-        transform:
-          - scale: 0.13
-          - position: [-0.02, 1.05, 0]
-
-      - type: sphere
+      - type: sphere-x
         operation: add
         material: STATIC
         transform:
-          - scale: 0.12
+          - scale: 1.0
           - position: [0, 0, 0]
 
 parameters:

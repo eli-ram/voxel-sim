@@ -2,6 +2,7 @@ from typing_extensions import TypeGuard
 from typing import Any, Dict, List, Optional, TypeVar
 from .parse import all as p
 from .vector import Vector
+from source.data.transform import Transform as _Transform
 import glm
 
 T = TypeVar('T')
@@ -9,16 +10,29 @@ def _(v: Optional[T]) -> TypeGuard[T]:
     return v is not None
 
 class Position(Vector):
-    default = glm.vec3()
+    
+    @property
+    def value(self):
+        D = glm.vec3()
+        return self.getOr(D)
 
 
 class Scale(Vector):
-    default = glm.vec3(1, 1, 1)
 
+    @property
+    def value(self):
+        D = glm.vec3(1, 1, 1)
+        return self.getOr(D)
 
 class Rotation(p.Value[glm.quat]):
 
+    @property
+    def value(self):
+        D = glm.quat()
+        return self.getOr(D)
+
     def fromMap(self, data: Dict[str, Any]):
+        # Todo: euler
         angle = data['angle']
         axis = glm.vec3(data['axis'])
         return glm.angleAxis(angle, axis)
@@ -37,29 +51,30 @@ class Rotation(p.Value[glm.quat]):
 
 
 class Transform(p.Struct):
+    scale: Scale
     rotation: Rotation
     position: Position
-    scale: Scale
 
     matrix = glm.mat4()
+    transform = _Transform()
 
     def postParse(self):
-        M = glm.mat4()
-        if _(rot := self.rotation.get()):
-            M = glm.mat4_cast(rot)
-        if _(scale := self.scale.get()):
-            M = glm.scale(M, scale)
-        if _(pos := self.position.get()):
-            M = glm.translate(M, pos)
-        self.matrix = M
+        T = self.transform
+        T.scale = self.scale.value
+        T.rotation = self.rotation.value
+        T.position = self.position.value
+        T.invalidate()
+        self.matrix = self.transform.matrix
 
 class TransformArray(p.Array[Transform]):
     generic = Transform
     matrix = glm.mat4()
 
     def postParse(self):
-        M = glm.mat4()
+        P = None
         for t in self:
-            M = t.matrix * M
-        self.matrix = M
-        print(f'transform:\n{M}')
+            T = t.transform
+            T.parent = P
+            P = T
+        self.matrix = P.local_to_world if P else glm.mat4()
+        print(f'transform:\n{self.matrix}')

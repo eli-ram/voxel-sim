@@ -8,9 +8,6 @@ from .types import Any, Map, Array, isMap, isArray
 
 T = TypeVar('T')
 
-def value(method: Callable[[Any], T]) -> T:
-    return property(method) # type: ignore
-
 
 class Value(Parsable, Generic[T]):
     """ Value Parsable base for literal fields """

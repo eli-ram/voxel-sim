@@ -1,7 +1,11 @@
-from source.data.voxel_tree import box
+
+from source.data.voxel_tree.box import (
+    Box as _Box,
+    int3,
+)
 from .parse import all as p
 
-class Int3(p.Value[box.int3]):
+class Int3(p.Value[int3]):
 
     def fromNone(self):
         return None
@@ -20,13 +24,13 @@ class Int3(p.Value[box.int3]):
         v = int(data)
         return v, v, v
 
-    def toString(self, value: box.int3):
+    def toString(self, value: int3):
         x, y, z = value
         return f"({x=}, {y=}, {z=})"
 
 
 class Box(p.Struct):
-    _value: box.Box
+    box = _Box.Empty()
 
     # Option 1:
     start: Int3
@@ -40,21 +44,27 @@ class Box(p.Struct):
     # => Empty
 
     def get(self):
-        return self._value
+        return self.box
 
     def _make(self):
-        start = self.start.get()
-        stop = self.stop.get()
-        if start and stop:
-            return box.Box.StartStop(start, stop)
-
         offset = self.offset.get()
         shape = self.shape.get()
-        if offset and shape:
-            return box.Box.OffsetShape(offset, shape)
+        start = self.start.get()
+        stop = self.stop.get()
+        err = "Don't specify both (start & stop) and (offset & shape)"
 
-        return box.Box.Empty()
+        if start and stop:
+            if offset or shape:
+                raise p.ParseError(err)
+            return _Box.StartStop(start, stop)
+
+        if offset and shape:
+            if start or stop:
+                raise p.ParseError(err)
+            return _Box.OffsetShape(offset, shape)
+
+        return _Box.Empty()
 
 
     def postParse(self):
-        self._value = self._make()
+        self.box = self._make()

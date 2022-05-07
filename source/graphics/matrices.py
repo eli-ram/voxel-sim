@@ -24,6 +24,7 @@ class Hierarchy:
     def Push(self, m: glm.mat4):
         M = self.M
         try:
+            
             self.M = m * M
             yield
         finally:

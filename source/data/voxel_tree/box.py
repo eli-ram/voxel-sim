@@ -1,32 +1,16 @@
 from __future__ import annotations
 
 from itertools import combinations
-from typing import Iterable, List, Tuple
+from typing import Iterable, Tuple
 
 import numpy as np
 
+__all__ = [
+    "Box",
+    "int3",
+]
+
 int3 = Tuple[int, int, int]
-
-
-def _combine(boxes: Iterable[Box], start, stop):
-    # Discard boxes with no volume
-    boxes = [b for b in boxes if b.has_volume]
-
-    # No boxes -> empty box
-    if not boxes:
-        return Box.Empty()
-
-    # Combine the boxes
-    return Box(
-        start(np.stack([b.start for b in boxes]), axis=0),
-        stop(np.stack([b.stop for b in boxes]), axis=0),
-    )
-
-
-def _array(v: int3):
-    # Convert int tuple to array
-    return np.array(list(v), np.int64)
-
 
 class Box:
     """ A construct to handle shifted dense arrays """
@@ -72,7 +56,7 @@ class Box:
     @property
     def is_empty(self):
         return (self.start >= self.stop).any()
-
+        
     @property
     def has_volume(self):
         """ Check if this box has volume """
@@ -114,6 +98,25 @@ class Box:
     def __str__(self) -> str:
         return f"Box({self.start} -> {self.stop})"
 
+def _combine(boxes: Iterable[Box], start, stop):
+    # Discard boxes with no volume
+    boxes = [b for b in boxes if b.has_volume]
+
+    # No boxes -> empty box
+    if not boxes:
+        return Box.Empty()
+
+    # Combine the boxes
+    return Box(
+        start(np.stack([b.start for b in boxes]), axis=0),
+        stop(np.stack([b.stop for b in boxes]), axis=0),
+    )
+
+
+def _array(v: int3):
+    # Convert int tuple to array
+    return np.array(list(v), np.int64)
+
 
 if __name__ == '__main__':
     A = Box.StartStop(
@@ -137,6 +140,7 @@ if __name__ == '__main__':
     mask[2, 2, 2] = True
     E = A.crop(mask)
 
+    assert Box.Empty().is_empty
     assert not A.overlap(B)
     assert B.overlap(C)
     assert B.slice(C) == (slice(1, 4), slice(0, 2), slice(2, 4))

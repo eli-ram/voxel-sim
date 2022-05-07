@@ -30,6 +30,9 @@ from source.loader.parse.detector import ParsableDetector
 class Voxels(w.Window):
 
     def setup(self):
+        # Create scene
+        self.scene = s.SceneBase()
+
         # Create animator
         self.animator = animator.Animator('animation.gif', delta=0.5)
 
@@ -57,37 +60,22 @@ class Voxels(w.Window):
         B.toggle("LEFT")(self.camera.SetActive)
 
         # Build scene
-        self.buildScene()
+        self.scene.setChildren([self.origin])
 
     def processConfig(self, config: Configuration):
 
         # Use Config In synchronized context
         def synchronized(config: Configuration):
-            self.buildScene(
-                config.getRender(), 
-                background=config.config.background.get(),
+            self.scene.setBackground(
+                config.getBackground()
             )
 
+            self.scene.setChildren([
+                config.getRender(),
+                self.origin,
+            ])
+
         self.tasks.sync(config, synchronized)
-
-    def buildScene(self, *extra: s.Render, background = None):
-        # Pick Background color
-        if background is None:
-            background = Color(0.3, 0.2, 0.5)
-
-        # Construct a new scene
-        S = s.SceneBase(background)
-
-        # Add Render Objects
-        for render in [self.origin, *extra]:
-            S.add(render)
-
-        # Jank way to keep camera & perspective...
-        if hasattr(self, 'scene'):
-            S.stack = self.scene.stack
-
-        # Use new scene
-        self.scene = S
 
     def resize(self, width: int, height: int):
         self.animator.resize(width, height)
@@ -105,7 +93,7 @@ class Voxels(w.Window):
 
         # Update Camera Matrix
         self.scene.setCamera(self.camera.Compute())
-        self.origin.transform = glm.translate(-self.camera.center)
+        self.origin.transform = glm.translate(self.camera.center)
 
     def render(self):
         self.scene.render()
