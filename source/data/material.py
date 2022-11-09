@@ -5,7 +5,7 @@ from .colors import Color
 
 @dataclass
 class Material:
-    id: int
+    id:  int
     name: str
     color: Color
 
