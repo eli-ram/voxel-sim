@@ -4,6 +4,7 @@ from .error import ParseError, CastError
 from .parsable import Parsable
 # Extended classes
 from .p_map import Map
+from .p_enum import Enum
 from .p_array import Array
 from .p_value import Value
 from .p_struct import Struct
@@ -24,6 +25,7 @@ __all__ = [
     'ParseError',
     # Extended classes
     'Map',
+    'Enum',
     'Array',
     'Value',
     'Struct',

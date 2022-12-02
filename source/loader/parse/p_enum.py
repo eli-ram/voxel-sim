@@ -1,18 +1,35 @@
 
+from typing import Optional, TypeVar, Generic
 from .utils import formatIter
 from .indent import Fmt
 from .error import ParseError
 from .parsable import Parsable
 from .p_types import getAnnotations, Any, isMap
 
+I = TypeVar('I')
 
-class Enum(Parsable):
+
+class Enum(Parsable, Generic[I]):
 
     _active: str
-    _value: Any
+    _value: Optional[Parsable] = None
 
     def __init__(self) -> None:
         self._enum = getAnnotations(self)
+
+    def ok(self):
+        return self._value is not None
+
+    def get(self) -> Optional[I]:
+        return self._value  # type: ignore
+
+    def require(self) -> I:
+        if self._value is None:
+            raise ParseError("Enum is not set!")
+        return self._value  # type: ignore
+
+    def variant(self):
+        return self._active
 
     def dataParse(self, data: Any):
         data = data or {}
@@ -36,4 +53,9 @@ class Enum(Parsable):
         yield self._value, value
 
     def formatValue(self, F: Fmt) -> str:
-        return formatIter(self, F, "{}:", [(self._active, self._value)])
+        if self.__what:
+            return self.__what
+        if self._value is None:
+            return "Value is not set!"
+        value = self._value.formatValue(F.next())
+        return f"{self._active} : {value}"

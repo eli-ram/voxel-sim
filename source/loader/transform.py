@@ -1,28 +1,32 @@
 from typing_extensions import TypeGuard
 from typing import Any, Dict, List, Optional, TypeVar
 from .parse import all as p
-from .vector import Vector
+from .vector import Vec3
 from source.data.transform import Transform as _Transform
 import glm
 
 T = TypeVar('T')
+
+
 def _(v: Optional[T]) -> TypeGuard[T]:
     return v is not None
 
-class Position(Vector):
-    
+
+class Position(Vec3):
+
     @property
     def value(self):
         D = glm.vec3()
         return self.getOr(D)
 
 
-class Scale(Vector):
+class Scale(Vec3):
 
     @property
     def value(self):
         D = glm.vec3(1, 1, 1)
         return self.getOr(D)
+
 
 class Rotation(p.Value[glm.quat]):
 
@@ -65,6 +69,7 @@ class Transform(p.Struct):
         T.position = self.position.value
         T.invalidate()
         self.matrix = self.transform.matrix
+
 
 class TransformArray(p.Array[Transform]):
     generic = Transform

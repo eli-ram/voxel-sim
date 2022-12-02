@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, NamedTuple
 
 from .parse import all as p
-from .vector import Vector
+from .vector import Vec3
 from source.data import (
     colors,
     material as m,
@@ -32,7 +32,7 @@ class Material(p.Struct):
     color: Color
     strength: p.Float
     locks: p.Value[Locks]
-    force: Vector
+    force: Vec3
 
 
 class MaterialStore(p.Map[Material]):

@@ -44,18 +44,18 @@ class Polymorphic(Parsable, Generic[S]):
     """ The container for PolymorphicStruct """
     _value: Optional[S] = None
 
+    def get(self) -> Optional[S]:
+        return self._value
+
+    def ok(self) -> bool:
+        return self._value is not None
+
     def require(self) -> S:
         if self._value is None:
             type = Generic.name(self)
             err = f"Polymorphic[{type}] is missing!"
             raise ParseError(err)
         return self._value
-
-    def get(self) -> Optional[S]:
-        return self._value
-
-    def ok(self) -> bool:
-        return self._value is not None
 
     def typeOf(self, data: Any) -> Type[S]:
         # Require Properties
