@@ -4,61 +4,67 @@ from typing import Tuple, Iterator
 
 from .indent import Format, Fmt
 from . import error
-from . import types as t
+from . import p_types as t
 
 
 class Parsable:
     """ Abstract Parsable Definition """
 
-    changed = False
-    error = False
-    what = ""
+    # Has this been changed during last update
+    __changed = False
+    # Did an error get raised during last update
+    __error = False
+    # What was the error message
+    __what = ""
 
     def __init__(self) -> None: ...
 
     @contextmanager
-    def capture(self):
+    def captureErrors(self):
         try:
             yield
 
         except error.ParseError as e:
-            self.error = True
-            self.what = error.what(e)
+            self.__error = True
+            self.__what = error.what(e)
 
         except Exception as e:
-            self.error = True
-            self.what = error.what(e) + error.trace(e)
+            self.__error = True
+            self.__what = error.what(e) + error.trace(e)
+
+    def getError(self):
+        return self.__what
 
     def parse(self, data: t.Any) -> Tuple[bool, bool]:
         # Forward State
-        self.changed = self.error
-        self.error = False
-        self.what = ""
+        self.__changed = self.__error
+        self.__error = False
+        self.__what = ""
 
         # Query Data
-        with self.capture():
+        with self.captureErrors():
             for P, D in self.dataParse(data) or []:
                 changed, error = P.parse(D)
-                self.changed |= changed
-                self.error |= error
+                self.__changed |= changed
+                self.__error |= error
 
         # Post Update
-        if self.changed and not self.error:
-            with self.capture():
+        if self.__changed and not self.__error:
+            with self.captureErrors():
                 self.postParse()
 
-        return self.changed, self.error
+        return self.__changed, self.__error
 
     def dataParse(self, data: t.Any) -> Iterator[Tuple[Parsable, t.Any]]: ...
     def postParse(self) -> None: ...
-    def format(self, F: Fmt) -> str: ...
+    def formatValue(self, F: Fmt) -> str: ...
 
     def __str__(self) -> str:
         name = self.__class__.__name__
-        text = self.format(Format().init())
+        text = self.formatValue(Format().init())
         return f"{name}: {text}"
 
-    def link(self, state: Tuple[bool, bool]):
+    def dependOn(self, state: Tuple[bool, bool]):
         changed, error = state
-        self.changed |= changed
-        self.error |= error
+        self.__changed |= changed
+        self.__error |= error

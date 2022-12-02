@@ -1,3 +1,4 @@
+import itertools
 import multiprocessing as mp
 import typing as t
 from queue import Empty
@@ -27,10 +28,26 @@ class Props:
         print(self.text)
 
 
+PACKET_GEN = itertools.count()
+
+
 class Packet(t.NamedTuple):
     uuid: int
     path: str
     data: t.Any
+    process: int
+
+    @classmethod
+    def new(cls, path: str, data: t.Any):
+        uuid = next(PACKET_GEN)
+        process = mp.current_process().pid or 0
+        return cls(uuid, path, data, process)
+
+    @classmethod
+    def copy(cls, other: 'Packet'):
+        uuid, path, data, process = other
+        process = mp.current_process().pid or 0
+        return cls(uuid, path, data, process)
 
 
 class Comms(t.NamedTuple):
@@ -64,11 +81,15 @@ def _patch(patch: 'mp.Queue[Packet]'):
 
 
 def _target(comms: Comms, patch: 'mp.Queue[Packet]'):
+    # Get pid
+    process = mp.current_process().pid
+
     # Unpack comms
     RQ, RS = comms
 
     # Perform tasks
     while req := RQ.get():
+        req = Packet.copy(req)
         _patch(patch)
         _route(req)
         RS.put(req)
@@ -84,6 +105,12 @@ class Manager:
         self.size = pool_size or mp.cpu_count()
         self.comms = Comms(mp.Queue(), mp.Queue())
         self.workers = [Worker(self.comms) for _ in range(self.size)]
+        self.process = mp.current_process().pid or 0
+
+    def _pack(self, path: str, data: t.Any):
+        uuid = self.pid
+        self.pid = uuid + 1
+        return Packet(uuid, path, data, self.process)
 
     def start(self):
         for worker in self.workers:
@@ -96,13 +123,12 @@ class Manager:
         self.comms.requests.get()
 
     def patch(self, path: str, data: t.Any):
-        packet = Packet(0, path, data)
+        packet = self._pack(path, data)
         for worker in self.workers:
             worker.patch.put(packet)
 
     def request(self, path: str, data: t.Any):
-        packet = Packet(self.pid, path, data)
-        self.pid += 1
+        packet = self._pack(path, data)
         self.comms.requests.put(packet)
 
     def _poll(self):
@@ -113,7 +139,7 @@ class Manager:
 
     def poll(self):
         while res := self._poll():
-            print("[res]", res.data)
+            print("[res]", res.uuid, res.data, res.process)
 
 
 if __name__ == '__main__':

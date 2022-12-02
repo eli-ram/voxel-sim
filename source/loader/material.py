@@ -54,7 +54,7 @@ class MaterialKey(p.String):
 
     def load(self, store: m.MaterialStore):
         """ Load the material from the store """
-        with self.capture():
+        with self.captureErrors():
             key = self._value
 
             if key is None:
@@ -65,7 +65,7 @@ class MaterialKey(p.String):
 
             self._cache = store[key]
 
-        return self.error
+        return self.__error
 
     def get(self):
         """ Get the cached material """

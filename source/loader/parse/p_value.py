@@ -4,7 +4,7 @@ from .error import ParseError
 from .indent import Fmt
 from .generic import Generic
 from .parsable import Parsable
-from .types import Any, Map, Array, isMap, isArray
+from .p_types import Any, Map, Array, isMap, isArray
 
 T = TypeVar('T')
 
@@ -63,10 +63,10 @@ class Value(Parsable, Generic[T]):
         self._value = new
         self.changed = self.hasChanged(old, new)
 
-    def format(self, F: Fmt) -> str:
+    def formatValue(self, F: Fmt) -> str:
         E = F.format.list_errors
-        if E and self.error:
-            return self.what
+        if E and self.__error:
+            return self.__what
 
         if self._value is None:
             return "none"

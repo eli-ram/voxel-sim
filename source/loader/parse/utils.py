@@ -1,7 +1,7 @@
 from typing import Callable, Iterable, Tuple, Type, TypeVar
 from typing_extensions import TypeGuard
 
-from .types import Any, Map
+from .p_types import Any, Map
 from .error import CastError
 from .indent import Fmt
 from .parsable import Parsable
@@ -9,6 +9,7 @@ from .parsable import Parsable
 T = TypeVar('T')
 P = TypeVar('P', bound=Parsable)
 Cast = Callable[[P, Any], T]
+
 
 def wrapCast(method: Cast[P, T]):
     def wrapper(self: P, data: Any) -> T:
@@ -43,15 +44,15 @@ def formatIter(self: Parsable, F: Fmt, key: str, iter: Iterable[Tuple[Any, Parsa
 
     def include(v: Parsable) -> bool:
         return (
-            (E and v.error)
+            (E and v.__error)
             or
-            (K or v.changed)
+            (K or v.__changed)
         )
 
-    S = {key.format(k): v.format(N) for k, v in iter if include(v)}
+    S = {key.format(k): v.formatValue(N) for k, v in iter if include(v)}
     if not S:
-        return self.what
+        return self.__what
 
     I = F.indent()
     W = max(len(k) for k in S) + 1
-    return self.what + "".join(I + k.ljust(W) + v for k, v in S.items())
+    return self.__what + "".join(I + k.ljust(W) + v for k, v in S.items())

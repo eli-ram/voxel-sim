@@ -9,7 +9,8 @@ import io
 import os
 import yaml
 import time
-import traceback    
+import traceback
+
 
 class FileChangeDetector:
 
@@ -49,9 +50,9 @@ class ParsableDetector(Generic[P]):
     def logParsed(self, parser: P):
         print(
             f"\n[#] Parsed: '{self._file}'"
-            f"\n[V] Result: {parser.format(F)}"
-            f"\n[A] Changed: {parser.changed}"
-            f"\n[#] Error: {parser.error}"
+            f"\n[V] Result: {parser.formatValue(F)}"
+            f"\n[A] Changed: {parser.__changed}"
+            f"\n[#] Error: {parser.__error}"
         )
 
     def loadFile(self, file: io.TextIOWrapper) -> Any:
@@ -72,17 +73,17 @@ class ParsableDetector(Generic[P]):
             if not F.changed():
                 return
 
-            # Read Content 
+            # Read Content
             with F.read() as f:
                 data = S.loadFile(f)
 
-            # Parse Content                
+            # Parse Content
             changed, error = D.parse(data)
 
             # Log Content
             if S.LOG and (changed or error):
                 S.logParsed(D)
-            
+
             # Use Content
             if changed and not error:
                 C(*A, D)
@@ -91,7 +92,7 @@ class ParsableDetector(Generic[P]):
 
         # Run loop
         while T is S._thread:
-            try: 
+            try:
                 poll()
             except:
                 traceback.print_exc()

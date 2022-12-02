@@ -38,7 +38,7 @@ class Geometry(p.PolymorphicStruct):
     transform: TransformArray
 
     def loadMaterial(self, store: m.MaterialStore):
-        self.error |= self.material.load(store)
+        self.__error |= self.material.load(store)
 
     def getMesh(self) -> mesh.Mesh:
         raise NotImplementedError()
@@ -66,7 +66,7 @@ class GeometryArray(p.Array[_G]):
             geometry = child.get()
             if geometry is None:
                 continue
-            if geometry.error:
+            if geometry.__error:
                 continue
             yield geometry
 
