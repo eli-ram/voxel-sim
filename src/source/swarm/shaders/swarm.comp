@@ -1,0 +1,134 @@
+#version 430
+#define PI 3.14159265359
+
+struct Agent {
+    vec2 position;
+    float direction;
+    float velocity;
+};
+
+layout (location = 0) uniform float time;
+// Figure out how to get this by introspection ?!
+layout (binding = 1, std430) buffer source { Agent agents [ ]; };
+layout (binding = 0, rgba32f) uniform restrict readonly image2D environment;
+layout (local_size_x = 16) in;
+
+float random;
+void rng(){
+    float i = float(gl_GlobalInvocationID.x) / float(gl_NumWorkGroups.x * gl_WorkGroupSize.x);
+    float t = fract(20.5 + 10.5 * time);
+    vec2 v = vec2(t, i) * 2.0 - 1.0; 
+    random = fract(sin(atan(v.x, v.y) * 43758.5453));
+}
+
+vec2 heading(float dir) {
+    return vec2(sin(dir), cos(dir));
+}
+
+float direction(in vec2 h)
+{
+    return atan(h.x, h.y);
+    // bool s = (abs(h.x) > abs(h.y));
+    // return mix(PI/2.0 - atan(h.x,h.y), atan(h.y,h.x), s);
+}
+
+vec2 position(Agent agent) {
+    ivec2 SIZE = imageSize(environment);
+    return SIZE * (agent.position + 1.0) * 0.5;
+}
+
+float sensor(Agent agent, float offset) {
+    vec3 sum = vec3(0,0,0);
+    ivec2 I = imageSize(environment);
+
+    float angle = agent.direction + offset;
+    ivec2 centre = ivec2(position(agent) + heading(angle) * 12);
+    
+    int size = 3;
+    for (int x = -size; x <= size; x++) {
+        for (int y = -size; y <= size; y++) {
+            ivec2 px = centre + ivec2(x, y) + I;
+            vec4 color = imageLoad(environment, px % I);
+            sum += color.rgb;
+        }
+    }
+
+    float type = (agent.velocity - 0.001) / (0.002 - 0.001); 
+
+    vec3 A = vec3(-1,0.3,0.1);
+    vec3 B = vec3(-1,0.1,0.4);
+    vec3 weights = mix(A, B, type);
+
+    return dot(sum, weights);
+}
+
+float steer(Agent agent) {
+    float spread = radians(60.0);
+    float F = sensor(agent, 0);
+    float L = sensor(agent, +spread);
+    float R = sensor(agent, -spread);
+
+    if (F > R && F > L) {
+        return 0;
+    }
+
+    if (F < R && F < L) {
+        return (random - 0.5) * 0.1;
+    }
+
+    return random * sign(L - R) * 0.1;
+}
+
+void bounce(inout float position, inout float heading) {
+    if (position > 1.0) {
+        position -= 2.0 * (position - 1.0);
+        heading = -heading + random;
+    } else if (position < -1.0) {
+        position -= 2.0 * (position + 1.0); 
+        heading = -heading + random;
+    }
+}
+
+void loop(inout float position) {
+    if (position > +1.0) position -= 2.0;
+    if (position < -1.0) position += 2.0;
+}
+
+void main() {
+    // Set RNG
+    rng();
+
+    // get Agent
+    uint id = gl_GlobalInvocationID.x;
+    Agent agent = agents[id];
+
+    vec2 pos = agent.position;
+    float spd = agent.velocity;
+    float dir = agent.direction;
+        
+    dir += steer(agent);
+
+    if (dir > PI) {
+        dir -= PI * 2;
+    } else if (dir < -PI) {
+        dir += PI * 2;
+    }
+
+    vec2 head = heading(dir);
+
+    pos += head * spd;
+
+    if (false) {
+        bounce(pos.x, head.x);
+        bounce(pos.y, head.y);
+        dir = direction(head);
+    } else {
+        loop(pos.x);
+        loop(pos.y);
+    }
+
+    // set Agent
+    agents[id].position = pos;
+    agents[id].velocity = spd;
+    agents[id].direction = dir;
+}

@@ -1,12 +1,12 @@
 import __init__
 import numpy as np
 from source.interactive.window import Window
-from source.swarm.shaders.swarmshader import RectCache
+from source.swarm.shaders import RectCache
 from source.utils.animated import Animated
 from source.swarm import Swarm
 from OpenGL.GL import *
 
-SIZE = (900 // 16) * 16
+SIZE = (1500 // 16) * 16
 
 class Swarm_Window(Window):
 
@@ -14,7 +14,7 @@ class Swarm_Window(Window):
         # glEnable(GL_DEPTH_TEST)
         glClearColor(0.0, 0.0, 0.0, 1.0)
         self.swarm = Swarm((SIZE, SIZE))
-        self.swarm.set_size(1_000)
+        self.swarm.set_size(10_000)
         self.rect = RectCache.get()
         self.square = np.array([  # type: ignore
             [-1, -1],
@@ -59,6 +59,7 @@ class Swarm_Window(Window):
 
 
 if __name__ == '__main__':
+    print("initializing ...")
     window = Swarm_Window(SIZE, SIZE, "Swarm")
 
     @window.keys.action("1")
@@ -78,3 +79,4 @@ if __name__ == '__main__':
         window.decay.dec()
 
     window.spin()
+

@@ -1,0 +1,30 @@
+[project]
+# FIXME: better name
+name = "source"
+description = "voxel sim packate"
+version = "0.1.0"
+authors = [
+    { name = "Elias Ramsgaard", email = "eliasr@uio.no" }
+]
+dependencies = [
+    "asyncio",
+    "autopep8",
+    "data-science-types",
+    "glfw",
+    "numpy",
+    "Pillow",
+    "pycodestyle",
+    "PyGLM",
+    "pyglm-typing",
+    "PyOpenGL",
+    "PyWavefront",
+    "PyYAML",
+    "scipy",
+    "toml",
+    "typing_extensions",
+]
+#TODO: PyOpenGL-accelerate
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
