@@ -27,6 +27,10 @@ materials:
 geometry:
   - type: sphere
     material: BONE
+  - type: sphere-2
+    material: STATIC
+    transform:
+      - scale: 0.5
 
 other:
   - type: composite

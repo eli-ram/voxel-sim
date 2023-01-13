@@ -1,4 +1,5 @@
 
+import datetime
 from ..utils.directory import script_dir, directory, require
 from OpenGL.GL import *
 from PIL import Image, ImageOps
@@ -75,3 +76,11 @@ class Animator:
                 duration=self.time,
                 loop=0,
             )
+
+    def recorder(self, dir: str, file_fmt: str):
+        def record(press: bool):
+            if press:
+                self.startRecording()
+            else:
+                self.stopRecording(dir, file_fmt.format(datetime.now()))
+        return record

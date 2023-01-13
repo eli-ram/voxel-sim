@@ -2,7 +2,7 @@ from OpenGL.GL import *
 import glm
 import numpy as np
 
-from .shaders.wireframeshader import WireframeShader
+from .shaders import WireframeShader
 from ...graphics.matrices import Hierarchy
 from ...graphics.buffer import BufferConfig
 from source.data import (
@@ -18,7 +18,7 @@ class Wireframe:
         self._I = BufferConfig('indices').single(mesh.indices)
         self._S = WireframeShader.get()
         self._G = mesh.geometry.value
-        self._c = colors.get.WHITE
+        self._c = colors.get.WHITE # Should not be an attribute of the wireframe !
         self._w = 1.0
 
     def setColor(self, color: colors.Color):

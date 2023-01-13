@@ -117,16 +117,11 @@ class Voxels(Window):
         K.action("O")(self.voxels.toggle_outline)
 
         # Bind animator recording
-        @K.toggle("SPACE")
-        def record(press: bool):
-            if press:
-                self.animator.startRecording()
-                return
-            
-            dir = d.require(d.script_dir(__file__), '..', 'results')
-            file = 'animation{:[%Y-%m-%d][%H-%M]}.gif'.format(datetime.now())
-            self.animator.stopRecording(dir, file)
-
+        K.toggle("SPACE")(self.animator.recorder(
+            d.require(d.script_dir(__file__), '..', 'results'),
+            'animation{:[%Y-%m-%d][%H-%M]}.gif'
+        ))
+ 
         self.build()
 
     def alpha(self, up: bool):
@@ -222,7 +217,8 @@ class Voxels(Window):
         # Change deformation
         if hasattr(self, 'truss'):
             T = time_to_t(time, 30, 3)
-            self.truss.deformation = T * 5.0
+            # Over exaggarate deformation 5x
+            self.truss.setDeformation(T * 5.0)
 
     def render(self):
         self.scene.render()
