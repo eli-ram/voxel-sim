@@ -48,6 +48,8 @@ class VoxelRenderer:
         self.outline = True
 
         # The final for the voxels Transform
+        # the grid is always inside (1.0)x(1.0)x(1.0)
+        # so we upscale it to match it's actual shape
         self.transform = glm.scale(glm.vec3(*shape))
 
         # Rendering Layer Stack
@@ -97,12 +99,9 @@ class VoxelRenderer:
         self.voxels.bind(0)
         self.colors.bind(1)
 
-        # Calculate full MVP transform
-        MVP = m.makeMVP * self.transform
-
         # Bind Uniforms & Render
         with self.shader as (A, U):
-            MVP = m.makeMVP()
+            MVP = m.makeMVP() * self.transform
             glUniformMatrix4fv(U.MVP, 1, GL_FALSE, glm.value_ptr(MVP))
             glUniform1i(U.LAYER_DIR, self.getLayerDirection(m))
             # TODO: scale alpha by voxel-layer-ratio ?

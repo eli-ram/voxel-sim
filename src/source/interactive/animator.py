@@ -13,20 +13,22 @@ def force_filename_ext(filename: str, ext: str):
 
 
 class Animator:
-    PATH: str = require(script_dir(__file__), '..', '..', 'results')
     frames: list[Image.Image]
     
-    def __init__(self, filename: str, delta: float = 0.2):
-        self.recording = False
-        self.filename = force_filename_ext(filename, '.gif')
+    def __init__(self, delta: float = 0.2):
         self.delta = delta
+        self.frames = []
+        self.recording = False
 
-    def record(self, r: bool):
-        if self.recording and not r:
-            self.save()
-        self.recording = r
+    def startRecording(self):
         self.time = -self.delta
         self.frames = []
+        self.recording = True
+
+    def stopRecording(self, dir, file):
+        self.save(dir, file)
+        self.frames = []
+        self.recording = False
 
     def resize(self, w: int, h: int):
         self.offset = (0,0)
@@ -42,7 +44,7 @@ class Animator:
         return self.time, self.delta
 
     def frame(self):
-        print("Saving frame @", self.time)
+        # print("Saving frame @", self.time)
         glPixelStorei(GL_PACK_ALIGNMENT, 1)
         data = glReadPixels( # type: ignore
             *self.offset,
@@ -57,16 +59,17 @@ class Animator:
         )
         self.frames.append(ImageOps.flip(image))
 
-    def save(self):
+    def save(self, dir, file):
         print("Frames to save", len(self.frames))
         if not self.frames:
             return
         image, *images = self.frames
-        with directory(self.PATH):
-            if os.path.exists(self.filename):
-                print(f"Overwriting {self.filename} !")
+        filename = force_filename_ext(file, '.gif')
+        with directory(dir):
+            if os.path.exists(filename):
+                print(f"Overwriting '{dir}/{filename}' !")
             image.save(
-                self.filename,
+                file,
                 save_all=True,
                 append_images=images,
                 duration=self.time,

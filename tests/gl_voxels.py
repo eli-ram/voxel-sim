@@ -1,5 +1,8 @@
 # pyright: reportUnusedImport=false, reportUnusedFunction=false
-import __init__
+from dataclasses import dataclass
+from datetime import datetime
+
+import typing as t
 
 # Packages
 import glm
@@ -32,7 +35,6 @@ from source.utils.wireframe.wireframe import Wireframe
 from source.voxels.proxy import VoxelProxy
 
 
-
 def time_to_t(time: float, duration: float, padding: float):
     MOD = duration + 2 * padding
     D = (time % MOD) / duration
@@ -48,14 +50,14 @@ class Voxels(Window):
     truss: DeformationWireframe
 
     def setup(self):
-        color = Color(0.3, 0.2, 0.5)
-        self.scene = SceneBase(color)
+        self.scene = SceneBase()
+        self.scene.setBackground(Color(0.3, 0.2, 0.5))
         self.camera = m.OrbitCamera(
             distance=1.25,
             svivel_speed=0.005,
         )
         shape = (32, 32, 32)
-        resolution = 2**10
+        resolution = 2**8
         self.voxels = VoxelProxy(shape, resolution)
         self.voxels.createMaterials({
             "STATIC": get.BLUE,
@@ -64,7 +66,7 @@ class Voxels(Window):
         })
 
         # Store animator
-        self.animator = Animator('animation.gif', delta=0.5)
+        self.animator = Animator(delta=0.5)
 
         # Outline for Voxels
         self.scene.add(Wireframe(s.line_cube()).setColor(get.BLACK))
@@ -115,7 +117,15 @@ class Voxels(Window):
         K.action("O")(self.voxels.toggle_outline)
 
         # Bind animator recording
-        K.toggle("SPACE")(self.animator.record)
+        @K.toggle("SPACE")
+        def record(press: bool):
+            if press:
+                self.animator.startRecording()
+                return
+            
+            dir = d.require(d.script_dir(__file__), '..', 'results')
+            file = 'animation{:[%Y-%m-%d][%H-%M]}.gif'.format(datetime.now())
+            self.animator.stopRecording(dir, file)
 
         self.build()
 

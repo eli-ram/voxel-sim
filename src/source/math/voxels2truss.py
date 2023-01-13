@@ -71,7 +71,7 @@ class TrussBuilder:
         I = np.nonzero(voxels.grid) # type: ignore
         # Material Grid
         self.nodes = voxels.grid > 0
-        # Vertex Array
+        # Vertex Array (x+0.5, y+0.5, z+0.5) [centered in voxels]
         self.vertices = np.vstack(I).astype(np.float32).transpose()
         self.vertices += np.float32(0.5)
         # Grid => Vertex Index
