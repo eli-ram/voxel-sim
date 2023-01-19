@@ -1,7 +1,7 @@
 
-import datetime
-from ..utils.directory import script_dir, directory, require
-from OpenGL.GL import *
+from datetime import datetime
+from ..utils.directory import directory
+from OpenGL import GL
 from PIL import Image, ImageOps
 import os
 
@@ -46,12 +46,12 @@ class Animator:
 
     def frame(self):
         # print("Saving frame @", self.time)
-        glPixelStorei(GL_PACK_ALIGNMENT, 1)
-        data = glReadPixels( # type: ignore
+        GL.glPixelStorei(GL.GL_PACK_ALIGNMENT, 1)
+        data = GL.glReadPixels( # type: ignore
             *self.offset,
             *self.shape,
-            GL_RGBA,
-            GL_UNSIGNED_BYTE,
+            GL.GL_RGBA,
+            GL.GL_UNSIGNED_BYTE,
         )
         image = Image.frombytes( # type: ignore
             'RGBA', 

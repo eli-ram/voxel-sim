@@ -1,6 +1,6 @@
 
 
-from OpenGL.GL import *
+from OpenGL import GL
 import glm
 import numpy as np
 
@@ -43,21 +43,21 @@ class DeformationWireframe:
     def render(self, m: Hierarchy):
         V = self._V
         I = self._I
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
-        glLineWidth(self._w)
+        GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
+        GL.glLineWidth(self._w)
         with self._S as (A, U):
             MVP = m.makeMVP()
-            glUniformMatrix4fv(U.MVP, 1, GL_FALSE, glm.value_ptr(MVP))
-            glUniform4fv(U.COLOR, 1, self._c.value)
-            glUniform1f(U.DEFORMATION, self._d)
+            GL.glUniformMatrix4fv(U.MVP, 1, GL.GL_FALSE, glm.value_ptr(MVP))
+            GL.glUniform4fv(U.COLOR, 1, self._c.value)
+            GL.glUniform1f(U.DEFORMATION, self._d)
             # Bind vertex position & offset
             with V as (pos, offset):
                 V.attribute(pos, A.pos)
                 V.attribute(offset, A.offset)
             # Draw indices
             with I as (view,):
-                I.draw(view, GL_LINES)
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+                I.draw(view, GL.GL_LINES)
+        GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
 
 
 def test_case():

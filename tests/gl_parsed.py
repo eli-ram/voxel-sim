@@ -3,7 +3,7 @@ import __init__
 
 # Packages
 import glm
-from OpenGL.GL import *
+from OpenGL import GL
 
 # Interactive
 from source.interactive import (
@@ -17,12 +17,7 @@ from source.graphics import matrices as m
 from source.utils.wireframe.origin import Origin
 
 # Utils
-from source.utils.wireframe.wireframe import Wireframe
 from source.utils.directory import directory, require, script_dir
-from source.utils.shapes import origin_marker
-
-# Data
-from source.data.colors import Color
 
 # Parse
 from source.loader.configuration import Configuration
@@ -70,6 +65,8 @@ class Voxels(w.Window):
 
     def processConfig(self, config: Configuration):
 
+        print("got-config")
+
         # Use Config In synchronized context
         def synchronized(config: Configuration):
             self.scene.setBackground(
@@ -85,7 +82,7 @@ class Voxels(w.Window):
 
     def resize(self, width: int, height: int):
         self.animator.resize(width, height)
-        glViewport(0, 0, width, height)
+        GL.glViewport(0, 0, width, height)
         self.scene.stack.SetPerspective(
             fovy=glm.radians(45.0),
             aspect=(width / height),

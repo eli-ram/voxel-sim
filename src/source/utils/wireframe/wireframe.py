@@ -1,4 +1,4 @@
-from OpenGL.GL import *
+from OpenGL import GL
 import glm
 import numpy as np
 
@@ -32,16 +32,16 @@ class Wireframe:
     def render(self, m: Hierarchy):
         V = self._V
         I = self._I
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
-        glLineWidth(self._w)
+        GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
+        GL.glLineWidth(self._w)
         with self._S as (A, U), V, I:
             MVP = m.makeMVP()
-            glUniformMatrix4fv(U.MVP, 1, GL_FALSE, glm.value_ptr(MVP))
-            glUniform4fv(U.COLOR, 1, self._c.value)
+            GL.glUniformMatrix4fv(U.MVP, 1, GL.GL_FALSE, glm.value_ptr(MVP))
+            GL.glUniform4fv(U.COLOR, 1, self._c.value)
             with V as (pos,):
                 V.attribute(pos, A.pos)
             with I as (i,):
                 I.draw(i, self._G)
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+        GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
 
 

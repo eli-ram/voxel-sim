@@ -2,7 +2,7 @@ from typing import List, Protocol
 from ..graphics.matrices import Hierarchy
 from source.data.colors import Color
 from dataclasses import dataclass, field
-from OpenGL.GL import *
+from OpenGL import GL
 import glm
 
 
@@ -59,12 +59,12 @@ class SceneBase:
     children: list[Render]
 
     def __init__(self):
-        glEnable(GL_DEPTH_TEST)
+        GL.glEnable(GL.GL_DEPTH_TEST)
         self.stack = Hierarchy()
         self.children = []
 
     def setBackground(self, color: Color):
-        glClearColor(*color.value)
+        GL.glClearColor(*color.value)
 
     def setChildren(self, children: List[Render]):
         self.children = children
@@ -80,6 +80,6 @@ class SceneBase:
         self.children.insert(index, child)
 
     def render(self):
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)  # type: ignore
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)  # type: ignore
         for child in self.children:
             child.render(self.stack)

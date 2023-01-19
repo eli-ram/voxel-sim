@@ -72,7 +72,7 @@ class RotateDegrees(Mat, p.Enum[p.Value[float]]):
 
     def postParse(self) -> None:
         value = self.require().require()
-        def _(dir): return float(dir == self._active)
+        def _(dir): return float(dir == self.__active)
         self.matrix = glm.rotate(glm.radians(
             value), glm.vec3(_("X"), _("Y"), _("Z"))
         )

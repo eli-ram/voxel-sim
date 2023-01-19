@@ -1,5 +1,5 @@
 # pyright: reportUnknownMemberType=false, reportGeneralTypeIssues=false, reportUnknownVariableType=false
-from OpenGL.GL import *
+from OpenGL import GL
 import numpy as np
 import glm
 
@@ -92,8 +92,8 @@ class VoxelRenderer:
 
     def render(self, m: Hierarchy):
         # Make sure blending is enabled
-        glEnable(GL_BLEND)
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        GL.glEnable(GL.GL_BLEND)
+        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
 
         # Bind Textures
         self.voxels.bind(0)
@@ -102,11 +102,11 @@ class VoxelRenderer:
         # Bind Uniforms & Render
         with self.shader as (A, U):
             MVP = m.makeMVP() * self.transform
-            glUniformMatrix4fv(U.MVP, 1, GL_FALSE, glm.value_ptr(MVP))
-            glUniform1i(U.LAYER_DIR, self.getLayerDirection(m))
+            GL.glUniformMatrix4fv(U.MVP, 1, GL.GL_FALSE, glm.value_ptr(MVP))
+            GL.glUniform1i(U.LAYER_DIR, self.getLayerDirection(m))
             # TODO: scale alpha by voxel-layer-ratio ?
-            glUniform1f(U.MOD_ALPHA, self.alpha)
-            glUniform1i(U.ENB_OUTLINE, self.outline)
+            GL.glUniform1f(U.MOD_ALPHA, self.alpha)
+            GL.glUniform1i(U.ENB_OUTLINE, self.outline)
             with self.planes as (t,):
                 self.planes.attribute(t, A.t)
-            glDrawArrays(GL_POINTS, 0, self.count)
+            GL.glDrawArrays(GL.GL_POINTS, 0, self.count)

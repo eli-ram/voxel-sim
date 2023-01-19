@@ -1,13 +1,9 @@
 # pyright: reportUnusedImport=false, reportUnusedFunction=false
-from dataclasses import dataclass
-from datetime import datetime
-
-import typing as t
 
 # Packages
 import glm
 import numpy as np
-from OpenGL.GL import *
+from OpenGL import GL
 
 # Data
 from source.data.colors import Color, get
@@ -200,7 +196,7 @@ class Voxels(Window):
 
     def resize(self, width: int, height: int):
         self.animator.resize(width, height)
-        glViewport(0, 0, width, height)
+        GL.glViewport(0, 0, width, height)
         self.scene.stack.SetPerspective(
             fovy=glm.radians(45.0),
             aspect=(width / height),

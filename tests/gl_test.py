@@ -1,9 +1,8 @@
 # pyright: reportUnknownArgumentType=false, reportUnknownMemberType=false
 import __init__
 from typing import cast
-from OpenGL.GL import *  # type: ignore
-from OpenGL.GL.shaders import *  # type: ignore
-from OpenGL.arrays.vbo import *  # type: ignore
+from OpenGL import GL
+from OpenGL.GL import shaders as s
 from source.interactive.window import Window
 import numpy as np
 
@@ -64,15 +63,15 @@ void main() {
 class GL_Window(Window):
 
     def setup(self):
-        glEnable(GL_DEPTH_TEST)
-        glClearColor(0.1, 0.1, 0.3, 1.0)
+        GL.glEnable(GL.GL_DEPTH_TEST)
+        GL.glClearColor(0.1, 0.1, 0.3, 1.0)
         self.texture = generateTexture()
-        self.compute = compileProgram(
-            compileShader(cs, GL_COMPUTE_SHADER),
+        self.compute = s.compileProgram(
+            s.compileShader(cs, GL.GL_COMPUTE_SHADER),
         )
-        self.shader = compileProgram(
-            compileShader(vs, GL_VERTEX_SHADER),
-            compileShader(fs, GL_FRAGMENT_SHADER),
+        self.shader = s.compileProgram(
+            s.compileShader(vs, GL.GL_VERTEX_SHADER),
+            s.compileShader(fs, GL.GL_FRAGMENT_SHADER),
         )
         self.square = np.array([
             [-1, -1],
@@ -83,49 +82,59 @@ class GL_Window(Window):
 
         # conf compute shader
         with self.compute:
-            glUniform1i(glGetUniformLocation(self.compute, "dstTex"), 0)
-            self.roll_handle = glGetUniformLocation(self.compute, "roll")
+            GL.glUniform1i(GL.glGetUniformLocation(self.compute, "dstTex"), 0)
+            self.roll_handle = GL.glGetUniformLocation(self.compute, "roll")
 
         # conf render shader
         with self.shader:
-            glUniform1i(glGetUniformLocation(self.shader, "srcTex"), 0)
-            self.aspect_handle = glGetUniformLocation(self.shader, "aspect")
+            GL.glUniform1i(GL.glGetUniformLocation(self.shader, "srcTex"), 0)
+            self.aspect_handle = GL.glGetUniformLocation(self.shader, "aspect")
 
     def resize(self, width: int, height: int):
-        glViewport(0, 0, width, height)
+        GL.glViewport(0, 0, width, height)
         if width > height:
             a = (height / width), 1.0
         else:
             a = 1.0, (width / height)
         with self.shader:
-            glUniform2f(self.aspect_handle, *a)
+            GL.glUniform2f(self.aspect_handle, *a)
 
     def update(self, time: float, delta: float):
         with self.compute:
-            glUniform1f(self.roll_handle, time)
-            glDispatchCompute(512//16, 512//16, 1)
+            GL.glUniform1f(self.roll_handle, time)
+            GL.glDispatchCompute(512//16, 512//16, 1)
 
     def render(self):
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)  # type: ignore
-        glEnableClientState(GL_VERTEX_ARRAY)
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT |
+                   GL.GL_DEPTH_BUFFER_BIT)  # type: ignore
+        GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
         with self.shader:
-            glVertexPointer(2, GL_FLOAT, 0, self.square)
-            glDrawArrays(GL_QUADS, 0, 4)
+            GL.glVertexPointer(2, GL.GL_FLOAT, 0, self.square)
+            GL.glDrawArrays(GL.GL_QUADS, 0, 4)
 
 
 def generateTexture():
-    handle = cast(int, glGenTextures(1))
-    glActiveTexture(GL_TEXTURE0)
-    glBindTexture(GL_TEXTURE_2D, handle)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 512,
-                 512, 0, GL_RGBA, GL_FLOAT, None)
+    type = GL.GL_TEXTURE_2D
+    handle = cast(int, GL.glGenTextures(1))
+    GL.glActiveTexture(GL.GL_TEXTURE0)
+    GL.glBindTexture(type, handle)
+    GL.glTexParameteri(type, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
+    GL.glTexParameteri(type, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
+    GL.glTexImage2D(
+        type, 0,
+        GL.GL_RGBA32F, 512, 512, 0,
+        GL.GL_RGBA, GL.GL_FLOAT,
+        None
+    )
 
     # Because we're also using this tex as an image (in order to write to it),
     # we bind it to an image unit as well
-    glBindImageTexture(0, handle, 0, GL_FALSE,
-                       0, GL_WRITE_ONLY, GL_RGBA32F)
+    GL.glBindImageTexture(
+        0, handle,
+        0, GL.GL_FALSE,
+        0, GL.GL_WRITE_ONLY,
+        GL.GL_RGBA32F
+    )
 
     return handle
 

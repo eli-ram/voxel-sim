@@ -10,30 +10,26 @@ I = TypeVar('I')
 
 
 class Enum(Parsable, Generic[I]):
-    """ A Type <=> Value enum 
 
-    `inspired by rust`
-    """
-
-    _active: str
-    _value: Optional[Parsable] = None
+    __active: str
+    __value: Optional[Parsable] = None
 
     def __init__(self) -> None:
-        self._enum = getAnnotations(self)
+        self.__enum = getAnnotations(self)
 
     def ok(self):
-        return self._value is not None
+        return self.__value is not None
 
     def get(self) -> Optional[I]:
-        return self._value  # type: ignore
+        return self.__value  # type: ignore
 
     def require(self) -> I:
-        if self._value is None:
+        if self.__value is None:
             raise ParseError("Enum is not set!")
-        return self._value  # type: ignore
+        return self.__value  # type: ignore
 
     def variant(self):
-        return self._active
+        return self.__active
 
     def dataParse(self, data: Any):
         data = data or {}
@@ -46,20 +42,20 @@ class Enum(Parsable, Generic[I]):
 
         key, value = next(iter(data.items()))
 
-        if key not in self._enum:
-            options = ",".join(f'"{key}"' for key in self._enum)
+        if key not in self.__enum:
+            options = ",".join(f'"{key}"' for key in self.__enum)
             raise ParseError(f"Invalid Enum option (use: {options})")
 
-        if key != self._active:
-            self._value = self._enum[key]()
-            self._active = key
+        if key != self.__active:
+            self.__value = self.__enum[key]()
+            self.__active = key
 
-        yield self._value, value
+        yield self.__value, value
 
     def formatValue(self, F: Fmt) -> str:
-        if self.__what:
-            return self.__what
-        if self._value is None:
+        if self.getError():
+            return self.getError()
+        if self.__value is None:
             return "Value is not set!"
-        value = self._value.formatValue(F.next())
-        return f"{self._active} : {value}"
+        value = self.__value.formatValue(F.next())
+        return f"{self.__active} : {value}"

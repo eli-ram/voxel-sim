@@ -58,15 +58,13 @@ class Config(p.Struct):
         B = self.region.box
         if B.is_empty:
             return
-        
+
         T = Transform()
         T.position = glm.vec3(0.5 * B.start)
         T.scale = glm.vec3(*B.shape)
         M = T.matrix
         W = Wireframe(line_cube())
         list.append(s.Transform(M, W))
-
-        
 
 
 class Configuration(p.Struct):
@@ -75,10 +73,10 @@ class Configuration(p.Struct):
 
     # Defined Materials
     materials: MaterialStore
-    
+
     # Application order of Geometry
     geometry: GeometryArray
-    
+
     # Machine Learning Parameters
     parameters: Parameters
 
@@ -94,4 +92,3 @@ class Configuration(p.Struct):
 
     def getBackground(self):
         return self.config.background.require()
-        

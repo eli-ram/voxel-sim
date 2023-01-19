@@ -44,15 +44,15 @@ def formatIter(self: Parsable, F: Fmt, key: str, iter: Iterable[Tuple[Any, Parsa
 
     def include(v: Parsable) -> bool:
         return (
-            (E and v.__error)
+            (E and v.hasError())
             or
-            (K or v.__changed)
+            (K or v.hasChanged())
         )
 
     S = {key.format(k): v.formatValue(N) for k, v in iter if include(v)}
     if not S:
-        return self.__what
+        return self.getError()
 
     I = F.indent()
     W = max(len(k) for k in S) + 1
-    return self.__what + "".join(I + k.ljust(W) + v for k, v in S.items())
+    return self.getError() + "".join(I + k.ljust(W) + v for k, v in S.items())
