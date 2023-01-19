@@ -10,6 +10,10 @@ I = TypeVar('I')
 
 
 class Enum(Parsable, Generic[I]):
+    """ A Type <=> Value enum 
+
+    `inspired by rust`
+    """
 
     _active: str
     _value: Optional[Parsable] = None

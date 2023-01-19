@@ -98,9 +98,9 @@ class Options(p.Enum[Mat]):
     # Translate
     translate: Translate
     # Rotate
-    axisAngle: AxisAngleDegrees
+    axisAngleDeg: AxisAngleDegrees
     axisAngleRad: AxisAngleRadians
-    rotate: RotateDegrees
+    rotateDeg: RotateDegrees
     rotateRad: RotateRadians
 
 
