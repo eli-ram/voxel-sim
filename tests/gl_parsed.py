@@ -14,10 +14,11 @@ from source.interactive import (
 
 # Graphics
 from source.graphics import matrices as m
+from source.utils.wireframe.origin import Origin
 
 # Utils
 from source.utils.wireframe.wireframe import Wireframe
-from source.utils.directory import directory, script_dir
+from source.utils.directory import directory, require, script_dir
 from source.utils.shapes import origin_marker
 
 # Data
@@ -27,6 +28,7 @@ from source.data.colors import Color
 from source.loader.configuration import Configuration
 from source.loader.parse.detector import ParsableDetector
 
+
 class Voxels(w.Window):
 
     def setup(self):
@@ -34,7 +36,7 @@ class Voxels(w.Window):
         self.scene = s.SceneBase()
 
         # Create animator
-        self.animator = animator.Animator('animation.gif', delta=0.5)
+        self.animator = animator.Animator(delta=0.5)
 
         # Create Camera
         self.camera = m.OrbitCamera(
@@ -45,15 +47,19 @@ class Voxels(w.Window):
         # Create Camera Origin
         self.origin = s.Transform(
             transform=glm.mat4(),
-            mesh=Wireframe(origin_marker(0.5)).setColor(Color(1, 0.5, 0)),
+            # mesh=Wireframe(origin_marker(0.5)).setColor(Color(1, 0.5, 0)),
+            mesh=Origin(),
             hidden=True,
         )
 
         # Bind Key Controls
         K = self.keys
         K.toggle("LEFT_CONTROL")(self.camera.SetPan)
-        K.toggle("SPACE")(self.animator.record)
         K.action("O")(self.origin.toggle)
+        K.toggle("SPACE")(self.animator.recorder(
+            require(script_dir(__file__), '..', 'results'),
+            'animation{:[%Y-%m-%d][%H-%M]}.gif'
+        ))
 
         # Bind Mouse Controls
         B = self.buttons

@@ -1,5 +1,8 @@
 # pyright: reportUnusedImport=false, reportUnusedFunction=false
-import __init__
+from dataclasses import dataclass
+from datetime import datetime
+
+import typing as t
 
 # Packages
 import glm
@@ -26,11 +29,11 @@ from source.utils import (
     shapes as s,
 )
 from source.utils.wireframe.deformation import DeformationWireframe
+from source.utils.wireframe.origin import Origin
 from source.utils.wireframe.wireframe import Wireframe
 
 # Voxels
 from source.voxels.proxy import VoxelProxy
-
 
 
 def time_to_t(time: float, duration: float, padding: float):
@@ -55,7 +58,7 @@ class Voxels(Window):
             svivel_speed=0.005,
         )
         shape = (32, 32, 32)
-        resolution = 2**10
+        resolution = 2**8
         self.voxels = VoxelProxy(shape, resolution)
         self.voxels.createMaterials({
             "STATIC": get.BLUE,
@@ -64,15 +67,16 @@ class Voxels(Window):
         })
 
         # Store animator
-        self.animator = Animator('animation.gif', delta=0.5)
+        self.animator = Animator(delta=0.5)
 
         # Outline for Voxels
         self.scene.add(Wireframe(s.line_cube()).setColor(get.BLACK))
 
         # 3D-crosshair for camera
         self.move_cross = Transform(
-            transform=glm.scale(glm.vec3(0.05, 0.05, 0.05)),
-            mesh=Wireframe(s.origin_marker()).setColor(Color(1, 0.5, 0)),
+            transform=glm.scale(glm.vec3(0.01, 0.01, 0.01)),
+            # mesh=Wireframe(s.origin_marker()).setColor(Color(1, 0.5, 0)),
+            mesh=Origin(),
             hidden=True,
         )
         self.scene.add(self.move_cross)
@@ -115,8 +119,11 @@ class Voxels(Window):
         K.action("O")(self.voxels.toggle_outline)
 
         # Bind animator recording
-        K.toggle("SPACE")(self.animator.record)
-
+        K.toggle("SPACE")(self.animator.recorder(
+            d.require(d.script_dir(__file__), '..', 'results'),
+            'animation{:[%Y-%m-%d][%H-%M]}.gif'
+        ))
+ 
         self.build()
 
     def alpha(self, up: bool):
@@ -212,7 +219,8 @@ class Voxels(Window):
         # Change deformation
         if hasattr(self, 'truss'):
             T = time_to_t(time, 30, 3)
-            self.truss.deformation = T * 5.0
+            # Over exaggarate deformation 5x
+            self.truss.setDeformation(T * 5.0)
 
     def render(self):
         self.scene.render()
