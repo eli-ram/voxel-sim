@@ -14,6 +14,7 @@ from source.interactive import (
 
 # Graphics
 from source.graphics import matrices as m
+from source.utils.wireframe.origin import Origin
 
 # Utils
 from source.utils.wireframe.wireframe import Wireframe
@@ -26,6 +27,7 @@ from source.data.colors import Color
 # Parse
 from source.loader.configuration import Configuration
 from source.loader.parse.detector import ParsableDetector
+
 
 class Voxels(w.Window):
 
@@ -45,7 +47,8 @@ class Voxels(w.Window):
         # Create Camera Origin
         self.origin = s.Transform(
             transform=glm.mat4(),
-            mesh=Wireframe(origin_marker(0.5)).setColor(Color(1, 0.5, 0)),
+            # mesh=Wireframe(origin_marker(0.5)).setColor(Color(1, 0.5, 0)),
+            mesh=Origin(),
             hidden=True,
         )
 
