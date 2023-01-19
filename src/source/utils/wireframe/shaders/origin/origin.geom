@@ -33,7 +33,7 @@ void proc(in Scope s, vec3 dir) {
 void main() {
     Scope s = Scope(
         gl_in[0].gl_Position, // use transformed origin
-        mat3(MVP), // Only use rotation + scale partition
+        mat3(MVP) // Only use rotation + scale partition
     );
     // Run for cardinal directions
     proc(s, vec3(1, 0, 0)); // X, R

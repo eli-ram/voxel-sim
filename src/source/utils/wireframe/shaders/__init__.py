@@ -15,7 +15,7 @@ class DeformationUniforms(ShaderUniforms):
 class DeformationShader(ShaderCache[DeformationAttributes, DeformationUniforms]):
     FILE = __file__
     GLOB = 'deformation'
-    DEBUG = True
+    # DEBUG = True
 
 
 class WireframeAttributes(ShaderAttributes):
@@ -32,14 +32,11 @@ class WireframeShader(ShaderCache[WireframeAttributes, WireframeUniforms]):
     GLOB = 'wireframe'
 
 
-class OriginAttributes(ShaderAttributes):
-    pos: int
-
-
 class OriginUniforms(ShaderUniforms):
     MVP: int
 
 
-class OriginShader(ShaderCache[OriginAttributes, OriginUniforms]):
+class OriginShader(ShaderCache[ShaderAttributes, OriginUniforms]):
     FILE = __file__
     GLOB = 'origin'
+    # DEBUG = True

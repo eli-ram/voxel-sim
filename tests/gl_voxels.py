@@ -29,6 +29,7 @@ from source.utils import (
     shapes as s,
 )
 from source.utils.wireframe.deformation import DeformationWireframe
+from source.utils.wireframe.origin import Origin
 from source.utils.wireframe.wireframe import Wireframe
 
 # Voxels
@@ -73,8 +74,9 @@ class Voxels(Window):
 
         # 3D-crosshair for camera
         self.move_cross = Transform(
-            transform=glm.scale(glm.vec3(0.05, 0.05, 0.05)),
-            mesh=Wireframe(s.origin_marker()).setColor(Color(1, 0.5, 0)),
+            transform=glm.scale(glm.vec3(0.01, 0.01, 0.01)),
+            # mesh=Wireframe(s.origin_marker()).setColor(Color(1, 0.5, 0)),
+            mesh=Origin(),
             hidden=True,
         )
         self.scene.add(self.move_cross)
