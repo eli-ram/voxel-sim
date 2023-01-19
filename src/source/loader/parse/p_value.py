@@ -1,4 +1,4 @@
-from typing import Callable, Optional, TypeVar
+from typing import Optional, TypeVar
 
 from .error import ParseError
 from .indent import Fmt
@@ -55,21 +55,21 @@ class Value(Parsable, Generic[T]):
         return str(value)
 
     def checkChange(self, old: Optional[T], new: Optional[T]):
-        print(old, "=>", new)
+        # print(old, "=>", new)
         if old is None or new is None:
             return not (old is new)
 
         return not self.isEqual(old, new)
 
     def dataParse(self, data: Any):
-        print("[VALUE]", self.__class__.__name__)
-        print("[ENTER]", self.hasChanged())
+        # print("[VALUE]", self.__class__.__name__)
+        # print("[ENTER]", self.hasChanged())
         old = self.__value
         new = self.parseValue(data)
         self.__value = new
         # Bypass name-wrangling
-        self._Parsable__changed = self.checkChange(old, new)
-        print("[EXIT]", self.hasChanged())
+        self.setChanged(self.checkChange(old, new))
+        # print("[EXIT]", self.hasChanged())
 
     def formatValue(self, F: Fmt) -> str:
         E = F.format.list_errors

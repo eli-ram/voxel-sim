@@ -41,7 +41,7 @@ class Voxels(w.Window):
 
         # Create Camera Origin
         self.origin = s.Transform(
-            transform=glm.mat4(),
+            transform=glm.scale(glm.vec3(2.0)),
             # mesh=Wireframe(origin_marker(0.5)).setColor(Color(1, 0.5, 0)),
             mesh=Origin(),
             hidden=True,
@@ -58,7 +58,10 @@ class Voxels(w.Window):
 
         # Bind Mouse Controls
         B = self.buttons
-        B.toggle("LEFT")(self.camera.SetActive)
+        @B.toggle("LEFT")
+        def toggle_move(move: bool):
+            self.camera.SetActive(move)
+            self.origin.visible(move)
 
         # Build scene
         self.scene.setChildren([self.origin])

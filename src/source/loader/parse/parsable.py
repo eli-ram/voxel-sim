@@ -63,7 +63,7 @@ class Parsable:
 
         # Parse Children
         for P, D in L:
-            print(self.__class__.__name__, "->", P.__class__.__name__, D)
+            # print(self.__class__.__name__, "->", P.__class__.__name__, D)
             changed, error = P.parse(D)
             self.__changed |= changed
             self.__error |= error
