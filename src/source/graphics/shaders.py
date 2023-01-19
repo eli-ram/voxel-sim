@@ -1,4 +1,4 @@
-from typing import Any, Callable, Generic, Type, TypeVar, cast
+from typing import Any, Callable, Generic, Type, TypeVar, Optional, cast
 from OpenGL.GL import *  # type: ignore
 from OpenGL.GL.shaders import (  # type: ignore
     ShaderProgram,
@@ -6,7 +6,7 @@ from OpenGL.GL.shaders import (  # type: ignore
     compileShader,
     compileProgram,
 )
-from ..utils.directory import script_dir, directory
+from ..utils.directory import script_dir, directory, content, prefix
 from os.path import splitext
 from functools import wraps
 
@@ -63,6 +63,11 @@ Binding = Callable[[int, str], int]
 
 
 class ShaderBindings:
+    """ [InternalClass] Setup Binding class 
+    
+        caches annotations as _fields, 
+        allowing lookup using a getter in init method
+    """
 
     def __new__(cls, *args: Any, **kwargs: Any):
         annotations = getattr(cls, '__annotations__', {})
@@ -71,13 +76,19 @@ class ShaderBindings:
         return cls
 
     def __init__(self, shader: ShaderProgram, get: Binding):
+
+        # Binding method
+        def bind(field):
+            value = get(shader, field)
+            setattr(self, field, value)
+            return cast(int, value)
+
+        # Collect fields
         with shader:
-            for field in self._fields:
-                setattr(self, field, get(shader, field))
+            self._list = [bind(field) for field in self._fields]
 
     def __iter__(self):
-        for field in self._fields:
-            yield cast(int, getattr(self, field))
+        return iter(self._list)
 
     def __str__(self):
         binds = (f"{field}={getattr(self, field)}" for field in self._fields)
@@ -85,12 +96,14 @@ class ShaderBindings:
 
 
 class ShaderUniforms(ShaderBindings):
+    """ Define shader uniforms (type should be <int>) """
 
     def __init__(self, shader: ShaderProgram):
         super().__init__(shader, glGetUniformLocation)
 
 
 class ShaderAttributes(ShaderBindings):
+    """ Define shader attributes (type should be <int>) """
 
     def __init__(self, shader: ShaderProgram):
         super().__init__(shader, glGetAttribLocation)
@@ -102,8 +115,11 @@ U = TypeVar('U', bound=ShaderUniforms)
 
 
 class ShaderCache(Generic[A, U]):
+    """ Define shader using generics [Attributes, Uniforms] """
+
     FILE: str
     CODE: list[str]
+    GLOB: Optional[str]
     DEBUG = False
 
     def __init__(self):
@@ -112,21 +128,30 @@ class ShaderCache(Generic[A, U]):
         acls, ucls = base.__args__ # type: ignore
         self.A: A = acls(self.S)
         self.U: U = ucls(self.S)
-        if self.DEBUG:
-            print(self.A)
-            print(self.U)
+        self.dbg(self.A)
+        self.dbg(self.U)
+
+    @classmethod
+    def dbg(cls, *args):
+        if cls.DEBUG:
+            print(f"[{cls.__name__}]", *args)
 
     @classmethod
     def compile(cls):
         assert not hasattr(cls, '__cache__'), \
             f"Cache for {cls.__name__} was reinitialized!"
         with directory(script_dir(cls.FILE)):
+            if hasattr(cls, 'GLOB'):
+                cls.CODE = prefix(content(cls.GLOB), cls.GLOB)
+            cls.dbg('Sources:', *[f"\n - {file}" for file in cls.CODE])
             return shader(*cls.CODE)
 
     @classmethod
     def get(cls: Type[S]) -> S:
         if not hasattr(cls, '__cache__'):
+            cls.dbg("Initializing ...")
             setattr(cls, '__cache__', cls())  # type: ignore
+            cls.dbg("Initialized !")
         return getattr(cls, '__cache__')
 
     def __enter__(self):

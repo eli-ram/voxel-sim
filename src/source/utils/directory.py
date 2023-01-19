@@ -18,6 +18,15 @@ def directory(base: str, *extra: str):
     finally:
         os.chdir(prev)
 
+        
+def prefix(paths: list[str], base: str, *extra: str):
+    return [os.path.join(base, *extra, path) for path in paths]
+
+
+def content(base: str, *extra: str):
+    path = os.path.join(base, *extra)
+    return os.listdir(path)
+
 Func = TypeVar('Func')
 
 def cwd(base: str, *extra: str):

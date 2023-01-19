@@ -1,27 +1,45 @@
-from ....graphics.shaders import ShaderAttributes, ShaderUniforms, ShaderCache
+from source.graphics.shaders import ShaderAttributes, ShaderUniforms, ShaderCache
 
 
 class DeformationAttributes(ShaderAttributes):
     pos: int
     offset: int
 
+
 class DeformationUniforms(ShaderUniforms):
     MVP: int
     COLOR: int
     DEFORMATION: int
 
+
 class DeformationShader(ShaderCache[DeformationAttributes, DeformationUniforms]):
     FILE = __file__
-    CODE = ['deformation.vert', 'deformation.geom', 'deformation.frag']
+    GLOB = 'deformation'
+    DEBUG = True
 
 
 class WireframeAttributes(ShaderAttributes):
     pos: int
 
+
 class WireframeUniforms(ShaderUniforms):
     MVP: int
     COLOR: int
 
+
 class WireframeShader(ShaderCache[WireframeAttributes, WireframeUniforms]):
     FILE = __file__
-    CODE = ['wireframe.vert', 'wireframe.frag']
+    GLOB = 'wireframe'
+
+
+class OriginAttributes(ShaderAttributes):
+    pos: int
+
+
+class OriginUniforms(ShaderUniforms):
+    MVP: int
+
+
+class OriginShader(ShaderCache[OriginAttributes, OriginUniforms]):
+    FILE = __file__
+    GLOB = 'origin'
