@@ -5,8 +5,8 @@ config:
   resolution: 4
   background: [0.01, 0.01, 0.02]
   region: 
-    start: 0
-    stop: 1
+    start: [-1, -1, -1]
+    stop: [1, 1, 1]
 
 materials:
   BONE:
@@ -27,31 +27,13 @@ geometry:
     material: BONE
     file: "./meshes/test_bone.obj"
     transform:
+      - scale: 2
+      - translate: [0, -4, 0.2]
       - debug: 1
       - rotate: 
           axis: Y
-          angle: { deg: 90 }
-      - debug: 2
-
-  - type: mesh
-    operation: add
-    material: BONE
-    file: "./meshes/test_bone.obj"
-    transform:
-      - debug: 2
-      - rotate: 
-          axis: Y
-          angle: { deg: 180 }
-
-  - type: mesh
-    operation: add
-    material: BONE
-    file: "./meshes/test_bone.obj"
-    transform:
-      - debug: 2
-      - rotate: 
-          axis: Y
-          angle: { deg: 270 }
+          angle: { deg: 240 }
+      # - debug: 2
 
 #  - type: sphere
 #    operation: add
