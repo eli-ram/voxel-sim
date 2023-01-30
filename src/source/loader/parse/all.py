@@ -13,6 +13,7 @@ from .p_polymorphic import Polymorphic, PolymorphicStruct
 from .p_literal import (
     String,
     Float,
+    Empty,
     Bool,
     Int,
 )
@@ -34,6 +35,7 @@ __all__ = [
     # Literals
     'Int',
     'Bool',
+    'Empty',
     'Float',
     'String',
 ]

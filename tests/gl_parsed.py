@@ -115,5 +115,5 @@ if __name__ == '__main__':
     window = Voxels(900, 900, "voxels")
     detector = ParsableDetector[Configuration](window.processConfig)
     with directory(script_dir(__file__), "..", "configurations"):
-        detector("test_2.yaml")
+        detector("test_3.yaml")
     window.spin()

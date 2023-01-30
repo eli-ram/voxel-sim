@@ -25,7 +25,7 @@ class Array(Parsable, Generic[P]):
         D = len(data)
 
         # Baseline for change
-        self.changed = V != D
+        self.setChanged(V != D)
 
         # Create
         for _ in range(V, D):

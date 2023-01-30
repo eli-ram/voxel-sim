@@ -54,7 +54,7 @@ class Voxels(Window):
             svivel_speed=0.005,
         )
         shape = (32, 32, 32)
-        resolution = 2**8
+        resolution = 2**9
         self.voxels = VoxelProxy(shape, resolution)
         self.voxels.createMaterials({
             "STATIC": get.BLUE,

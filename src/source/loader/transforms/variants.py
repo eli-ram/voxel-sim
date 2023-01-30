@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 from ..vector import Vec3, Vec4
 from ..parse import all as p
 import glm
@@ -8,8 +6,10 @@ import glm
 
 
 class Mat:
-
     matrix = glm.mat4()
+    debug = False
+    postmul = True
+    def name(self) -> str: ...
 
 
 class Scale(Mat, Vec3):
@@ -24,93 +24,65 @@ class Translate(Mat, Vec3):
         self.matrix = glm.translate(self.require())
 
 
-class AxisAngleDegrees(Mat, Vec4):
-    """ A Rotation based of Axis Angle w/ degrees 
+class Degrees(p.Float):
 
-    ```
-    # Example value
-    value = [0, 1, 0, 90]
-    # Resulting Parameters
-    axis = [0, 1, 0]
-    angle = radians(90)
-    ```
-
-    """
-
-    def postParse(self) -> None:
-        value = self.require()
-        self.matrix = glm.rotate(
-            glm.radians(value.w), glm.vec3(value)
-        )
+    def radians(self):
+        return glm.radians(self.require())
 
 
-class AxisAngleRadians(Mat, Vec4):
-    """ A Rotation based of Axis Angle w/ radians 
+class Radians(p.Float):
 
-    ```
-    # Example value
-    value = [0, 1, 0, pi]
-    # Resulting Parameters
-    axis = [0, 1, 0]
-    angle = pi
-    ```
-
-    """
-
-    def postParse(self) -> None:
-        value = self.require()
-        self.matrix = glm.rotate(
-            value.w, glm.vec3(value)
-        )
+    def radians(self):
+        return self.require()
 
 
-class RotateDegrees(Mat, p.Enum[p.Value[float]]):
-    """ Rotate around X, Y or Z axis in Degrees """
-    X: p.Value[float]
-    Y: p.Value[float]
-    Z: p.Value[float]
+class Angle(p.Enum[Radians]):
+    # short form
+    deg: Degrees
+    rad: Radians
+    # long form
+    degrees: Degrees
+    radians: Radians
 
-    def postParse(self) -> None:
-        value = self.require().require()
-        def _(dir): return float(dir == self.__active)
-        self.matrix = glm.rotate(glm.radians(
-            value), glm.vec3(_("X"), _("Y"), _("Z"))
-        )
+    def get(self):
+        # Return radian interpretation
+        return self.require().radians()
 
 
-class RotateRadians(Mat, p.Enum[p.Value[float]]):
-    """ Rotate around X, Y or Z axis in Radians """
-    X: p.Value[float]
-    Y: p.Value[float]
-    Z: p.Value[float]
+def _axis(_, *args, **kwgs):
+    # Intercept string
+    if len(args) == 1 and isinstance(args[0], str):
+        K = args[0]
+        def _(D): return float(D == K)
+        return glm.vec3(_("X"), _("Y"), _("Z"))
+    # Forward
+    return glm.vec3(*args, **kwgs)
+
+
+class Axis(Vec3):
+    generic = _axis
+
+
+class Rotate(Mat, p.Struct):
+    """ Rotate around X, Y, Z or custom axis """
+    axis: Axis
+    angle: Angle
+    local: p.Bool
 
     def postParse(self) -> None:
-        value = self.require().require()
-        def _(dir): return float(dir == self.variant())
-        self.matrix = glm.rotate(
-            value, glm.vec3(_("X"), _("Y"), _("Z"))
-        )
+        axis = self.axis.require()
+        angle = self.angle.get()
+        self.matrix = glm.rotate(angle, axis)
+        self.postmul = self.local.getOr(True)
 
+class Debug(Mat, p.String):
+    """Marker to debug transform stack"""
+    debug = True
+    def name(self) -> str:
+        return self.getOr("unnamed")
 
 class Options(p.Enum[Mat]):
-    # Scale
     scale: Scale
-    # Translate
+    rotate: Rotate
     translate: Translate
-    # Rotate
-    axisAngleDeg: AxisAngleDegrees
-    axisAngleRad: AxisAngleRadians
-    rotateDeg: RotateDegrees
-    rotateRad: RotateRadians
-
-
-class Sequence(p.Array[Options]):
-    """A sequence of transformations"""
-    matrix = glm.mat4()
-
-    def postParse(self) -> None:
-        # Combine the sequence to one matrix
-        m = glm.mat4()
-        for item in self:
-            m *= item.require().matrix
-        self.matrix = m
+    debug: Debug

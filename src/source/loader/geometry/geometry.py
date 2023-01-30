@@ -1,4 +1,5 @@
 from traceback import print_exc
+from source.utils.wireframe.origin import Origin
 
 from source.utils.wireframe.wireframe import Wireframe
 from source.data.voxel_tree import (
@@ -15,6 +16,7 @@ from source.data import (
 from ..parse import all as p
 from ..transform import TransformArray
 from ..material import MaterialKey
+from ..transforms.sequence import Transform, glm
 
 
 def void_on_error(method):
@@ -35,7 +37,10 @@ class Geometry(p.PolymorphicStruct):
     material: MaterialKey
 
     # Geometry Transform
-    transform: TransformArray
+    transform: Transform
+
+    # Show origin
+    show_origin: p.Bool
 
     def loadMaterial(self, store: m.MaterialStore):
         self.setError(self.material.load(store))
@@ -49,7 +54,20 @@ class Geometry(p.PolymorphicStruct):
         mesh = self.getMesh()
         color = self.material.get().color
         matrix = self.transform.matrix
+
+        # build model
         model = Wireframe(mesh).setColor(color)
+
+        # include debug origins
+        if (debugs:= self.transform.debugs):
+            scene = s.Scene(matrix, children=[model])
+            O = Origin()
+            for (matrix, _) in debugs:
+                M = glm.affineInverse(matrix)
+                scene.add(s.Transform(M, O))
+            return scene
+        
+        # return model
         return s.Transform(matrix, model)
 
     def getVoxelNode(self) -> node.VoxelNode:
@@ -57,6 +75,8 @@ class Geometry(p.PolymorphicStruct):
 
 
 _G = p.Polymorphic[Geometry]
+
+
 class GeometryArray(p.Array[_G]):
     """ A Sequenced Array of Geometry """
     generic = _G

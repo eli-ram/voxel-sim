@@ -1,5 +1,7 @@
 import os
 from traceback import print_exc
+
+from source.data.voxel_tree import node
 from ..parse import all as p
 from .geometry import Geometry
 from source.data import mesh as m
@@ -15,8 +17,11 @@ class Mesh(Geometry, type='mesh'):
 
         try:
             self.mesh = cacheMesh(file)
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             raise p.ParseError(f"File Not Found: \"{file}\"")
         
     def getMesh(self) -> m.Mesh:
         return self.mesh
+
+    def getVoxelNode(self) -> node.VoxelNode:
+        return super().getVoxelNode()

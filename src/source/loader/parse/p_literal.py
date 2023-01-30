@@ -5,6 +5,11 @@ from .error import CastError
 from .p_value import Value
 from .utils import wrapCast
 
+def _empty(*args, **kwgs):
+    pass
+
+class Empty(Value[None]):
+    generic = _empty
 
 class Int(Value[int]):
 

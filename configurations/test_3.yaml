@@ -1,0 +1,81 @@
+config:
+  # size: 256
+  build: false
+  render: true
+  resolution: 4
+  background: [0.01, 0.01, 0.02]
+  region: 
+    start: 0
+    stop: 1
+
+materials:
+  BONE:
+    color: [0.2, 0.6, 0.5, 0.1]
+    strength: 0.5
+  STATIC:
+    color: [0.2, 0.1, 0.9]
+    strength: 10.0
+    locks: [true, true, true]
+  FORCE:
+    color: [0.9, 0.2, 0.1]
+    strength: 11.0
+    force: [0.0, 0.0, -11.0]
+
+geometry:
+  - type: mesh
+    operation: add
+    material: BONE
+    file: "./meshes/test_bone.obj"
+    transform:
+      - debug: 1
+      - rotate: 
+          axis: Y
+          angle: { deg: 90 }
+      - debug: 2
+
+  - type: mesh
+    operation: add
+    material: BONE
+    file: "./meshes/test_bone.obj"
+    transform:
+      - debug: 2
+      - rotate: 
+          axis: Y
+          angle: { deg: 180 }
+
+  - type: mesh
+    operation: add
+    material: BONE
+    file: "./meshes/test_bone.obj"
+    transform:
+      - debug: 2
+      - rotate: 
+          axis: Y
+          angle: { deg: 270 }
+
+#  - type: sphere
+#    operation: add
+#    material: STATIC
+#    transform:
+#      - scale: 0.5
+#  
+#  - type: sphere
+#    operation: add
+#    material: FORCE
+#    transform:
+#      - scale: 0.5
+#      - translate: [1, 1, 1]
+
+parameters:
+  inner_surface:
+    type: circle
+    transform:
+      scale: 0.2
+      position: [0.5, 0.5, 0.9]
+      rotation: [1, 0, 1, 0]
+  outer_surface:
+    type: circle
+    transform:
+      scale: 0.2
+      position: [1.0, 1.0, 1.0]
+      rotation: [1, 0, -1, 0]

@@ -25,7 +25,7 @@ class Map(Parsable, Generic[P]):
         D = set(data)
 
         # Baseline for change
-        self.changed = D != V
+        self.setChanged(D != V)
 
         # Create
         for key in D - V:

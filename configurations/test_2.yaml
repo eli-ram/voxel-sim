@@ -28,9 +28,14 @@ geometry:
   - type: sphere
     material: BONE
   - type: sphere-2
+    # show_origin: true
     material: STATIC
     transform:
       - scale: 0.5
+  - type: mesh
+    material: BONE
+    show_origin: true
+    file: "./meshes/test_bone.obj"
 
 other:
   - type: composite
