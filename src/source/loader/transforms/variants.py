@@ -15,14 +15,14 @@ class Mat:
 
 
 class Scale(Mat, Vec3):
-    """ Scale matrix """
+    """ Scale by a vector """
 
     def postParse(self) -> None:
         self.matrix = glm.scale(self.require())
 
 
 class Translate(Mat, Vec3):
-    """ Translate matrix """
+    """ Translate by a vector """
 
     def postParse(self) -> None:
         self.matrix = glm.translate(self.require())

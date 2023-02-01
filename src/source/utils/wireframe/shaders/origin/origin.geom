@@ -22,7 +22,7 @@ void proc(in Scope s, vec3 dir) {
     color = dir; 
     vec4 offset = MVP * vec4(dir * 0.5, 0);
     // First vertex is @ origin
-    gl_Position = s.origin - offset;
+    gl_Position = s.origin; // - offset; // this would enable negative directions
     EmitVertex();
     // Second vertex is @ direction
     gl_Position = s.origin + offset;
