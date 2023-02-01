@@ -1,4 +1,4 @@
-from .parse import all as p
+from source.parser import all as p
 import glm
 
 

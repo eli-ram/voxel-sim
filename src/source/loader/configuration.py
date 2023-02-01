@@ -1,18 +1,17 @@
 from typing import List
 import glm
 
+from source.interactive import scene as s
+from source.utils.shapes import line_cube
+from source.utils.wireframe.wireframe import Wireframe
 from source.data.transform import Transform
+from source.parser import all as p
 
-
-from .parse import all as p
 from .parameters import Parameters
 from .geometry import GeometryArray
 from .material import Color, MaterialStore
 from .box import Box
 
-from source.interactive import scene as s
-from source.utils.shapes import line_cube
-from source.utils.wireframe.wireframe import Wireframe
 
 
 class Config(p.Struct):

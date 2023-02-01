@@ -1,11 +1,8 @@
 
-from source.data.voxel_tree.box import (
-    Box as _Box,
-    int3,
-)
-from .parse import all as p
+import source.parser.all as p
+import source.data.voxel_tree.box as b
 
-class Int3(p.Value[int3]):
+class Int3(p.Value[b.int3]):
 
     def fromNone(self):
         return None
@@ -24,13 +21,13 @@ class Int3(p.Value[int3]):
         v = int(data)
         return v, v, v
 
-    def toString(self, value: int3):
+    def toString(self, value: b.int3):
         x, y, z = value
         return f"({x=}, {y=}, {z=})"
 
 
 class Box(p.Struct):
-    box = _Box.Empty()
+    box = b.Box.Empty()
 
     # Option 1:
     start: Int3
@@ -56,14 +53,14 @@ class Box(p.Struct):
         if start and stop:
             if offset or shape:
                 raise p.ParseError(err)
-            return _Box.StartStop(start, stop)
+            return b.Box.StartStop(start, stop)
 
         if offset and shape:
             if start or stop:
                 raise p.ParseError(err)
-            return _Box.OffsetShape(offset, shape)
+            return b.Box.OffsetShape(offset, shape)
 
-        return _Box.Empty()
+        return b.Box.Empty()
 
 
     def postParse(self):

@@ -21,7 +21,7 @@ from source.utils.directory import directory, require, script_dir
 
 # Parse
 from source.loader.configuration import Configuration
-from source.loader.parse.detector import ParsableDetector
+from source.parser.detector import ParsableDetector
 
 
 class Voxels(w.Window):

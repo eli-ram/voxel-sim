@@ -13,8 +13,7 @@ from source.data import (
     mesh,
 )
 
-from ..parse import all as p
-from ..transform import TransformArray
+from source.parser import all as p
 from ..material import MaterialKey
 from ..transforms.sequence import Transform, glm
 
@@ -59,14 +58,14 @@ class Geometry(p.PolymorphicStruct):
         model = Wireframe(mesh).setColor(color)
 
         # include debug origins
-        if (debugs:= self.transform.debugs):
+        if (debugs := self.transform.debugs):
             scene = s.Scene(matrix, children=[model])
             O = Origin()
             for (matrix, _) in debugs:
                 M = glm.affineInverse(matrix)
                 scene.add(s.Transform(M, O))
             return scene
-        
+
         # return model
         return s.Transform(matrix, model)
 

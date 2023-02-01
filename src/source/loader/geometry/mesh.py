@@ -2,7 +2,7 @@ import os
 from traceback import print_exc
 
 from source.data.voxel_tree import node
-from ..parse import all as p
+from source.parser import all as p
 from .geometry import Geometry
 from source.data import mesh as m
 from source.utils.mesh_loader import cacheMesh

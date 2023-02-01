@@ -1,5 +1,4 @@
-from .parse import all as p
-from .transform import Transform
+from .transform import Transform, p
 
 class Surface(p.PolymorphicStruct):
     transform: Transform

@@ -1,9 +1,11 @@
 from typing_extensions import TypeGuard
 from typing import Any, Dict, List, Optional, TypeVar
-from .parse import all as p
-from .vector import Vec3
-from source.data.transform import Transform as _Transform
+
 import glm
+import source.parser.all as p
+import source.data.transform as t
+
+from .vector import Vec3
 
 T = TypeVar('T')
 
@@ -60,7 +62,7 @@ class Transform(p.Struct):
     position: Position
 
     matrix = glm.mat4()
-    transform = _Transform()
+    transform = t.Transform()
 
     def postParse(self):
         T = self.transform

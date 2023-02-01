@@ -33,7 +33,7 @@ geometry:
       - rotate: 
           axis: Y
           angle: { deg: 240 }
-      # - debug: 2
+      - debug: 2
 
 #  - type: sphere
 #    operation: add

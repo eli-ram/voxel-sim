@@ -1,6 +1,5 @@
 
 from typing import Optional, TypeVar, Generic
-from .utils import formatIter
 from .indent import Fmt
 from .error import ParseError
 from .parsable import Parsable
@@ -13,6 +12,7 @@ def _fmt_keys(dct: dict[str, Any]):
     return ",".join(f'"{k}"' for k in dct)
 
 class Enum(Parsable, Generic[I]):
+    """ Externally tagged enum """
 
     def __init__(self) -> None:
         self.__enum = getAnnotations(self)

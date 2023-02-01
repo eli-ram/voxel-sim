@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, NamedTuple
 
-from .parse import all as p
+import source.parser.all as p
 from .vector import Vec3
 from source.data import (
     colors,
