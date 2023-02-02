@@ -1,4 +1,5 @@
 # pyright: reportUnusedImport=false, reportUnusedFunction=false
+import numpy as np
 import __init__
 
 # Packages
@@ -6,14 +7,12 @@ import glm
 from OpenGL import GL
 
 # Interactive
-from source.interactive import (
-    animator,
-    window as w,
-    scene as s,
-)
+import source.interactive.window as w
+import source.interactive.scene as s
+import source.interactive.animator as a
 
 # Graphics
-from source.graphics import matrices as m
+import source.graphics.matrices as m
 from source.utils.wireframe.origin import Origin
 
 # Utils
@@ -22,6 +21,7 @@ from source.utils.directory import directory, require, script_dir
 # Parse
 from source.loader.configuration import Configuration
 from source.parser.detector import ParsableDetector
+from source.voxels.render import VoxelRenderer
 
 
 class Voxels(w.Window):
@@ -31,7 +31,7 @@ class Voxels(w.Window):
         self.scene = s.SceneBase()
 
         # Create animator
-        self.animator = animator.Animator(delta=0.5)
+        self.animator = a.Animator(delta=0.5)
 
         # Create Camera
         self.camera = m.OrbitCamera(
@@ -40,7 +40,7 @@ class Voxels(w.Window):
         )
 
         # Create Camera Origin
-        self.origin = s.Transform(
+        self.cursor_3d = s.Transform(
             transform=glm.scale(glm.vec3(2.0)),
             # mesh=Wireframe(origin_marker(0.5)).setColor(Color(1, 0.5, 0)),
             mesh=Origin(),
@@ -50,7 +50,7 @@ class Voxels(w.Window):
         # Bind Key Controls
         K = self.keys
         K.toggle("LEFT_CONTROL")(self.camera.SetPan)
-        K.action("O")(self.origin.toggle)
+        K.action("O")(self.cursor_3d.toggle)
         K.toggle("SPACE")(self.animator.recorder(
             require(script_dir(__file__), '..', 'results'),
             'animation{:[%Y-%m-%d][%H-%M]}.gif'
@@ -58,33 +58,59 @@ class Voxels(w.Window):
 
         # Bind Mouse Controls
         B = self.buttons
+
         @B.toggle("LEFT")
         def toggle_move(move: bool):
             self.camera.SetActive(move)
-            self.origin.visible(move)
+            self.cursor_3d.visible(move)
 
         # Build scene
-        self.scene.setChildren([self.origin])
+        self.scene.setChildren([self.cursor_3d])
 
     def processConfig(self, config: Configuration):
+        """ Process config (called from parser thread) """
 
-        print("got-config")
+        print("Processing config ...")
 
-        # Use Config In synchronized context
-        def synchronized(config: Configuration):
-            self.scene.setBackground(
-                config.getBackground()
-            )
+        # hack to get render-scene as local
+        R = self.scene
 
-            self.scene.setChildren([
-                config.getRender(),
-                self.origin,
-            ])
+        # synchronized context to render scene
+        @self.tasks.dispatch
+        def render():
+            nonlocal R
 
-        self.tasks.sync(config, synchronized)
+            # Set background
+            self.scene.setBackground(config.getBackground())
 
+            # Build scene
+            R = config.getRender()
+
+            # Append scene, include 3D cursor
+            self.scene.setChildren([R, self.cursor_3d])
+
+        # Compute voxels
         N = config.getVoxels()
-        print(N.data.box.shape)
+
+        # Wait for render to finish
+        render.wait()
+
+        # Not configured for voxels
+        if N is None:
+            print("Did not build voxels")
+            return
+
+        # synchronized context to render voxels
+        @self.tasks.dispatch
+        def voxels():
+            print("voxels:", N.data.box)
+            # Build voxel renderer
+            V, T = config.getVoxelRenderer(N.data) 
+            # Transform renderer into the scene
+            R.add(s.Transform(T, V))
+
+        # Wait for voxels to finish
+        voxels.wait()
 
     def resize(self, width: int, height: int):
         self.animator.resize(width, height)
@@ -102,7 +128,7 @@ class Voxels(w.Window):
 
         # Update Camera Matrix
         self.scene.setCamera(self.camera.Compute())
-        self.origin.transform = glm.translate(self.camera.center)
+        self.cursor_3d.transform = glm.translate(self.camera.center)
 
     def render(self):
         self.scene.render()
@@ -115,8 +141,18 @@ class Voxels(w.Window):
 
 
 if __name__ == '__main__':
+    # Create Window
     window = Voxels(900, 900, "voxels")
-    detector = ParsableDetector[Configuration](window.processConfig)
+
+    # Create Configuration
+    @ParsableDetector[Configuration]
+    def detector(config: Configuration):
+        config.configure(window.tasks, window.scene)
+        window.scene.add(window.cursor_3d)
+
+    # Run Configuration thread
     with directory(script_dir(__file__), "..", "configurations"):
         detector("test_3.yaml")
+
+    # Run window
     window.spin()

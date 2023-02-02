@@ -5,10 +5,12 @@ from typing import Any, List, Set, Optional, Callable, TypeVar
 
 Value = TypeVar('Value')
 
+
 class Task:
     tag: Optional[str] = None
     def compute(self): ...
     def complete(self): ...
+
 
 class FunctionalTask(Task):
     _value: Any
@@ -23,6 +25,7 @@ class FunctionalTask(Task):
 
     def complete(self):
         self._complete(self._value)
+
 
 class SequenceTask(Task):
     active: Task
@@ -45,6 +48,7 @@ class SequenceTask(Task):
         self.active.complete()
         self.next()
 
+
 class TaskQueue:
     running: Set[str]
 
@@ -65,20 +69,26 @@ class TaskQueue:
         if task.tag:
             self.running.add(task.tag)
 
-        self.queue.put(task)            
+        self.queue.put(task)
 
     def run(self, compute: Callable[[], Value], complete: Callable[[Value], None], tag: Optional[str] = None):
         self.add(FunctionalTask(compute, complete, tag))
 
-    def sync(self, value: Value, synchronize: Callable[[Value], None], tag: Optional[str] = None):
-        """ Make a task execute on the main thread and wait for it to finish """
+    def dispatch(self, synchronize: Callable[[], None], tag: Optional[str] = None):
+        """ Dispatch a task to execute on the main thread get an Event back """
         processed = Event()
-        def complete(value: Value):
-            synchronize(value)
-            processed.set()
-        self.run(lambda:value, complete, tag)
-        processed.wait()
 
+        # Construct event
+        def complete(_: None):
+            synchronize()
+            processed.set()
+
+        self.run(lambda: None, complete, tag)
+        return processed
+
+    def sync(self, synchronize: Callable[[], None], tag: Optional[str] = None):
+        """ Make a task execute on the main thread and wait for it to finish """
+        self.dispatch(synchronize, tag).wait()
 
     def sequence(self, *tasks: Task, tag: Optional[str] = None):
         SequenceTask(self, list(tasks), tag).next()
@@ -89,10 +99,10 @@ class TaskQueue:
 
         task = self.done.get()
         task.complete()
-        
+
         if task.tag:
             self.running.remove(task.tag)
-        
+
         self.done.task_done()
 
     def worker(self):

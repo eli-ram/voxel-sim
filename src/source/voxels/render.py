@@ -9,6 +9,7 @@ from ..graphics.texture import Format, Sample, Texture1D, Texture3D, TextureProp
 from ..graphics.buffer import BufferConfig
 from ..utils.types import int3
 
+
 class VoxelRenderer:
     """
         Each Voxel is represented by a single float.
@@ -72,6 +73,10 @@ class VoxelRenderer:
     @property
     def color_count(self) -> int:
         return self.colors.shape[0]
+
+    def fill(self, colors: 'np.ndarray[np.float32]'):
+        assert colors.shape == self.shape, "shape does not match"
+        self.voxels.setPixels((0, 0, 0), colors)
 
     def set(self, pos: int3, color: float):
         color = np.full((1, 1, 1), color, np.float32)

@@ -1,12 +1,13 @@
 config:
   # size: 256
-  build: false
-  render: true
-  resolution: 4
+  build: true
+  alpha: 0.1
+  render: true  
+  resolution: 256
   background: [0.01, 0.01, 0.02]
   region: 
-    start: [-1, -1, -1]
-    stop: [2, 2, 2]
+    start: [-100, -100, -100]
+    stop: [100, 100, 100]
 
 materials:
   BONE:
@@ -23,7 +24,7 @@ materials:
 
 geometry:
   transform:
-    - scale: 2.5
+    - scale: 100
   elements:
     - type: mesh
       # operation: add
@@ -31,7 +32,8 @@ geometry:
       file: "./meshes/test_bone.obj"
       transform:
         # - debug: 0
-        - translate: [0, -4, 0.1]
+        - scale: 1.6
+        - translate: [0, -4.2, 0.2]
         - rotate: 
             axis: Y
             angle: { deg: 240 }

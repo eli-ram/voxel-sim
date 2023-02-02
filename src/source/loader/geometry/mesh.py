@@ -1,18 +1,16 @@
 import os
-from traceback import print_exc
-
+import glm
 import numpy as np
 
 import source.graphics.matrices as mat
 import source.data.voxel_tree.node as n
 import source.parser.all as p
 import source.data.mesh as m
-import source.math.mesh2voxels as m2v
 
+from source.math.mesh2voxels import mesh_to_voxels
 from source.utils.mesh_loader import cacheMesh
 
 from .geometry import Context, Geometry
-
 
 class Mesh(Geometry, type='mesh'):
     file: p.String
@@ -23,6 +21,7 @@ class Mesh(Geometry, type='mesh'):
         file = os.path.abspath(file)
 
         try:
+            # Get or Load mesh
             self.mesh = cacheMesh(file)
         except FileNotFoundError:
             raise p.ParseError(f"File Not Found: \"{file}\"")
@@ -33,21 +32,30 @@ class Mesh(Geometry, type='mesh'):
     def getVoxels(self, ctx: Context) -> n.VoxelNode:
         # Build transform
         T = mat.to_affine(
+            # Global transform
+            ctx.matrix *
             # Local transform
             self.transform.matrix
         )
-        # Compute shape
-        S = ctx.box.shape
         # Compute voxels
-        offset, grid = m2v.mesh_to_voxels(self.mesh, T, S)
+        offset, grid = mesh_to_voxels(
+            # Cached mesh
+            self.mesh,
+            # Transformation
+            T,
+            # relevant area
+            ctx.shape
+        )
         # Get material
-        M = self.material.get()
+        M = self.material.get().id
+        # Get strength
+        S = 1.0
         # Package Data
         D = n.Data(
             box=n.Box.OffsetShape(offset, grid.shape),
             mask=grid,
-            material=(grid * M.id).astype(np.uint32),
-            strength=(grid * M.strength).astype(np.float32),
+            material=(grid * M).astype(np.uint32),
+            strength=(grid * S).astype(np.float32),
         )
         # Get operation
         O = n.Operation.OVERWRITE

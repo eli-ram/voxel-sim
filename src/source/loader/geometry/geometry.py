@@ -1,3 +1,4 @@
+
 from traceback import print_exc
 import source.data.voxel_tree.box as b
 from source.utils.wireframe.origin import Origin
@@ -27,14 +28,26 @@ def void_on_error(method):
     return wrap
 
 class Context:
-    box: b.Box
+
+    def __init__(self, box: b.Box):
+        # get properties of box
+        self.offset = box.start
+        self.shape = box.shape
+        # start with offset
+        self.matrix = glm.translate(
+            -glm.vec3(*self.offset)
+        )
+
+    def finalize(self, node: n.VoxelNode):
+        O = self.offset
+        B = node.data.box
+        # Offset box 
+        B.start += O
+        B.stop += O
+        # Return node
+        return node
 
 class Geometry(p.PolymorphicStruct):
-
-    @staticmethod
-    def makeContext():
-        return Context()
-
     # Voxel operation (not supported)
     # operation: p.String
 
