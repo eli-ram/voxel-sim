@@ -101,12 +101,13 @@ if __name__ == '__main__':
     # Create Configuration
     @ParsableDetector[Configuration]
     def detector(config: Configuration):
-        config.configure(window.tasks, window.scene)
-        window.scene.add(window._3D_cursor)
+        R, BG = config.configure(window.tasks)
+        window.scene.setChildren([window._3D_cursor, R])
+        window.scene.setBackground(BG)
 
     # Run Configuration thread
     with directory(script_dir(__file__), "..", "configurations"):
-        detector("test_3.yaml")
+        detector("test_4.yaml")
 
     # Run window
     window.spin()

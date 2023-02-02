@@ -5,6 +5,7 @@ from source.interactive.tasks import TaskQueue
 
 import source.parser.all as p
 import source.data.voxels as v
+import source.data.colors as c
 import source.interactive.scene as s
 import source.data.voxel_tree.node as n
 from source.utils.types import int3
@@ -180,7 +181,7 @@ class Configuration(p.Struct):
         return V
 
 
-    def configure(self, TQ: TaskQueue, S: s.SceneBase):
+    def configure(self, TQ: TaskQueue):
         """ Process config (called from parser thread) """
 
         print("Processing config ...")
@@ -188,41 +189,32 @@ class Configuration(p.Struct):
         # Get Config
         C = self.config
 
-        # hack to get render-scene as local
-        R = S
+        # Get background color
+        BG = C.background.require()
 
         # synchronized context to render scene
-        @TQ.dispatch
-        def render():
-            nonlocal R, S
-
-            # Set background
-            S.setBackground(C.background.require())
-
-            # Build scene
-            R = self.getRender()
-
-            # Append scene, include 3D cursor
-            S.setChildren([R])
+        render = TQ.dispatch(self.getRender)
 
         # Compute voxels
         N = self.getVoxels()
 
         # Wait for render to finish
-        render.wait()
-
+        # getting return value here would be nice !
+        R = render()
+        
         # Not configured for voxels
         if N is None:
             print("Cannot build voxels")
-            return
+            return R, BG
 
         # synchronized context to render voxels
         @TQ.dispatch
         def voxels():
             # Build voxel renderer
-            V = self.getVoxelRenderer(N)
-            # Transform renderer into the scene
-            R.add(V)
+            return self.getVoxelRenderer(N)
 
         # Wait for voxels to finish
-        voxels.wait()
+        R.add(voxels())
+        
+        # Return scene
+        return R, BG

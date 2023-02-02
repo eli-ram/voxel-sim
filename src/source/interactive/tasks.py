@@ -74,17 +74,28 @@ class TaskQueue:
     def run(self, compute: Callable[[], Value], complete: Callable[[Value], None], tag: Optional[str] = None):
         self.add(FunctionalTask(compute, complete, tag))
 
-    def dispatch(self, synchronize: Callable[[], None], tag: Optional[str] = None):
+    def dispatch(self, synchronize: Callable[[], Value], tag: Optional[str] = None) -> Callable[[], Value]:
         """ Dispatch a task to execute on the main thread get an Event back """
         processed = Event()
 
+        # Construct capture
+        value: Value = None # type: ignore
+
         # Construct event
         def complete(_: None):
-            synchronize()
+            nonlocal value
+            value = synchronize()
             processed.set()
 
+        # run the event
         self.run(lambda: None, complete, tag)
-        return processed
+
+        # return awaiter
+        def wait():
+            processed.wait()
+            return value
+        
+        return wait
 
     def sync(self, synchronize: Callable[[], None], tag: Optional[str] = None):
         """ Make a task execute on the main thread and wait for it to finish """
