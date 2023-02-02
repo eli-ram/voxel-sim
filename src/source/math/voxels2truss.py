@@ -1,11 +1,12 @@
-from ..data.truss import Truss
-from ..data.voxels import Voxels, int3
+import source.data.truss as tr
+import source.data.voxels as v
+import source.utils.types as t
 import numpy as np
 
 __all__ = ['voxels2truss', 'TrussBuilder']
 
 
-def voxels2truss(voxels: Voxels, exclude: list[str] = []):
+def voxels2truss(voxels: v.Voxels, exclude: list[str] = []):
     builder = TrussBuilder(voxels)
     if 'faces' not in exclude:
         builder.run(TrussBuilder.FACES)
@@ -26,7 +27,7 @@ def get_range(size: int, offset: int):
     return a, b
 
 
-def get_ranges(size: int3, offset: int3):
+def get_ranges(size: t.int3, offset: t.int3):
     sx, sy, sz = size
     ox, oy, oz = offset
     AX, BX = get_range(sx, ox)
@@ -40,13 +41,13 @@ def get_ranges(size: int3, offset: int3):
 class TrussBuilder:
 
     # Offsets to check to assemble the Truss
-    FACES: list[int3] = [
+    FACES: list[t.int3] = [
         # 6 faces / 2 = 3
         (1, 0, 0),
         (0, 1, 0),
         (0, 0, 1),
     ]
-    EDGES: list[int3] = [
+    EDGES: list[t.int3] = [
         # 12 edges / 2 = 6
         (1, 1, 0),
         (0, 1, 1),
@@ -55,7 +56,7 @@ class TrussBuilder:
         (1, 0, -1),
         (0, 1, -1),
     ]
-    CORNERS: list[int3] = [
+    CORNERS: list[t.int3] = [
         # 8 corners / 2 = 4
         (1, 1, 1),
         (1, 1, -1),
@@ -63,7 +64,7 @@ class TrussBuilder:
         (1, -1, -1),
     ]
 
-    def __init__(self, voxels: Voxels):
+    def __init__(self, voxels: v.Voxels):
         self.edges: 'list[np.ndarray[np.uint32]]' = []
         # Grid Shape
         self.shape = voxels.shape
@@ -86,11 +87,11 @@ class TrussBuilder:
         # Forces Per Vertex
         self.forces = voxels.force_map()[Materials, :]
 
-    def run(self, offsets: list[int3]):
+    def run(self, offsets: list[t.int3]):
         for offset in offsets:
             self.get_edges(offset)
 
-    def get_edges(self, offset: int3):
+    def get_edges(self, offset: t.int3):
         A, B = get_ranges(self.shape, offset)
         connectivity = self.nodes[A] & self.nodes[B]
         connections = np.nonzero(connectivity)  # type: ignore
@@ -98,10 +99,10 @@ class TrussBuilder:
         b = self.index_table[B][connections]
         self.edges.append(np.vstack([a, b]).T)
 
-    def output(self) -> Truss:
+    def output(self) -> tr.Truss:
         edges = np.vstack(self.edges)
         areas = np.sum(self.strength[edges], axis=1) / 2
-        return Truss(
+        return tr.Truss(
             nodes=self.vertices,
             forces=self.forces,
             static=self.static,

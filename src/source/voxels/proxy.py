@@ -3,10 +3,7 @@ from source.data.mesh import Mesh
 from source.math.truss2stress import fem_simulate
 
 from source.math.voxels2truss import voxels2truss
-from source.data import (
-    colors,
-    mesh,
-)
+from source.data import mesh
 
 from ..utils.wireframe.deformation import DeformationWireframe
 from ..interactive.tasks import Task

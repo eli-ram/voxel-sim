@@ -1,11 +1,10 @@
 import source.utils.types as t
-from source.utils.types import int3, bool3, float3
 from .material import Material
 import numpy as np
 
 class Voxels:
 
-    def __init__(self, shape: int3):
+    def __init__(self, shape: t.int3):
         self.shape = shape
         self.grid = np.zeros(shape, np.uint32)
         self.strength = np.zeros(shape, np.float32)

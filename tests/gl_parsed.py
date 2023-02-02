@@ -1,4 +1,5 @@
 # pyright: reportUnusedImport=false, reportUnusedFunction=false
+from typing import Optional
 import numpy as np
 import __init__
 
@@ -13,6 +14,7 @@ import source.interactive.animator as a
 
 # Graphics
 import source.graphics.matrices as m
+from source.utils.wireframe.deformation import DeformationWireframe
 from source.utils.wireframe.origin import Origin
 
 # Utils
@@ -21,10 +23,18 @@ from source.utils.directory import directory, require, script_dir
 # Parse
 from source.loader.configuration import Configuration
 from source.parser.detector import ParsableDetector
-from source.voxels.render import VoxelRenderer
+
+
+def time_to_t(time: float, duration: float, padding: float):
+    MOD = duration + 2 * padding
+    D = (time % MOD - padding) / duration
+    T = max(min(D, 1.0), 0.0)
+    return T
 
 
 class Voxels(w.Window):
+
+    deformation: Optional[DeformationWireframe] = None
 
     def setup(self):
         # Create scene
@@ -84,6 +94,11 @@ class Voxels(w.Window):
         self.scene.setCamera(self.camera.Compute())
         self._3D_cursor.transform = glm.translate(self.camera.center)
 
+        # Update deformation if set
+        if D := self.deformation:
+            t = time_to_t(time, 30.0, 5.0)
+            D.setDeformation(t)
+
     def render(self):
         self.scene.render()
 
@@ -101,9 +116,18 @@ if __name__ == '__main__':
     # Create Configuration
     @ParsableDetector[Configuration]
     def detector(config: Configuration):
-        R, BG = config.configure(window.tasks)
-        window.scene.setChildren([window._3D_cursor, R])
-        window.scene.setBackground(BG)
+        # Attrs
+        TQ = window.tasks
+        S = window.scene
+        # Configure
+        R, BG = config.configure(TQ)
+        # Set scene
+        TQ.dispatch(lambda: S.setBackground(BG))
+        S.setChildren([window._3D_cursor, R])
+        # Run more
+        D = config.run(TQ)
+        # deformation mesh attatchment
+        # window.deformation = D
 
     # Run Configuration thread
     with directory(script_dir(__file__), "..", "configurations"):

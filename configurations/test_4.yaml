@@ -2,7 +2,7 @@
 # {X: red, Y: green, Z: blue}
 
 config:
-  # size: 256
+  run: on
   build: on
   alpha: 0.1
   render: true
@@ -10,30 +10,32 @@ config:
   resolution: 256
   background: [0.01, 0.01, 0.02]
   region: 
-    start: [-100, -100, -100]
-    stop: [100, 100, 100]
+    start: [-150, -100, -100]
+    stop: [150, 200, 150]
 
 materials:
   BONE:
     color: [0.2, 0.6, 0.5, 0.1]
-    strength: 0.5
+    strength: 10.0
   STATIC:
     color: [0.2, 0.1, 0.5, 0.5]
     strength: 10.0
     locks: [true, true, true]
   FORCE:
     color: [0.9, 0.2, 0.1, 0.4]
-    strength: 11.0
-    force: [0.0, 0.0, -11.0]
+    strength: 10.0
+    force: [0.0, 0.0, -10.0]
 
 geometry:
   transform:
-    - scale: 100
+    - scale: 15
+    - translate: [0, 0.2, 0.2]
+    - scale: 10
   elements:
     - type: mesh
       # operation: add
       material: BONE
-      file: "./meshes/test_bone.obj"
+      file: "./meshes/femur2.obj"
       transform:
         # - debug: 0
         - scale: 1.6
@@ -59,8 +61,11 @@ geometry:
       material: FORCE
       transform:
         - debug: 0
-        - translate: [0.8, 0.45, 0.5]
+        - translate: [0.7, 0.45, 0.5]
         - scale: 0.4
+        - rotate:
+            axis: Z
+            angle: { deg: 180 }
         # {X: red, Y: green, Z: blue}
 
 parameters:

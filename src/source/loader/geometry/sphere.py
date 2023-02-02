@@ -18,9 +18,9 @@ def _coords(box: n.Box):
     # Grids (can numpy fix meshgrid typing ....)
     G = np.meshgrid(*R)  # type: ignore
     # Unraveled
-    X, Y, Z = tuple(np.ravel(i) for i in G)
+    U = tuple(np.ravel(i) for i in G)
     # Joined
-    return np.vstack((Y, X, Z)).astype(np.int64)
+    return np.vstack(U).astype(np.int64)
 
 
 def _voxels(ctx: Context):
@@ -44,6 +44,7 @@ def _voxels(ctx: Context):
     U = np.sum(L * L, axis=0) < 1.0
     # Reshape to grid
     G = U.astype(np.bool_).reshape(ctx.box.shape)
+    G = G.swapaxes(0, 1)
     # Remove padding
     return u.remove_padding_grid(G)
 
@@ -90,6 +91,7 @@ class Sphere2(Geometry, type='sphere'):
         )
         # Get operation
         O = n.Operation.INSIDE
+        # O = n.Operation.OVERWRITE
         # Return node
         N = n.VoxelNode.Leaf(O, D)
         self.__node = N
