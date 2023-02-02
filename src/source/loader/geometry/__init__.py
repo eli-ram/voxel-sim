@@ -1,11 +1,10 @@
-from .geometry import Geometry, GeometryArray
-from .composite import Composite
+from .geometry import Geometry
+from .collection import GeometryCollection
 from .sphere import Sphere
 from .mesh import Mesh
 __all__ = [ 
     'Geometry',
-    'GeometryArray',
-    'Composite',
+    'GeometryCollection',
     'Sphere',
     'Mesh',
 ]

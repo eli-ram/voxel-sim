@@ -8,9 +8,11 @@ import numpy as np
 __all__ = [
     "Box",
     "int3",
+    "float3",
 ]
 
 int3 = Tuple[int, int, int]
+float3 = Tuple[float, float, float]
 
 class Box:
     """ A construct to handle shifted dense arrays """
@@ -47,6 +49,16 @@ class Box:
     def Intersection(boxes: Iterable[Box]) -> Box:
         """ Create the intersection of multiple boxes """
         return _combine(boxes, np.max, np.min)
+    
+    @property
+    def size(self):
+        """ Get the size of this box as a numpy array """
+        return self.stop - self.start
+    
+    @property
+    def center(self) -> float3:
+        """ Get the center of this box (float3) """
+        return tuple((self.start + self.stop) * 0.5)
 
     @property
     def shape(self) -> int3:

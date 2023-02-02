@@ -83,6 +83,9 @@ class Voxels(w.Window):
 
         self.tasks.sync(config, synchronized)
 
+        N = config.getVoxels()
+        print(N.data.box.shape)
+
     def resize(self, width: int, height: int):
         self.animator.resize(width, height)
         GL.glViewport(0, 0, width, height)

@@ -71,6 +71,7 @@ class TaskQueue:
         self.add(FunctionalTask(compute, complete, tag))
 
     def sync(self, value: Value, synchronize: Callable[[Value], None], tag: Optional[str] = None):
+        """ Make a task execute on the main thread and wait for it to finish """
         processed = Event()
         def complete(value: Value):
             synchronize(value)

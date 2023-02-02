@@ -1,5 +1,7 @@
+from functools import cache
 from typing import List
 import glm
+import numpy as np
 
 from source.interactive import scene as s
 from source.utils.shapes import line_cube
@@ -8,10 +10,14 @@ from source.data.transform import Transform
 from source.parser import all as p
 
 from .parameters import Parameters
-from .geometry import GeometryArray
+from .geometry.collection import GeometryCollection
 from .material import Color, MaterialStore
 from .box import Box
 
+
+@cache
+def unit_box():
+    return Wireframe(line_cube())
 
 
 class Config(p.Struct):
@@ -30,40 +36,32 @@ class Config(p.Struct):
     # Background color
     background: Color
 
-    # Scene Matrix
-    matrix = glm.mat4()
-
-    def makeMatrix(self):
+    def buildScene(self, geometry: s.Render):
+        """ Build the scene presented to the user """
         B = self.region.box
+
+        # If no region, just present the geometry
         if B.is_empty:
-            return glm.mat4()
+            return geometry
 
-        T = Transform()
+        # Build the region bounding box
+        bbox = s.Transform((
+            # translate to origin of the box
+            glm.translate(glm.vec3(*B.start))
+            # scale the box to match
+            * glm.scale(glm.vec3(*B.shape))
+        ), unit_box())
 
-        # Scale Scene
-        S = 1 / min(B.shape)
-        T.scale = glm.vec3(S, S, S)
+        # Build the scene matrix to center the bounding box
+        matrix = (
+            # Scale based on the longes side
+            glm.scale(glm.vec3(1 / max(B.shape)))
+            # Translate to center
+            * glm.translate(-glm.vec3(*B.center))
+        )
 
-        # Center Scene
-        O = 0.5 * (B.start - B.stop) - B.start
-        T.position = glm.vec3(*O)
-
-        return T.matrix
-
-    def postParse(self) -> None:
-        self.matrix = self.makeMatrix()
-
-    def addOutline(self, list: List[s.Render]):
-        B = self.region.box
-        if B.is_empty:
-            return
-
-        T = Transform()
-        T.position = glm.vec3(0.5 * B.start)
-        T.scale = glm.vec3(*B.shape)
-        M = T.matrix
-        W = Wireframe(line_cube())
-        list.append(s.Transform(M, W))
+        # return the scene
+        return s.Scene(matrix, [geometry, bbox])
 
 
 class Configuration(p.Struct):
@@ -74,20 +72,29 @@ class Configuration(p.Struct):
     materials: MaterialStore
 
     # Application order of Geometry
-    geometry: GeometryArray
+    geometry: GeometryCollection
 
     # Machine Learning Parameters
     parameters: Parameters
 
     def postParse(self):
         store = self.materials.get()
-        self.geometry.loadMaterials(store)
-
-    def getRender(self) -> s.Render:
-        transform = self.config.matrix
-        children = self.geometry.getRenders()
-        self.config.addOutline(children)
-        return s.Scene(transform, children)
+        self.geometry.loadMaterial(store)
 
     def getBackground(self):
         return self.config.background.require()
+
+    def getRender(self) -> s.Render:
+        # Get the geometry
+        R = self.geometry.getRender()
+
+        # Return the scene
+        return self.config.buildScene(R)
+
+    def getVoxels(self):
+        # Make context
+        C = self.geometry.makeContext()
+        # Get Geometry voxels
+        N = self.geometry.getVoxels(C)
+        # Return
+        return N

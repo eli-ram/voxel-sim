@@ -6,7 +6,7 @@ config:
   background: [0.01, 0.01, 0.02]
   region: 
     start: [-1, -1, -1]
-    stop: [1, 1, 1]
+    stop: [2, 2, 2]
 
 materials:
   BONE:
@@ -22,31 +22,37 @@ materials:
     force: [0.0, 0.0, -11.0]
 
 geometry:
-  - type: mesh
-    operation: add
-    material: BONE
-    file: "./meshes/test_bone.obj"
-    transform:
-      - scale: 2
-      - translate: [0, -4, 0.2]
-      - debug: 1
-      - rotate: 
-          axis: Y
-          angle: { deg: 240 }
-      - debug: 2
+  transform:
+    - scale: 2.5
+  elements:
+    - type: mesh
+      # operation: add
+      material: BONE
+      file: "./meshes/test_bone.obj"
+      transform:
+        # - debug: 0
+        - translate: [0, -4, 0.1]
+        - rotate: 
+            axis: Y
+            angle: { deg: 240 }
+            local: false
+        - debug: 1
+        # - debug: 2
+        - translate: [0, 0, -0.1]
+        # - debug: 3
 
-#  - type: sphere
-#    operation: add
-#    material: STATIC
-#    transform:
-#      - scale: 0.5
-#  
-#  - type: sphere
-#    operation: add
-#    material: FORCE
-#    transform:
-#      - scale: 0.5
-#      - translate: [1, 1, 1]
+#    - type: sphere
+#      operation: add
+#      material: STATIC
+#      transform:
+#        - scale: 0.5
+#    
+#    - type: sphere
+#      operation: add
+#      material: FORCE
+#      transform:
+#        - scale: 0.5
+#        - translate: [1, 1, 1]
 
 parameters:
   inner_surface:

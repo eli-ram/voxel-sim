@@ -7,6 +7,9 @@ import numpy as np
 
 Vec = F32Vector3
 
+def to_affine(m: glm.mat4):
+    return Hierarchy.copy(m)[:3, :]
+
 @dataclass
 class Hierarchy:
     M = glm.mat4()

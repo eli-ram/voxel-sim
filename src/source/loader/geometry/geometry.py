@@ -1,10 +1,9 @@
 from traceback import print_exc
+import source.data.voxel_tree.box as b
 from source.utils.wireframe.origin import Origin
 
+import source.data.voxel_tree.node as n
 from source.utils.wireframe.wireframe import Wireframe
-from source.data.voxel_tree import (
-    box, data, node, operation
-)
 from source.interactive import (
     scene as s,
 )
@@ -27,10 +26,17 @@ def void_on_error(method):
             return s.Void()
     return wrap
 
+class Context:
+    box: b.Box
 
 class Geometry(p.PolymorphicStruct):
-    # Voxel operation
-    operation: p.String
+
+    @staticmethod
+    def makeContext():
+        return Context()
+
+    # Voxel operation (not supported)
+    # operation: p.String
 
     # Voxel Material Key
     material: MaterialKey
@@ -69,29 +75,7 @@ class Geometry(p.PolymorphicStruct):
         # return model
         return s.Transform(matrix, model)
 
-    def getVoxelNode(self) -> node.VoxelNode:
-        raise NotImplementedError()
+    def getVoxels(self, ctx: Context) -> n.VoxelNode:
+        impl = self.__class__.__name__
+        raise NotImplementedError(f"{impl}.getVoxels()")
 
-
-_G = p.Polymorphic[Geometry]
-
-
-class GeometryArray(p.Array[_G]):
-    """ A Sequenced Array of Geometry """
-    generic = _G
-
-    def __iter__(self):
-        for child in self._array:
-            geometry = child.get()
-            if geometry is None:
-                continue
-            if geometry.hasError():
-                continue
-            yield geometry
-
-    def loadMaterials(self, store: m.MaterialStore):
-        for child in self:
-            child.loadMaterial(store)
-
-    def getRenders(self):
-        return [child.getRender() for child in self]
