@@ -4,7 +4,7 @@
 config:
   # size: 256
   build: on
-  alpha: 0.2
+  alpha: 0.1
   render: true
   outline: false
   resolution: 256
@@ -30,37 +30,37 @@ geometry:
   transform:
     - scale: 100
   elements:
-    # - type: mesh
-    #   # operation: add
-    #   material: BONE
-    #   file: "./meshes/test_bone.obj"
-    #   transform:
-    #     # - debug: 0
-    #     - scale: 1.6
-    #     - translate: [0, -4.2, 0.2]
-    #     - rotate: 
-    #         axis: Y
-    #         angle: { deg: 245 }
-    #         local: false
-    #     # - debug: 1
-    #     - translate: [0, 0, -0.1]
-    #     # - debug: 3
+    - type: mesh
+      # operation: add
+      material: BONE
+      file: "./meshes/test_bone.obj"
+      transform:
+        # - debug: 0
+        - scale: 1.6
+        - translate: [0, -4.2, 0.2]
+        - rotate: 
+            axis: Y
+            angle: { deg: 245 }
+            local: false
+        # - debug: 1
+        - translate: [0, 0, -0.1]
+        # - debug: 3
 
     - type: sphere
       # operation: add
       material: STATIC
       transform:
-        - scale: 0.6
         - debug: 
-        - translate: [-0.4, -2, -0.3]
+        - translate: [-0.1, -1.0, -0.2]
+        - scale: 0.55
     
     - type: sphere
       # operation: add
       material: FORCE
       transform:
-        - scale: 0.2
-        - debug:
-        - translate: [3.5, 3.5, 3.1]
+        - debug: 0
+        - translate: [0.8, 0.45, 0.5]
+        - scale: 0.4
         # {X: red, Y: green, Z: blue}
 
 parameters:

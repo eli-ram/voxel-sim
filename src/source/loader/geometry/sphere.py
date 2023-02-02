@@ -89,7 +89,7 @@ class Sphere2(Geometry, type='sphere'):
             strength=(grid * M.strenght).astype(np.float32),
         )
         # Get operation
-        O = n.Operation.OVERWRITE
+        O = n.Operation.INSIDE
         # Return node
         N = n.VoxelNode.Leaf(O, D)
         self.__node = N
