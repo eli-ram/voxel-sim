@@ -55,7 +55,7 @@ class Context:
         O = self.box.start
         D = node.data
         # Offset data
-        return n.Data(
+        data = n.Data(
             box=n.Box(
                 D.box.start + O,
                 D.box.stop + O,
@@ -64,6 +64,10 @@ class Context:
             material=D.material,
             strength=D.strength,
         )
+        # Operation
+        op = n.Operation.OVERWRITE
+        # Node
+        return n.VoxelNode(op, data)
 
 
 class Geometry(p.PolymorphicStruct):

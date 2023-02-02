@@ -15,7 +15,11 @@ int3 = Tuple[int, int, int]
 float3 = Tuple[float, float, float]
 
 class Box:
-    """ A construct to handle shifted dense arrays """
+    """ A construct to handle shifted dense arrays
+
+        from {start} until {stop}
+
+    """
 
     def __init__(self, start: np.ndarray[np.int64], stop: np.ndarray[np.int64]):
         assert start.shape == stop.shape == (3,), \

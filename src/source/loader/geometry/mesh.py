@@ -1,5 +1,4 @@
 import os
-import glm
 import numpy as np
 
 import source.graphics.matrices as mat
@@ -47,15 +46,13 @@ class Mesh(Geometry, type='mesh'):
             ctx.shape
         )
         # Get material
-        M = self.material.get().id
-        # Get strength
-        S = 1.0
+        M = self.material.get()
         # Package Data
         D = n.Data(
             box=n.Box.OffsetShape(offset, grid.shape),
             mask=grid,
-            material=(grid * M).astype(np.uint32),
-            strength=(grid * S).astype(np.float32),
+            material=(grid * M.id).astype(np.uint32),
+            strength=(grid * M.strenght).astype(np.float32),
         )
         # Get operation
         O = n.Operation.OVERWRITE

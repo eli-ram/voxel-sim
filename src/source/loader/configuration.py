@@ -4,6 +4,7 @@ import numpy as np
 from source.interactive.tasks import TaskQueue
 
 import source.parser.all as p
+import source.data.voxels as v
 import source.interactive.scene as s
 import source.data.voxel_tree.node as n
 from source.utils.types import int3
@@ -141,25 +142,43 @@ class Configuration(p.Struct):
 
     __cache = VoxelRendererCache()
 
-    def getVoxelRenderer(self, data: n.Data):
+    def getVoxelRenderer(self, node: n.VoxelNode):
+        # Get data
+        D = node.data
         # Get config
         C = self.config
-        # Get Materials
-        M = data.material
         # Instance voxel renderer
-        V = self.__cache.get(M.shape, C.resolution.getOr(256))
+        V = self.__cache.get(
+            D.material.shape,
+            C.resolution.getOr(256),
+        )
         # Set alpha
         V.alpha = C.alpha.getOr(0.9)
         # Set colors
         V.set_colors(self.materials.get().colors())
         # Set data
-        V.fill(M.astype(np.float32))
+        V.fill(D.material.astype(np.float32))
         # Set outline
         V.outline = C.outline.getOr(True)
         # Make transformation
-        T = glm.translate(glm.vec3(*data.box.start))
+        T = glm.translate(glm.vec3(*D.box.start))
         # Return renderer
         return s.Transform(T, V)
+    
+    def buildVoxelsObject(self, node: n.VoxelNode):
+        # Get
+        D = node.data
+        M = self.materials
+        # Create
+        V = v.Voxels(D.material.shape)
+        # Set internals
+        V.grid = D.material
+        V.strength = D.strength
+        V.forces = M.forces
+        V.statics = M.statics
+        # Return
+        return V
+
 
     def configure(self, TQ: TaskQueue, S: s.SceneBase):
         """ Process config (called from parser thread) """

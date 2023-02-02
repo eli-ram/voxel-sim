@@ -8,6 +8,7 @@ class Material:
     id: int
     name: str
     color: Color
+    strenght: float
 
     def __post_init__(self):
         assert self.id > 0, \
@@ -23,20 +24,20 @@ class MaterialStore:
         self._lut: dict[str, Material] = {}
         self._all: list[Material] = []
 
-    def create(self, name: str, color: Color):
+    def create(self, name: str, color: Color, strenght: float):
         assert name not in self._lut, " Material name is already occupied "
         L = len(self._all)
-        M = Material(L + 1, name, color)
+        M = Material(L + 1, name, color, strenght)
         self._lut[name] = M
         self._all.append(M)
         return M
 
-    def updateOrCreate(self, name: str, color: Color):
+    def updateOrCreate(self, name: str, color: Color, strength: float):
         if name in self._lut:
             M = self._lut[name]
             M.color = color
             return M
-        return self.create(name, color)
+        return self.create(name, color, strength)
 
     def __contains__(self, key: str):
         return key in self._lut

@@ -56,11 +56,11 @@ class Voxels(Window):
         shape = (32, 32, 32)
         resolution = 2**9
         self.voxels = VoxelProxy(shape, resolution)
-        self.voxels.createMaterials({
-            "STATIC": get.BLUE,
-            "FORCE": get.RED,
-            "BONE": Color(0.3, 0.5, 0.3, 0.1),
-        })
+        M = self.voxels.materials
+        M.create("STATIC", get.BLUE, 0)
+        M.create("FORCE", get.RED, 0)
+        M.create("BONE", Color(0.3, 0.5, 0.3, 0.1), 0)
+        self.voxels.update_colors()
 
         # Store animator
         self.animator = Animator(delta=0.5)
@@ -71,7 +71,6 @@ class Voxels(Window):
         # 3D-crosshair for camera
         self.move_cross = Transform(
             transform=glm.scale(glm.vec3(0.01, 0.01, 0.01)),
-            # mesh=Wireframe(s.origin_marker()).setColor(Color(1, 0.5, 0)),
             mesh=Origin(),
             hidden=True,
         )
@@ -119,7 +118,7 @@ class Voxels(Window):
             d.require(d.script_dir(__file__), '..', 'results'),
             'animation{:[%Y-%m-%d][%H-%M]}.gif'
         ))
- 
+
         self.build()
 
     def alpha(self, up: bool):

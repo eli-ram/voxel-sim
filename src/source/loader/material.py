@@ -1,11 +1,10 @@
 from typing import Any, Dict, List, NamedTuple
 
 import source.parser.all as p
+import source.utils.types as t
+import source.data.colors as c
+import source.data.material as m
 from .vector import Vec3
-from source.data import (
-    colors,
-    material as m,
-)
 
 
 class Locks(NamedTuple):
@@ -14,18 +13,18 @@ class Locks(NamedTuple):
     z: bool = False
 
 
-class Color(p.Value[colors.Color]):
+class Color(p.Value[c.Color]):
     def fromNone(self):
-        return colors.get.WHITE
+        return c.get.WHITE
 
     def fromMap(self, data: Dict[str, Any]):
-        return colors.Color(**data)
+        return c.Color(**data)
 
     def fromArray(self, data: List[Any]):
-        return colors.Color(*data)
+        return c.Color(*data)
 
     def fromValue(self, data: Any):
-        return colors.get(data)
+        return c.get(data)
 
 
 class Material(p.Struct):
@@ -37,17 +36,44 @@ class Material(p.Struct):
 
 class MaterialStore(p.Map[Material]):
     generic = Material
-    _cache: m.MaterialStore
+
+    # Caches
+    store: m.MaterialStore
+    forces: dict[m.Material, t.float3]
+    statics: dict[m.Material, t.bool3]
 
     def postParse(self):
+        # New caches
         store = m.MaterialStore()
-        for key, value in self:
-            store.create(key, value.color.require())
-        self._cache = store
+        forces = dict[m.Material, t.float3]()
+        statics = dict[m.Material, t.bool3]()
+
+        # Listed materials
+        for key, V in self:
+            # Register material
+            M = store.create(
+                key,
+                V.color.require(),
+                V.strength.getOr(0.0),
+                # V.force.get(),
+                # V.locks.get(),
+            )
+
+            # Bind forces
+            if (F := V.force.get()):
+                forces[M] = (F.x, F.y, F.z)
+
+            # Bind locks
+            if (L := V.locks.get()):
+                statics[M] = (L.x, L.y, L.z)
+
+        # Save caches
+        self.store = store
+        self.forces = forces
+        self.statics = statics
 
     def get(self):
-        return self._cache
-
+        return self.store
 
 class MaterialKey(p.String):
     _cache: m.Material

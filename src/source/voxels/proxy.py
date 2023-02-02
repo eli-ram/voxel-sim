@@ -31,11 +31,6 @@ class VoxelProxy:
         self.graphics = VoxelRenderer(shape, res)
         self.materials = MaterialStore()
 
-    def createMaterials(self, map: dict[str, colors.Color]):
-        for k, v in map.items():
-            self.materials.create(k, v)
-        self.update_colors()        
-
     def update_colors(self):
         self.graphics.colors.setData(self.materials.colors())
 
