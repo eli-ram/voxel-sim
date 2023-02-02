@@ -13,6 +13,9 @@ class GeometryCollection(Geometry, type='collection'):
     # The list of children
     elements: p.Array[p.Polymorphic[Geometry]]
 
+    # Voxel cache
+    __node: n.VoxelNode
+
     def __iter__(self):
         for element in self.elements:
             G = element.get()
@@ -32,13 +35,15 @@ class GeometryCollection(Geometry, type='collection'):
 
     def getVoxels(self, ctx: Context) -> n.VoxelNode:
         # Push transform
-        old = ctx.matrix
-        ctx.matrix = old * self.transform.matrix
+        ctx, old = self._cacheCtx(ctx)
+        # Check if cache is valid
+        if ctx.eq(old) and not any(G.hasChanged() for G in self):
+            return self.__node
         # Get Children
         L = [G.getVoxels(ctx) for G in self]
-        # Pop transform
-        ctx.matrix = old
         # Get Operation
         O = n.Operation.OVERWRITE
         # Build Voxels (todo: cache)
-        return n.VoxelNode.Parent(O, L)
+        N = n.VoxelNode.Parent(O, L)
+        self.__node = N
+        return N

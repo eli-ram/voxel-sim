@@ -137,7 +137,7 @@ class Configuration(p.Struct):
             return None
 
         # Get Geometry voxels
-        print("Context:", C.offset, C.shape)
+        print("Context:", C.box)
         print(f"{C.matrix}")
         N = self.geometry.getVoxels(C)
 

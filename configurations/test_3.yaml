@@ -1,7 +1,7 @@
 config:
   # size: 256
   build: true
-  alpha: 0.1
+  alpha: 0.2
   render: true  
   resolution: 256
   background: [0.01, 0.01, 0.02]

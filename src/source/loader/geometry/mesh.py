@@ -12,9 +12,11 @@ from source.utils.mesh_loader import cacheMesh
 
 from .geometry import Context, Geometry
 
+
 class Mesh(Geometry, type='mesh'):
     file: p.String
-    mesh: m.Mesh
+    __mesh: m.Mesh
+    __node: n.VoxelNode
 
     def postParse(self):
         file = self.file.require()
@@ -22,27 +24,25 @@ class Mesh(Geometry, type='mesh'):
 
         try:
             # Get or Load mesh
-            self.mesh = cacheMesh(file)
+            self.__mesh = cacheMesh(file)
         except FileNotFoundError:
             raise p.ParseError(f"File Not Found: \"{file}\"")
 
     def getMesh(self) -> m.Mesh:
-        return self.mesh
+        return self.__mesh
 
     def getVoxels(self, ctx: Context) -> n.VoxelNode:
-        # Build transform
-        T = mat.to_affine(
-            # Global transform
-            ctx.matrix *
-            # Local transform
-            self.transform.matrix
-        )
+        # Cache context
+        ctx, old = self._cacheCtx(ctx)
+        # Check if cached value is valid
+        if ctx.eq(old) and not self.file.hasChanged():
+            return self.__node
         # Compute voxels
         offset, grid = mesh_to_voxels(
             # Cached mesh
-            self.mesh,
+            self.__mesh,
             # Transformation
-            T,
+            mat.to_affine(ctx.matrix),
             # relevant area
             ctx.shape
         )
@@ -60,4 +60,6 @@ class Mesh(Geometry, type='mesh'):
         # Get operation
         O = n.Operation.OVERWRITE
         # Return node
-        return n.VoxelNode.Leaf(O, D)
+        N = n.VoxelNode.Leaf(O, D)
+        self.__node = N
+        return N

@@ -27,25 +27,39 @@ def void_on_error(method):
             return s.Void()
     return wrap
 
+
 class Context:
 
     def __init__(self, box: b.Box):
-        # get properties of box
-        self.offset = box.start
+        # store box
+        self.box = box
+        # store shape
         self.shape = box.shape
         # start with offset
         self.matrix = glm.translate(
-            -glm.vec3(*self.offset)
+            -glm.vec3(*box.start)
+        )
+
+    def push(self, mat: glm.mat4):
+        new = Context(self.box)
+        new.matrix = self.matrix * mat
+        return new
+
+    def eq(self, other: 'Context'):
+        return (
+            self.shape == other.shape and
+            self.matrix == other.matrix
         )
 
     def finalize(self, node: n.VoxelNode):
-        O = self.offset
+        O = self.box.start
         B = node.data.box
-        # Offset box 
+        # Offset box
         B.start += O
         B.stop += O
         # Return node
         return node
+
 
 class Geometry(p.PolymorphicStruct):
     # Voxel operation (not supported)
@@ -59,6 +73,20 @@ class Geometry(p.PolymorphicStruct):
 
     # Show origin
     show_origin: p.Bool
+
+    # Cache buster for Context
+    __cache = Context(n.Box.Empty())
+
+    def _cacheCtx(self, ctx: Context):
+        """ Push transform onto Context & Return previous Context """
+        # Load prev context
+        old = self.__cache
+        # Create new context
+        new = ctx.push(self.transform.matrix)
+        # Cache new context
+        self.__cache = new
+        # Return (new, old)
+        return new, old
 
     def loadMaterial(self, store: m.MaterialStore):
         self.setError(self.material.load(store))
@@ -91,4 +119,3 @@ class Geometry(p.PolymorphicStruct):
     def getVoxels(self, ctx: Context) -> n.VoxelNode:
         impl = self.__class__.__name__
         raise NotImplementedError(f"{impl}.getVoxels()")
-
