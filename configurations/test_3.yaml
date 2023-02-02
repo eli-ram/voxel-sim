@@ -1,8 +1,9 @@
 config:
   # size: 256
   build: true
-  alpha: 0.2
-  render: true  
+  alpha: 0.3
+  render: true
+  outline: false
   resolution: 256
   background: [0.01, 0.01, 0.02]
   region: 
@@ -36,7 +37,7 @@ geometry:
         - translate: [0, -4.2, 0.2]
         - rotate: 
             axis: Y
-            angle: { deg: 240 }
+            angle: { deg: 245 }
             local: false
         - debug: 1
         # - debug: 2

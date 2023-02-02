@@ -53,12 +53,17 @@ class Context:
 
     def finalize(self, node: n.VoxelNode):
         O = self.box.start
-        B = node.data.box
-        # Offset box
-        B.start += O
-        B.stop += O
-        # Return node
-        return node
+        D = node.data
+        # Offset data
+        return n.Data(
+            box=n.Box(
+                D.box.start + O,
+                D.box.stop + O,
+            ),
+            mask=D.mask,
+            material=D.material,
+            strength=D.strength,
+        )
 
 
 class Geometry(p.PolymorphicStruct):

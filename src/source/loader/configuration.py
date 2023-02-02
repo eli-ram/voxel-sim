@@ -6,6 +6,7 @@ from source.interactive.tasks import TaskQueue
 import source.parser.all as p
 import source.interactive.scene as s
 import source.data.voxel_tree.node as n
+from source.utils.types import int3
 from source.utils.shapes import line_cube
 from source.utils.wireframe.wireframe import Wireframe
 from source.voxels.render import VoxelRenderer
@@ -28,8 +29,11 @@ class Config(p.Struct):
     # Render Raw Geometry
     render: p.Bool
 
-    # Voxel alpha
+    # Voxel global alpha
     alpha: p.Float
+
+    # Voxel outline
+    outline: p.Bool
 
     # Constrain Voxel Region
     region: Box
@@ -39,9 +43,6 @@ class Config(p.Struct):
 
     # Background color
     background: Color
-
-    def getResolution(self):
-        return self.resolution.getOr(1024)
 
     def buildScene(self, geometry: s.Scene):
         """ Build the scene presented to the user """
@@ -83,6 +84,22 @@ class Config(p.Struct):
         return Context(B)
 
 
+class VoxelRendererCache:
+    renderer: VoxelRenderer
+
+    def get(self, shape: int3, count: int):
+        # Check if cached value can be re-used
+        if hasattr(self, 'renderer'):
+            R = self.renderer
+            if R.shape == shape and R.count == count:
+                return R
+
+        # Build new
+        R = VoxelRenderer(shape, count)
+        self.renderer = R
+        return R
+
+
 class Configuration(p.Struct):
     # General Settings
     config: Config
@@ -100,34 +117,12 @@ class Configuration(p.Struct):
         store = self.materials.get()
         self.geometry.loadMaterial(store)
 
-    def getResolution(self):
-        return self.config.resolution.getOr(256)
-
-    def getBackground(self):
-        return self.config.background.require()
-
     def getRender(self) -> s.Scene:
         # Get the geometry
         R = self.geometry.getRender()
 
         # Return the scene
         return self.config.buildScene(R)
-
-    def getVoxelRenderer(self, data: n.Data):
-        # Get Materials
-        M = data.material
-        # Instance voxel renderer
-        V = VoxelRenderer(M.shape, self.config.getResolution())
-        # Set alpha
-        V.alpha = self.config.alpha.getOr(0.9)
-        # Set colors
-        V.set_colors(self.materials.get().colors())
-        # Set data
-        V.fill(M.astype(np.float32))
-        # Make transformation
-        T = glm.translate(glm.vec3(*data.box.start))
-        # Return renderer
-        return V, T
 
     def getVoxels(self):
         # Make context
@@ -144,6 +139,27 @@ class Configuration(p.Struct):
         # Return Corrected voxels
         return C.finalize(N)
 
+    __cache = VoxelRendererCache()
+
+    def getVoxelRenderer(self, data: n.Data):
+        # Get config
+        C = self.config
+        # Get Materials
+        M = data.material
+        # Instance voxel renderer
+        V = self.__cache.get(M.shape, C.resolution.getOr(256))
+        # Set alpha
+        V.alpha = C.alpha.getOr(0.9)
+        # Set colors
+        V.set_colors(self.materials.get().colors())
+        # Set data
+        V.fill(M.astype(np.float32))
+        # Set outline
+        V.outline = C.outline.getOr(True)
+        # Make transformation
+        T = glm.translate(glm.vec3(*data.box.start))
+        # Return renderer
+        return s.Transform(T, V)
 
     def configure(self, TQ: TaskQueue, S: s.SceneBase):
         """ Process config (called from parser thread) """
@@ -178,17 +194,16 @@ class Configuration(p.Struct):
 
         # Not configured for voxels
         if N is None:
-            print("Did not build voxels")
+            print("Cannot build voxels")
             return
 
         # synchronized context to render voxels
         @TQ.dispatch
         def voxels():
-            print("voxels:", N.data.box)
             # Build voxel renderer
-            V, T = self.getVoxelRenderer(N.data) 
+            V = self.getVoxelRenderer(N)
             # Transform renderer into the scene
-            R.add(s.Transform(T, V))
+            R.add(V)
 
         # Wait for voxels to finish
         voxels.wait()
