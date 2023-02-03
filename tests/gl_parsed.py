@@ -26,10 +26,16 @@ from source.parser.detector import ParsableDetector
 
 
 def time_to_t(time: float, duration: float, padding: float):
-    MOD = duration + 2 * padding
-    D = (time % MOD - padding) / duration
-    T = max(min(D, 1.0), 0.0)
-    return T
+    M = time % (duration + padding + padding)
+    D = (M - padding) / duration
+    # Wait
+    if D < 0.0:
+        return 0.0
+    # Stall
+    if D > 1.0:
+        return 1.0
+    # Interpolate
+    return D
 
 
 class Voxels(w.Window):
@@ -96,7 +102,7 @@ class Voxels(w.Window):
 
         # Update deformation if set
         if D := self.deformation:
-            t = time_to_t(time, 30.0, 5.0)
+            t = time_to_t(time, 30.0, 1.5)
             D.setDeformation(t)
 
     def render(self):
@@ -108,30 +114,39 @@ class Voxels(w.Window):
     def scroll(self, value: float):
         self.camera.Zoom(value)
 
+    def detector(self, config: str):
+        # Create Configuration
+        @ParsableDetector[Configuration] 
+        def impl(config: Configuration):
+            TQ = self.tasks
+            print("Processing config ...")
+
+            # Background
+            BG = config.background()
+            TQ.dispatch(lambda: self.scene.setBackground(BG))
+
+            # Build scene
+            S = config.scene(TQ)
+            self.scene.setChildren([self._3D_cursor, S])
+
+            # Configure
+            config.configure(TQ, S)
+            # Run more
+            D = config.run(TQ, S)
+            # deformation mesh attatchment
+            window.deformation = D
+
+        # run
+        impl(config) 
+
 
 if __name__ == '__main__':
     # Create Window
     window = Voxels(900, 900, "voxels")
 
-    # Create Configuration
-    @ParsableDetector[Configuration]
-    def detector(config: Configuration):
-        # Attrs
-        TQ = window.tasks
-        S = window.scene
-        # Configure
-        R, BG = config.configure(TQ)
-        # Set scene
-        TQ.dispatch(lambda: S.setBackground(BG))
-        S.setChildren([window._3D_cursor, R])
-        # Run more
-        D = config.run(TQ)
-        # deformation mesh attatchment
-        # window.deformation = D
-
     # Run Configuration thread
     with directory(script_dir(__file__), "..", "configurations"):
-        detector("test_4.yaml")
+        window.detector("test_4.yaml")
 
     # Run window
     window.spin()

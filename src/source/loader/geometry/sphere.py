@@ -3,18 +3,17 @@ import numpy as np
 
 import source.data.mesh as m
 import source.math.utils as u
-import source.utils.shapes as s
+import source.utils.shapes as shp
 import source.graphics.matrices as mat
 import source.data.voxel_tree.node as n
 
 from .geometry import Geometry, Context
 
+ 
 
-def _coords(box: n.Box):
-    # Bounds
-    P = zip(box.start, box.stop)
+def _coords(*shape: int):
     # Ranges
-    R = (np.arange(l, h) for l, h in P)
+    R = (np.arange(l) for l in shape)
     # Grids (can numpy fix meshgrid typing ....)
     G = np.meshgrid(*R)  # type: ignore
     # Unraveled
@@ -22,28 +21,23 @@ def _coords(box: n.Box):
     # Joined
     return np.vstack(U).astype(np.int64)
 
-
 def _voxels(ctx: Context):
+    # x, y, z = ctx.shape
     # Centered coordinates
-    C = _coords(ctx.box) + 0.5
-    # Get affine matrix
-    T = mat.to_affine(
-        # Invert coordinate space
-        glm.affineInverse(ctx.matrix) *
-        # Fix center
-        glm.translate(-glm.vec3(ctx.box.start))
-    )
+    C = _coords(*ctx.shape) + 0.5
+    # Get affine inverse matrix
+    T = mat.to_affine(glm.affineInverse(ctx.matrix))
     # mat3 part
     M = T[:, :3]
     # vec3 part
-    V = T[:, 3:] # .transpose()
+    V = T[:, 3:]
     # Affine transform to local coords
-    # FIXME (what went wrong here ...)
-    L = (M @ C) + V #[:, np.newaxis]
+    L = (M @ C) + V
     # Inside unit circle
     U = np.sum(L * L, axis=0) < 1.0
     # Reshape to grid
     G = U.astype(np.bool_).reshape(ctx.box.shape)
+    # FIXME (what went wrong here ...)
     G = G.swapaxes(0, 1)
     # Remove padding
     return u.remove_padding_grid(G)
@@ -55,7 +49,7 @@ class Sphere(Geometry, type='sphere-old'):
     __node: n.VoxelNode
 
     def getMesh(self) -> m.Mesh:
-        return s.sphere()
+        return shp.sphere()
 
     def getVoxels(self, ctx: Context) -> n.VoxelNode:
         ctx, old = self._cacheCtx(ctx)
@@ -71,7 +65,7 @@ class Sphere2(Geometry, type='sphere'):
     __node: n.VoxelNode
 
     def getMesh(self) -> m.Mesh:
-        return s.sphere_2(64)
+        return shp.sphere_2(64)
 
     def getVoxels(self, ctx: Context) -> n.VoxelNode:
         ctx, old = self._cacheCtx(ctx)

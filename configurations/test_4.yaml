@@ -2,7 +2,7 @@
 # {X: red, Y: green, Z: blue}
 
 config:
-  run: on
+  run: on  
   build: on
   alpha: 0.1
   render: true
@@ -10,27 +10,38 @@ config:
   resolution: 256
   background: [0.01, 0.01, 0.02]
   region: 
-    start: [-150, -100, -100]
-    stop: [150, 200, 150]
+    start: [-15, -10, -10]
+    stop: [15, 20, 15]
 
 materials:
   BONE:
     color: [0.2, 0.6, 0.5, 0.1]
-    strength: 10.0
+    strength: 5.0
   STATIC:
-    color: [0.2, 0.1, 0.5, 0.5]
-    strength: 10.0
+    color: [0.2, 0.1, 0.5, 0.2]
+    strength: 5.0
     locks: [true, true, true]
   FORCE:
-    color: [0.9, 0.2, 0.1, 0.4]
-    strength: 10.0
+    color: [0.9, 0.2, 0.1, 0.2]
+    strength: 5.0
     force: [0.0, 0.0, -10.0]
+  METAL:
+    color: [0.8, 0.8, 0.8, 0.9]
+    strength: 6.0
 
 geometry:
   transform:
+    # - debug: 1
     - scale: 15
-    - translate: [0, 0.2, 0.2]
-    - scale: 10
+    - translate: [-0.1, 0.2, 0.2]
+    - rotate:
+        axis: Z
+        angle: { deg: -35 }
+    - rotate:
+        axis: Y
+        angle: { deg: 41 } # 41
+    - translate: [0, -0.2, 0]
+    # - scale: 10
   elements:
     - type: mesh
       # operation: add
@@ -69,15 +80,28 @@ geometry:
         # {X: red, Y: green, Z: blue}
 
 parameters:
-  inner_surface:
-    type: circle
+  # a:
+  show: true
+  width: 1.2
+  material: METAL
+  transform: 
+    - debug: a
+    - scale: 5
+    - translate: [0, 0.5, 0.4]
+    - rotate: 
+        axis: Z
+        angle: { deg: -10 }
+
+  volume_a:
+    color: WHITE
+    width: 15.0
     transform:
-      scale: 0.2
-      position: [0.5, 0.5, 0.9]
-      rotation: [1, 0, 1, 0]
-  outer_surface:
-    type: circle
+      - translate: [2.8, 0.15, 0]
+      - scale: [0.2, 1.5, 1.5]
+
+  volume_b:
+    color: GRAY
     transform:
-      scale: 0.2
-      position: [1.0, 1.0, 1.0]
-      rotation: [1, 0, -1, 0]
+      - translate: [-3, 0, 0]
+      - scale: [0.2, 2, 2]
+

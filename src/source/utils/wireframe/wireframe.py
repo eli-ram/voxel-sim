@@ -33,7 +33,7 @@ class Wireframe:
         V = self._V
         I = self._I
         GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
-        GL.glLineWidth(self._w)
+        GL.glLineWidth(self._w) # unsupported operation
         with self._S as (A, U), V, I:
             MVP = m.makeMVP()
             GL.glUniformMatrix4fv(U.MVP, 1, GL.GL_FALSE, glm.value_ptr(MVP))

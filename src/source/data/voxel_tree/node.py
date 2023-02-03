@@ -33,6 +33,8 @@ class VoxelNode:
     def Parent(cls, op: Operation, nodes: List[VoxelNode]):
         return cls(op, cls.process(nodes))
 
+    def offset(self, amount: 'np.ndarray[np.int64]'):
+        return VoxelNode(self.op, self.data.offset(amount))
 
 def test_nodes():
     """ (bad) Test method """

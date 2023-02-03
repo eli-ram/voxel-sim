@@ -55,13 +55,13 @@ class Config(p.Struct):
     # Background color
     background: Color
 
-    def buildScene(self, geometry: s.Scene):
+    def buildScene(self):
         """ Build the scene presented to the user """
         B = self.region.box
 
         # If no region, just present the geometry
         if B.is_empty:
-            return geometry
+            return s.Scene()
 
         # Build the region bounding box
         bbox = s.Transform((
@@ -80,7 +80,7 @@ class Config(p.Struct):
         )
 
         # return the scene
-        return s.Scene(matrix, [geometry, bbox])
+        return s.Scene(matrix, [bbox])
 
     def buildContext(self):
         # Requested not to build
@@ -97,16 +97,9 @@ class Config(p.Struct):
 
 class VoxelCache:
     node: n.VoxelNode
-    scene: s.Scene
     renderer: VoxelRenderer
 
-    def getNode(self, G: Geometry, C: Config):
-        # Make context
-        ctx = C.buildContext()
-        # No context -> no geometry
-        if ctx is None:
-            return None
-
+    def getNode(self, G: Geometry, ctx: Context):
         # Get Geometry voxels
         N = G.getVoxels(ctx)
 
@@ -147,6 +140,7 @@ class Configuration(p.Struct):
     def postParse(self):
         store = self.materials.get()
         self.geometry.loadMaterial(store)
+        self.parameters.loadMaterial(store)
 
     __cache = VoxelCache()
 
@@ -187,48 +181,48 @@ class Configuration(p.Struct):
         # Return
         return V
 
-    def configure(self, TQ: TaskQueue):
+    def background(self):
+        return self.config.background.require()
+
+    def scene(self, TQ: TaskQueue):
+        return TQ.dispatch(self.config.buildScene)()
+
+    def configure(self, TQ: TaskQueue, S: s.Scene):
         """ Process config (called from parser thread) """
-
-        print("Processing config ...")
-
-        # Get background color
-        BG = self.config.background.require()
-
-        # synchronized context to render scene
+        # Build the scene
         @TQ.dispatch
-        def render():
-            # Get the geometry
-            R = self.geometry.getRender()
-
-            # Return the scene
-            return self.config.buildScene(R)
+        def scene():
+            # geometry
+            S.add(self.geometry.render())
+            # params
+            S.opt(self.parameters.render())
 
         # Compute voxels
-        N = self.__cache.getNode(self.geometry, self.config)
-
-        # Wait for render to finish
-        R = render()
-        self.__cache.scene = R
 
         # Not configured for voxels
-        if N is None:
+        CTX = self.config.buildContext()
+        if CTX is None:
             print("Cannot build voxels")
-            return R, BG
+            return
+
+        # Build voxels
+        N = self.__cache.getNode(self.geometry, CTX)
+
+        # Build tmp
+        ROD = CTX.finalize(self.parameters.sample(CTX))
+
+        # JOIN
+        N = n.VoxelNode.Parent(n.Operation.OVERWRITE, [N, ROD])
+        self.__cache.node = N
+
+        # Wait for scene to finish
+        scene()        
 
         # synchronized context to render voxels
-        @TQ.dispatch
-        def voxels():
-            # Build voxel renderer
-            return self.getVoxelRenderer(N)
+        voxels = TQ.dispatch(lambda:self.getVoxelRenderer(N))
+        S.add(voxels())
 
-        # Wait for voxels to finish
-        R.add(voxels())
-
-        # Return scene
-        return R, BG
-
-    def run(self, TQ: TaskQueue):
+    def run(self, TQ: TaskQueue, S: s.Scene):
         if not self.config.run.get():
             return
 
@@ -245,23 +239,23 @@ class Configuration(p.Struct):
         # Make mesh
         M = m.Mesh(T.nodes, T.edges, m.Geometry.Lines)
         # Simulate Truss
-        # D, _ = fem.fem_simulate(T, 1E3)
+        D, _ = fem.fem_simulate(T, 1E3)
 
         # Build wireframe on main thread
         @TQ.dispatch
         def wireframe():
-            return Wireframe(M)
-            # return DeformationWireframe(M, D)
+            # return Wireframe(M)
+            return DeformationWireframe(M, D)
 
         # Create transform
         T = glm.translate(glm.vec3(*node.data.box.start))
 
         # Get wireframe
         W = wireframe()
-        W.setColor(c.Color(0.1, 0.1, 0.1, 0.2))
+        # W.setColor(c.Color(0.1, 0.1, 0.1, 0.2))
+        W.setWidth(2.0)
 
         # Add to scene
-        S = self.__cache.scene
         S.children.insert(0, s.Transform(T, W))
 
         # Return def-frame¨

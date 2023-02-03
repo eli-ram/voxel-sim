@@ -7,6 +7,12 @@ from source.graphics.matrices import Hierarchy
 class Origin:
     """ Render A Wireframe """
 
+    @classmethod
+    def cached(cls) -> 'Origin':
+        if not hasattr(cls, '__cached'):
+            setattr(cls, '__cached', cls())
+        return getattr(cls, '__cached')
+
     def __init__(self):
         self._S = OriginShader.get()
         self._w = 2.0

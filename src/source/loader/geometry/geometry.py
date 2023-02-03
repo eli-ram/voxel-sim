@@ -31,14 +31,21 @@ def void_on_error(method):
 class Context:
 
     def __init__(self, box: b.Box):
-        # store box
+        # store box (TODO: __box)
         self.box = box
+
         # store shape
         self.shape = box.shape
+
         # start with offset
         self.matrix = glm.translate(
             -glm.vec3(*box.start)
         )
+
+        # Everything from (0, 0, 0) until shape
+        # is considered inside bounds
+        # it's not needed to voxelize 
+        # anything outside the bounds
 
     def push(self, mat: glm.mat4):
         new = Context(self.box)
@@ -52,22 +59,7 @@ class Context:
         )
 
     def finalize(self, node: n.VoxelNode):
-        O = self.box.start
-        D = node.data
-        # Offset data
-        data = n.Data(
-            box=n.Box(
-                D.box.start + O,
-                D.box.stop + O,
-            ),
-            mask=D.mask,
-            material=D.material,
-            strength=D.strength,
-        )
-        # Operation
-        op = n.Operation.OVERWRITE
-        # Node
-        return n.VoxelNode(op, data)
+        return node.offset(self.box.start)
 
 
 class Geometry(p.PolymorphicStruct):
@@ -102,25 +94,20 @@ class Geometry(p.PolymorphicStruct):
 
     def getMesh(self) -> mesh.Mesh:
         raise NotImplementedError()
-
+    
     @void_on_error
-    def getRender(self) -> s.Render:
+    def render(self) -> s.Render:
         # Render a Wireframe
         mesh = self.getMesh()
         color = self.material.get().color
         matrix = self.transform.matrix
 
-        # build model
+        # build model (TODO cache buffers --> change wireframe api ....)
         model = Wireframe(mesh).setColor(color)
 
         # include debug origins
-        if (debugs := self.transform.debugs):
-            scene = s.Scene(matrix, children=[model])
-            O = Origin()
-            for (matrix, _) in debugs:
-                M = glm.affineInverse(matrix)
-                scene.add(s.Transform(M, O))
-            return scene
+        if debugs := self.transform.getDebugs():
+            return s.Scene(matrix, children=[*debugs, model])
 
         # return model
         return s.Transform(matrix, model)

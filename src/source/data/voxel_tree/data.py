@@ -55,3 +55,12 @@ class Data:
             material=self.material[slices],
             strength=self.strength[slices],
         )
+    
+    def offset(self, amount: 'np.ndarray[np.int64]'):
+        B = self.box
+        return Data(
+            box=Box(B.start + amount, B.stop + amount),
+            mask=self.mask,
+            material=self.material,
+            strength=self.strength,
+        )

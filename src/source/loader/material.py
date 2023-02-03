@@ -2,9 +2,8 @@ from typing import Any, Dict, List, NamedTuple
 
 import source.parser.all as p
 import source.utils.types as t
-import source.data.colors as c
 import source.data.material as m
-from .vector import Vec3
+from .data import Color, Vec3
 
 
 class Locks(NamedTuple):
@@ -13,25 +12,33 @@ class Locks(NamedTuple):
     z: bool = False
 
 
-class Color(p.Value[c.Color]):
-    def fromNone(self):
-        return c.get.WHITE
-
-    def fromMap(self, data: Dict[str, Any]):
-        return c.Color(**data)
-
-    def fromArray(self, data: List[Any]):
-        return c.Color(*data)
-
-    def fromValue(self, data: Any):
-        return c.get(data)
-
-
 class Material(p.Struct):
     color: Color
     strength: p.Float
     locks: p.Value[Locks]
     force: Vec3
+
+class MaterialKey(p.String):
+    _cache: m.Material
+
+    def load(self, store: m.MaterialStore):
+        """ Load the material from the store """
+        with self.captureErrors():
+            key = self.maybe()
+
+            if key is None:
+                raise p.ParseError("Missing material key!")
+
+            if key not in store:
+                raise p.ParseError(f"Material does not exist! (key: {key})")
+
+            self._cache = store[key]
+
+        return self.hasError()
+
+    def get(self):
+        """ Get the cached material """
+        return self._cache
 
 
 class MaterialStore(p.Map[Material]):
@@ -75,24 +82,3 @@ class MaterialStore(p.Map[Material]):
     def get(self):
         return self.store
 
-class MaterialKey(p.String):
-    _cache: m.Material
-
-    def load(self, store: m.MaterialStore):
-        """ Load the material from the store """
-        with self.captureErrors():
-            key = self.maybe()
-
-            if key is None:
-                raise p.ParseError("Missing material key!")
-
-            if key not in store:
-                raise p.ParseError(f"Material does not exist! (key: {key})")
-
-            self._cache = store[key]
-
-        return self.hasError()
-
-    def get(self):
-        """ Get the cached material """
-        return self._cache

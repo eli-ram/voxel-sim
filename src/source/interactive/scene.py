@@ -40,6 +40,10 @@ class Scene:
     def add(self, child: Render):
         self.children.append(child)
 
+    def opt(self, child: Render | None):
+        if child:
+            self.children.append(child)
+
     def insert(self, index: int, child: Render):
         self.children.insert(index, child)
 
@@ -80,6 +84,7 @@ class SceneBase:
         self.children.insert(index, child)
 
     def render(self):
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)  # type: ignore
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT |
+                   GL.GL_DEPTH_BUFFER_BIT)  # type: ignore
         for child in self.children:
             child.render(self.stack)

@@ -1,4 +1,5 @@
 # pyright: reportUnknownMemberType=false
+import enum
 from typing import Any
 
 from .buttons import Buttons
@@ -12,6 +13,21 @@ def callback(func: Any) -> None:
         self: Window = glfw.get_window_user_pointer(window)
         func(self, *args)
     return wrap # type: ignore
+
+class DisplayType(enum.Enum):
+    NORMAL = 0
+    BORDERLESS = 2
+    FULLSCREEN = 1
+    BORDERLESS_FULLSCREEN = 3
+
+# TODO manage window display with this
+class WindowDisplayManager:
+    pos: tuple[int, int]
+    size: tuple[int, int]
+    type: DisplayType
+
+    def change(self, window: Any, type: DisplayType):
+        pass
 
 @dataclass
 class Cache:
@@ -92,6 +108,32 @@ class Window:
         glfw.set_window_should_close(self.window, True)
 
     def toggle_fullscreen(self):
+        size: tuple[int, int]
+        if not glfw.get_window_monitor(self.window):
+            self._cache.window_pos = glfw.get_window_pos(self.window)
+            self._cache.window_size = glfw.get_window_size(self.window)
+
+            monitor = glfw.get_primary_monitor()
+            mode = glfw.get_video_mode(monitor)
+            pos = (0, 0)
+            size = mode.size
+            rate = mode.refresh_rate
+
+        else:
+            monitor = None
+            pos = self._cache.window_pos
+            size = self._cache.window_size
+            rate = 0
+
+        glfw.set_window_monitor(
+            self.window,
+            monitor,
+            *pos,
+            *size,
+            rate,
+        )
+
+    def toggle_borderless_fullscreen(self):
         size: tuple[int, int]
         if not glfw.get_window_monitor(self.window):
             self._cache.window_pos = glfw.get_window_pos(self.window)

@@ -1,61 +1,230 @@
+from typing import Callable, TypeVar, Generic
+import glm
 import numpy as np
 
 import source.parser.all as p
+import source.math.utils as u
 import source.utils.types as t
-from source.loader.geometry import Sphere
+import source.utils.shapes as shp
+import source.loader.material as m
+import source.loader.geometry as g
+import source.interactive.scene as s
+import source.graphics.matrices as mat
+import source.data.voxel_tree.node as n
+
+from source.utils.wireframe.wireframe import Wireframe
+from source.loader.transforms.sequence import Transform
+from source.loader.data import Color
 
 
-def _rng_unit_sphere(rng: np.random.Generator, size: int):
-    # (x, y, z)[N]
-    P: t.Array[t.F] = rng.uniform(-1.0, 1.0, size=(3, size))
-    I = np.sum(P * P, axis=0) > 1.0
+class UnitSphere:
 
-    # Regenerate until all points are inside unit circle
-    while np.any(I):  # type: ignore
-        P[:, I] = rng.uniform(-1, 1, size=(3, np.sum(I)))
+    def __init__(self, seed: int | None) -> None:
+        self.rng = np.random.default_rng(seed)
+
+    def make_points(self, size: int):
+        # (x, y, z)[N]
+        P: t.Array[t.F] = self.rng.uniform(-1.0, 1.0, size=(3, size))
         I = np.sum(P * P, axis=0) > 1.0
 
-    # ok
-    return P
+        # Regenerate until all points are inside unit circle
+        while C := I.sum():  # type: ignore
+            P[:, I] = self.rng.uniform(-1, 1, size=(3, C))
+            I = np.sum(P * P, axis=0) > 1.0
+
+        # ok
+        return P
+
+    def move_points(self, P: t.Array[t.F], max: float):
+        S = P.shape
+        assert len(S) == 2 and S[0] == 3, "array is not a list of points"
+        # Move randomly
+        P += self.make_points(P.shape[1]) * max
+        # Check if points outside unit cirle
+        I = np.sum(P * P, axis=0) > 1.0
+        # Clamp points outside of unit circle
+        if I.any():
+            P[:, I] *= 1 / np.linalg.norm(P[:, I], axis=0)  # type: ignore
+        # ok
+        return P
 
 
-def _cut_unit_sphere(P: t.Array[t.F]):
-    I = np.sum(P * P, axis=0) > 1.0
+T = TypeVar('T')
 
-    # Found points outside
-    if np.any(I):  # type: ignore
-        P[:, I] *= 1 / np.linalg.norm(P[:, I], axis=0) # type: ignore
 
-    return P
+class Cache(Generic[T]):
+    def opt(self) -> T | None:
+        return getattr(self, '__value', None)
 
-def _rng_move(rng: np.random.Generator, range: float, size: int):
-    return _rng_unit_sphere(rng, size) * range
+    def set(self) -> bool:
+        return hasattr(self, '__value')
+
+    def __call__(self) -> T:
+        return getattr(self, '__value')
+
+    def cache(self, value: T):
+        setattr(self, '__value', value)
+        return value
+
+
+class Lazy(Generic[T]):
+
+    def __init__(self, fn: Callable[[], T]):
+        self.__fn = fn
+
+    def get(self) -> T:
+        if not hasattr(self, '__value'):
+            setattr(self, '__value', self.__fn())
+        return getattr(self, '__value')
+
+
+class Volume(p.Struct):
+    color: Color
+    width: p.Float
+    transform: Transform
+
+    _model = Lazy(lambda: Wireframe(shp.sphere_2(64)))
+
+    def render(self):
+        M = self._model.get() \
+            .setColor(self.color.require()) \
+            .setWidth(self.width.getOr(1.0))
+        T = self.transform
+        if D := T.getDebugs():
+            return s.Scene(T.matrix, [M, *D])
+        return s.Transform(T.matrix, M)
+
 
 class Parameters(p.Struct):
     """ Genetic algorithm parameters """
+    # Rng seed
     seed: p.Int
-    volume_1: Sphere
-    volume_2: Sphere
-    _rng = np.random.default_rng()
+    # Show info
+    show: p.Bool
+    # Global transform
+    transform: Transform
+    # Volume transforms
+    volume_a: Volume
+    volume_b: Volume
+    # Material
+    material: m.MaterialKey
+    width: p.Float
+
+    # internals
+    _rng = UnitSphere(None)
 
     def postParse(self) -> None:
-        self._rng = np.random.default_rng(self.seed.get())
+        self._rng = UnitSphere(self.seed.get())
 
-    def getRenders(self):
-        return (
-            self.volume_1.getRender(),
-            self.volume_2.getRender(),
+    def loadMaterial(self, store: m.m.MaterialStore):
+        self.setError(self.material.load(store))
+        print(self.material.get())
+
+    def render(self):
+        if not self.show.get():
+            return None
+
+        T = self.transform
+        return s.Scene(T.matrix, [
+            self.volume_a.render(),
+            self.volume_b.render(),
+            *T.getDebugs()
+        ])
+
+    def sample(self, ctx: g.Context):
+        # ctx = ctx.push(self.transform.matrix)
+        T = self.transform.matrix
+        X = self._rng.make_points(2)
+        A = T * self.volume_a.transform.matrix * glm.vec3(*X[:, 0])
+        B = T * self.volume_b.transform.matrix * glm.vec3(*X[:, 1])
+        # compute voxels
+        width = self.width.getOr(1.0)
+        offset, grid = _voxels(ctx, A, B, width)
+        # get material
+        M = self.material.get()
+        # box data
+        D = n.Data(
+            box = n.Box.OffsetShape(offset, grid.shape),
+            mask=grid,
+            material=(grid * M.id).astype(np.uint32),
+            strength=(grid * M.strenght).astype(np.float32),
         )
+        # Operation
+        O = n.Operation.OVERWRITE
+        return n.VoxelNode.Leaf(O, D)
+
 
     def generateGenome(self, count: int):
-        P = _rng_unit_sphere(self._rng, count)
+        P = self._rng.make_points(count)
         print(np.linalg.norm(P, axis=0))
-        PP = _cut_unit_sphere(P + P)
+        PP = self._rng.move_points(P, 20)
         print(np.linalg.norm(PP, axis=0))
-        
+
+
+def _coords(*shape: int):
+    # Ranges
+    R = (np.arange(l) for l in shape)
+    # Grids (can numpy fix meshgrid typing ....)
+    G = np.meshgrid(*R)  # type: ignore
+    # Unraveled
+    U = tuple(np.ravel(i) for i in G)
+    # Joined
+    return np.vstack(U).astype(np.int64)
+
+
+def _dbg(**vars: t.Array[t.F]):
+    for k, v in vars.items():
+        print(k, v.shape)
+
+def _cylinder(p: t.Array[t.F], a: t.Array[t.F], b: t.Array[t.F], t: float) -> t.Array[t.B]:
+    # _dbg(p=p, a=a, b=b)
+    pa = p - a[:, np.newaxis]
+    ba = b - a
+    # _dbg(pa=pa, ba=ba)
+    dot: 't.Array[t.F]' = np.einsum('ij,i->j', pa, ba) # type: ignore
+    proj = dot / np.dot(ba, ba) 
+    return np.where(
+        (0.0 < proj) & (proj < 1.0),
+        np.linalg.norm(pa - ba[:, np.newaxis] * proj[np.newaxis, :], axis=0) < t, #type: ignore
+        False
+    )
+    # Capsule 
+    t = np.clip(proj, 0.0, 1.0) # type: ignore
+    # _dbg(pa=pa, ba=ba, t=t)
+    d = np.linalg.norm(pa - ba[:, np.newaxis] * t[np.newaxis, :], axis=0)  # type: ignore
+    return t < d
+
+
+def _point(v):
+    return np.array(v, dtype=np.float64)
+
+
+def _voxels(ctx: g.Context, a: glm.vec3, b: glm.vec3, t: float):
+    # Centered coordinates
+    C = _coords(*ctx.shape) + 0.5
+    # Get affine inverse matrix
+    T = mat.to_affine(glm.affineInverse(ctx.matrix))
+    # mat3 part
+    M = T[:, :3]
+    # vec3 part
+    V = T[:, 3:]
+    # Affine transform to local coords
+    L = (M @ C) + V
+    # Inside capsule
+    U = _cylinder(L, _point(a), _point(b), t)
+    # Reshape to grid
+    G = U.astype(np.bool_).reshape(ctx.box.shape)
+    # FIXME (what went wrong here ...)
+    G = G.swapaxes(0, 1)
+    # Remove padding
+    return u.remove_padding_grid(G)
 
 
 if __name__ == "__main__":
-    P = Parameters()
-
-    P.generateGenome(5)
+    U = UnitSphere(None)
+    P = U.make_points(1000)
+    X = U.make_points(2)
+    A = _point(glm.vec3(*X[:, 0]))
+    B = _point(glm.vec3(*X[:, 1]))
+    L = _cylinder(P, A, B, 0.1)
+    print(L.shape, L.mean())

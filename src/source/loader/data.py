@@ -1,5 +1,20 @@
-from source.parser import all as p
+import source.parser.all as p
+import source.data.colors as c
 import glm
+
+
+class Color(p.Value[c.Color]):
+    def fromNone(self):
+        return c.get.WHITE
+
+    def fromMap(self, data):
+        return c.Color(**data)
+
+    def fromArray(self, data):
+        return c.Color(*data)
+
+    def fromValue(self, data):
+        return c.get(data)
 
 
 class Vec2(p.Value[glm.vec2]):

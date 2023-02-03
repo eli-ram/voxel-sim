@@ -25,7 +25,7 @@ class Float(Value[float]):
 
     @wrapCast
     def parseValue(self, data: Any):
-        return float(data)
+        return None if data is None else float(data)
 
     def toString(self, value: float) -> str:
         return f"{value:6.3f}"

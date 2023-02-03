@@ -1,6 +1,7 @@
 import source.interactive.scene as s
 import source.data.voxel_tree.node as n
 import source.parser.all as p
+from source.utils.wireframe.origin import Origin
 
 from .geometry import Geometry, Context
 
@@ -27,9 +28,11 @@ class GeometryCollection(Geometry, type='collection'):
         for element in self:
             element.loadMaterial(store)
 
-    def getRender(self) -> s.Scene:
+    def render(self) -> s.Scene:
         # Build children
-        L = [G.getRender() for G in self]
+        L = [G.render() for G in self]
+        # include debug origins
+        L += self.transform.getDebugs()
         # Build the scene
         return s.Scene(self.transform.matrix, L)
 

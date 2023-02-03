@@ -1,5 +1,5 @@
 from typing import Optional
-from source.loader.vector import Vec3, glm
+from source.loader.data import Vec3, glm
 
 class Axis(Vec3):
 
