@@ -41,31 +41,19 @@ class Mesh(Geometry, type='mesh'):
             or self.material.hasChanged()
         )
 
-        # Check if cached value is valid
-        if not changed:
-            return self.__node
+        # Compute if changed
+        if changed:
+            # Compute voxels
+            G = mesh_to_voxels(self.__mesh, ctx.matrix, ctx.shape)
+            # Get material
+            M = self.material.get()
+            # Package Data
+            D = n.Data.FromMaterialGrid(M, G)
+            # Get operation
+            O = self.operation.require()
+            # Return node
+            N = n.VoxelNode.Leaf(O, D)
+            self.__node = N
 
-        # Compute voxels (TODO: remove offset calc ...)
-        offset, grid = mesh_to_voxels(
-            # Cached mesh
-            self.__mesh,
-            # Transformation
-            mat.to_affine(ctx.matrix),
-            # relevant area
-            ctx.shape
-        )
-        # Get material
-        M = self.material.get()
-        # Package Data
-        D = n.Data(
-            box=n.Box.OffsetShape(offset, grid.shape),
-            mask=grid,
-            material=(grid * M.id).astype(np.uint32),
-            strength=(grid * M.strenght).astype(np.float32),
-        )
-        # Get operation
-        O = self.operation.require()
-        # Return node
-        N = n.VoxelNode.Leaf(O, D)
-        self.__node = N
-        return N
+        # Return cached value
+        return self.__node
