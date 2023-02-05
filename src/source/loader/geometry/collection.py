@@ -45,7 +45,7 @@ class GeometryCollection(Geometry, type='collection'):
         # Get Children
         L = [G.getVoxels(ctx) for G in self]
         # Get Operation
-        O = n.Operation.OVERWRITE
+        O = self.operation.require()
         # Build Voxels (todo: cache)
         N = n.VoxelNode.Parent(O, L)
         self.__node = N

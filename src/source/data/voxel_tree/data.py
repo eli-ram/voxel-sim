@@ -6,6 +6,7 @@ from typing import Tuple, Union
 import numpy as np
 
 from .box import Box
+from ..material import Material
 
 int3 = Tuple[int, int, int]
 
@@ -42,6 +43,18 @@ class Data:
             strength=np.zeros(shape, np.float32),
         )
 
+    @classmethod
+    def FromMaterialGrid(cls, mat: Material, grid: np.ndarray[np.bool_]):
+        full = Box.OffsetShape((0, 0, 0), grid.shape)
+        box = full.crop(grid)
+        grid = grid[full.slice(box)]
+        return cls(
+            box=box,
+            mask=grid,
+            material=(grid * mat.id).astype(np.uint32),
+            strength=(grid * mat.strenght).astype(np.float32),
+        )
+
     def crop(self) -> Data:
         """ Crop this data based on it's mask """
         return self[self.box.crop(self.mask)]
@@ -55,7 +68,7 @@ class Data:
             material=self.material[slices],
             strength=self.strength[slices],
         )
-    
+
     def offset(self, amount: 'np.ndarray[np.int64]'):
         B = self.box
         return Data(

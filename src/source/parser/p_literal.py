@@ -35,7 +35,7 @@ class String(Value[str]):
 
     @wrapCast
     def parseValue(self, data: Any):
-        return str(data).strip()
+        return None if data is None else str(data).strip()
 
     def toString(self, value: str) -> str:
         return f"'{value}'"

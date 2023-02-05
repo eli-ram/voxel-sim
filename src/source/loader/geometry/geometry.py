@@ -44,7 +44,7 @@ class Context:
 
         # Everything from (0, 0, 0) until shape
         # is considered inside bounds
-        # it's not needed to voxelize 
+        # it's not needed to voxelize
         # anything outside the bounds
 
     def push(self, mat: glm.mat4):
@@ -62,18 +62,50 @@ class Context:
         return node.offset(self.box.start)
 
 
-class Geometry(p.PolymorphicStruct):
-    # Voxel operation (not supported)
-    # operation: p.String
+class Operation(p.Value[n.Operation]):
+    _ = n.Operation
 
+    table = {
+        'add': _.OVERWRITE,
+        'overwrite': _.OVERWRITE,
+        'inside': _.INSIDE,
+        'outside': _.OUTSIDE,
+        # todo:
+        # invert / inverse ?
+        #
+    }
+
+    def parseValue(self, data):
+
+        # Overwrite by default
+        if data is None:
+            return self._.OVERWRITE
+
+        # require string
+        if not isinstance(data, str):
+            raise p.ParseError("must be a string")
+
+        # preprocess
+        K = data.strip().lower()
+        T = self.table
+
+        # check
+        if K not in T:
+            keys = ",".join(f'"{k}"' for k in T.keys())
+            raise p.ParseError(f"unknown key (valid: {keys})")
+
+        return T[K]
+
+
+class Geometry(p.PolymorphicStruct):
     # Voxel Material Key
     material: MaterialKey
 
     # Geometry Transform
     transform: Transform
 
-    # Show origin
-    show_origin: p.Bool
+    # Voxel operation
+    operation: Operation
 
     # Cache buster for Context
     __cache = Context(n.Box.Empty())
@@ -94,7 +126,7 @@ class Geometry(p.PolymorphicStruct):
 
     def getMesh(self) -> mesh.Mesh:
         raise NotImplementedError()
-    
+
     @void_on_error
     def render(self) -> s.Render:
         # Render a Wireframe

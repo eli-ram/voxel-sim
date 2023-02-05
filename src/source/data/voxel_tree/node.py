@@ -24,7 +24,7 @@ class VoxelNode:
             method = impl.get(child.op)
             method.apply(data, child.data)
         return data.crop()
-
+    
     @classmethod
     def Leaf(cls, op: Operation, data: Data):
         return cls(op, data.crop())

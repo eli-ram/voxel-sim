@@ -6,41 +6,11 @@ import source.math.utils as u
 import source.utils.shapes as shp
 import source.graphics.matrices as mat
 import source.data.voxel_tree.node as n
+import source.math.fields as f
 
 from .geometry import Geometry, Context
 
- 
-
-def _coords(*shape: int):
-    # Ranges
-    R = (np.arange(l) for l in shape)
-    # Grids (can numpy fix meshgrid typing ....)
-    G = np.meshgrid(*R)  # type: ignore
-    # Unraveled
-    U = tuple(np.ravel(i) for i in G)
-    # Joined
-    return np.vstack(U).astype(np.int64)
-
-def _voxels(ctx: Context):
-    # x, y, z = ctx.shape
-    # Centered coordinates
-    C = _coords(*ctx.shape) + 0.5
-    # Get affine inverse matrix
-    T = mat.to_affine(glm.affineInverse(ctx.matrix))
-    # mat3 part
-    M = T[:, :3]
-    # vec3 part
-    V = T[:, 3:]
-    # Affine transform to local coords
-    L = (M @ C) + V
-    # Inside unit circle
-    U = np.sum(L * L, axis=0) < 1.0
-    # Reshape to grid
-    G = U.astype(np.bool_).reshape(ctx.box.shape)
-    # FIXME (what went wrong here ...)
-    G = G.swapaxes(0, 1)
-    # Remove padding
-    return u.remove_padding_grid(G)
+field = f.Sphere()
 
 
 class Sphere(Geometry, type='sphere-old'):
@@ -53,10 +23,26 @@ class Sphere(Geometry, type='sphere-old'):
 
     def getVoxels(self, ctx: Context) -> n.VoxelNode:
         ctx, old = self._cacheCtx(ctx)
-        if ctx.eq(old):
-            return self.__node
 
-        return super().getVoxels(ctx)
+        changed = (
+            not ctx.eq(old)
+            or self.material.hasChanged()
+            or self.operation.hasChanged()
+        )
+
+        # Compute if cache is busted
+        if changed:
+            # Compute
+            O = self.operation.require()
+            M = self.material.get()
+            G = field.compute(ctx.shape, ctx.matrix, 1.0)
+            D = n.Data.FromMaterialGrid(M, G)
+            N = n.VoxelNode.Leaf(O, D)
+
+            # Cache
+            self.__node = N
+
+        return self.__node
 
 
 class Sphere2(Geometry, type='sphere'):
@@ -69,24 +55,23 @@ class Sphere2(Geometry, type='sphere'):
 
     def getVoxels(self, ctx: Context) -> n.VoxelNode:
         ctx, old = self._cacheCtx(ctx)
-        if ctx.eq(old):
-            return self.__node
 
-        # Compute voxels
-        offset, grid = _voxels(ctx)
-        # Get material
-        M = self.material.get()
-        # Package Data
-        D = n.Data(
-            box=n.Box.OffsetShape(offset, grid.shape),
-            mask=grid,
-            material=(grid * M.id).astype(np.uint32),
-            strength=(grid * M.strenght).astype(np.float32),
+        changed = (
+            not ctx.eq(old)
+            or self.material.hasChanged()
+            or self.operation.hasChanged()
         )
-        # Get operation
-        O = n.Operation.INSIDE
-        # O = n.Operation.OVERWRITE
-        # Return node
-        N = n.VoxelNode.Leaf(O, D)
-        self.__node = N
-        return N
+
+        # Compute if cache is busted
+        if changed:
+            # Compute
+            O = self.operation.require()
+            M = self.material.get()
+            G = field.compute(ctx.shape, ctx.matrix, 1.0)
+            D = n.Data.FromMaterialGrid(M, G)
+            N = n.VoxelNode.Leaf(O, D)
+
+            # Cache
+            self.__node = N
+
+        return self.__node

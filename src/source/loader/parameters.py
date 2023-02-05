@@ -11,6 +11,7 @@ import source.loader.geometry as g
 import source.interactive.scene as s
 import source.graphics.matrices as mat
 import source.data.voxel_tree.node as n
+import source.math.fields as f
 
 from source.utils.wireframe.wireframe import Wireframe
 from source.loader.transforms.sequence import Transform
@@ -108,6 +109,7 @@ class Parameters(p.Struct):
     volume_b: Volume
     # Material
     material: m.MaterialKey
+    operation: g.Operation
     width: p.Float
 
     # internals
@@ -132,99 +134,33 @@ class Parameters(p.Struct):
         ])
 
     def sample(self, ctx: g.Context):
-        # ctx = ctx.push(self.transform.matrix)
-        T = self.transform.matrix
+        ctx = ctx.push(self.transform.matrix)
+        # random points
         X = self._rng.make_points(2)
-        A = T * self.volume_a.transform.matrix * glm.vec3(*X[:, 0])
-        B = T * self.volume_b.transform.matrix * glm.vec3(*X[:, 1])
-        # compute voxels
+        # define field
+        F = f.Cylinder(
+            self.volume_a.transform.matrix * glm.vec3(*X[:, 0]),
+            self.volume_b.transform.matrix * glm.vec3(*X[:, 1]),
+        )
+        # get width
         width = self.width.getOr(1.0)
-        offset, grid = _voxels(ctx, A, B, width)
+        # compute voxels
+        G = F.compute(ctx.shape, ctx.matrix, width)
         # get material
         M = self.material.get()
+        # get operation
+        O = self.operation.require()
         # box data
-        D = n.Data(
-            box = n.Box.OffsetShape(offset, grid.shape),
-            mask=grid,
-            material=(grid * M.id).astype(np.uint32),
-            strength=(grid * M.strenght).astype(np.float32),
-        )
+        D = n.Data.FromMaterialGrid(M, G)
         # Operation
-        O = n.Operation.OVERWRITE
         return n.VoxelNode.Leaf(O, D)
-
 
     def generateGenome(self, count: int):
         P = self._rng.make_points(count)
-        print(np.linalg.norm(P, axis=0))
         PP = self._rng.move_points(P, 20)
-        print(np.linalg.norm(PP, axis=0))
-
-
-def _coords(*shape: int):
-    # Ranges
-    R = (np.arange(l) for l in shape)
-    # Grids (can numpy fix meshgrid typing ....)
-    G = np.meshgrid(*R)  # type: ignore
-    # Unraveled
-    U = tuple(np.ravel(i) for i in G)
-    # Joined
-    return np.vstack(U).astype(np.int64)
-
-
-def _dbg(**vars: t.Array[t.F]):
-    for k, v in vars.items():
-        print(k, v.shape)
-
-def _cylinder(p: t.Array[t.F], a: t.Array[t.F], b: t.Array[t.F], t: float) -> t.Array[t.B]:
-    # _dbg(p=p, a=a, b=b)
-    pa = p - a[:, np.newaxis]
-    ba = b - a
-    # _dbg(pa=pa, ba=ba)
-    dot: 't.Array[t.F]' = np.einsum('ij,i->j', pa, ba) # type: ignore
-    proj = dot / np.dot(ba, ba) 
-    return np.where(
-        (0.0 < proj) & (proj < 1.0),
-        np.linalg.norm(pa - ba[:, np.newaxis] * proj[np.newaxis, :], axis=0) < t, #type: ignore
-        False
-    )
-    # Capsule 
-    t = np.clip(proj, 0.0, 1.0) # type: ignore
-    # _dbg(pa=pa, ba=ba, t=t)
-    d = np.linalg.norm(pa - ba[:, np.newaxis] * t[np.newaxis, :], axis=0)  # type: ignore
-    return t < d
-
-
-def _point(v):
-    return np.array(v, dtype=np.float64)
-
-
-def _voxels(ctx: g.Context, a: glm.vec3, b: glm.vec3, t: float):
-    # Centered coordinates
-    C = _coords(*ctx.shape) + 0.5
-    # Get affine inverse matrix
-    T = mat.to_affine(glm.affineInverse(ctx.matrix))
-    # mat3 part
-    M = T[:, :3]
-    # vec3 part
-    V = T[:, 3:]
-    # Affine transform to local coords
-    L = (M @ C) + V
-    # Inside capsule
-    U = _cylinder(L, _point(a), _point(b), t)
-    # Reshape to grid
-    G = U.astype(np.bool_).reshape(ctx.box.shape)
-    # FIXME (what went wrong here ...)
-    G = G.swapaxes(0, 1)
-    # Remove padding
-    return u.remove_padding_grid(G)
 
 
 if __name__ == "__main__":
     U = UnitSphere(None)
     P = U.make_points(1000)
     X = U.make_points(2)
-    A = _point(glm.vec3(*X[:, 0]))
-    B = _point(glm.vec3(*X[:, 1]))
-    L = _cylinder(P, A, B, 0.1)
-    print(L.shape, L.mean())

@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from itertools import combinations
 from typing import Iterable, Tuple
-
 import numpy as np
 
 __all__ = [
@@ -14,6 +12,14 @@ __all__ = [
 int3 = Tuple[int, int, int]
 float3 = Tuple[float, float, float]
 
+vector = np.ndarray[np.int64]
+vec3 = int3 | vector
+
+def _vec(*v: int):
+    # Convert int tuple to array
+    return np.array(v, np.int64) # type: ignore
+
+
 class Box:
     """ A construct to handle shifted dense arrays
 
@@ -21,28 +27,28 @@ class Box:
 
     """
 
-    def __init__(self, start: np.ndarray[np.int64], stop: np.ndarray[np.int64]):
+    def __init__(self, start: vector, stop: vector):
         assert start.shape == stop.shape == (3,), \
             " [start] & [stop] must have a shape of (3,) "
         self.start = start
         self.stop = stop
 
     @staticmethod
-    def StartStop(start: int3, stop: int3) -> Box:
+    def StartStop(start: vec3, stop: vec3) -> Box:
         """ Create a box from [start] to [stop] """
-        return Box(_array(start), _array(stop))
+        return Box(_vec(*start), _vec(*stop))
 
     @staticmethod
-    def OffsetShape(offset: int3, shape: int3) -> Box:
+    def OffsetShape(offset: vec3, shape: vec3) -> Box:
         """ Create a box @ [offset] with [shape] """
-        start = _array(offset)
-        stop = start + _array(shape)
+        start = _vec(*offset)
+        stop = start + _vec(*shape)
         return Box(start, stop)
 
     @staticmethod
     def Empty():
         """ Make an Empty Box """
-        return Box(np.zeros(3, np.int64), np.zeros(3, np.int64))
+        return Box(_vec(0,0,0), _vec(0,0,0))
 
     @staticmethod
     def Union(boxes: Iterable[Box]) -> Box:
@@ -53,12 +59,12 @@ class Box:
     def Intersection(boxes: Iterable[Box]) -> Box:
         """ Create the intersection of multiple boxes """
         return _combine(boxes, np.max, np.min)
-    
+
     @property
     def size(self):
         """ Get the size of this box as a numpy array """
         return self.stop - self.start
-    
+
     @property
     def center(self) -> float3:
         """ Get the center of this box (float3) """
@@ -72,7 +78,7 @@ class Box:
     @property
     def is_empty(self):
         return (self.start >= self.stop).any()
-        
+
     @property
     def has_volume(self):
         """ Check if this box has volume """
@@ -101,18 +107,25 @@ class Box:
         if not data.any():
             return Box.Empty()
 
-        def span(axis: Tuple[int, int]):
-            B = data.any(axis)
+        def span(*axes: int):
+            B = data.any(axes)
             L = int(B[::+1].argmax())
             H = int(B[::-1].argmax())
-            return [L, B.size-H]
+            return L, B.size-H
 
-        axes = combinations(range(2, -1, -1), 2)
-        start, stop = np.array([span(a) for a in axes]).T
-        return Box(start + self.start, stop + self.start)
+        O = self.start
+        lx, hx = span(1, 2)
+        ly, hy = span(2, 0)
+        lz, hz = span(0, 1)
+        return Box(O + _vec(lx, ly, lz), O + _vec(hx, hy, hz))
+    
+    def offset(self, amount: vec3):
+        O = _vec(*amount)
+        return Box(O + self.start, O + self.stop)
 
     def __str__(self) -> str:
         return f"Box({self.start} -> {self.stop})"
+
 
 def _combine(boxes: Iterable[Box], start, stop):
     # Discard boxes with no volume
@@ -129,14 +142,12 @@ def _combine(boxes: Iterable[Box], start, stop):
     )
 
 
-def _array(v: int3):
-    # Convert int tuple to array
-    return np.array(list(v), np.int64)
 
 
 if __name__ == '__main__':
+    # Test data
     A = Box.StartStop(
-        (1, 4, 4),
+        (0, 4, 4),
         (4, 8, 8),
     )
 
@@ -153,12 +164,23 @@ if __name__ == '__main__':
     D = Box.Union([A, B, C])
 
     mask = np.full(A.shape, False)
-    mask[2, 2, 2] = True
+    mask[2, 1:3, 0:3] = True
     E = A.crop(mask)
+    # print(mask)
+    # print(E, E.shape)
 
+    F = E.offset((2, 4, 3))
+
+    # Tests
     assert Box.Empty().is_empty
+    assert not A.is_empty
+    assert A.shape == (4, 4, 4)
+    assert np.array_equal(B.stop, _vec(8, 8, 8))
     assert not A.overlap(B)
     assert B.overlap(C)
     assert B.slice(C) == (slice(1, 4), slice(0, 2), slice(2, 4))
     assert all(D.overlap(box) for box in [A, B, C])
-    assert E.shape == (1, 1, 1)
+    assert E.shape == (1, 2, 3)
+    assert np.array_equal(E.start, _vec(2, 5, 4))
+    assert F.shape == (1, 2, 3)
+    assert np.array_equal(F.start, _vec(4, 9, 7))

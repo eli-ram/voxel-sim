@@ -33,10 +33,19 @@ class Mesh(Geometry, type='mesh'):
     def getVoxels(self, ctx: Context) -> n.VoxelNode:
         # Cache context
         ctx, old = self._cacheCtx(ctx)
+
+        changed = (
+            not ctx.eq(old)
+            or self.file.hasChanged()
+            or self.operation.hasChanged()
+            or self.material.hasChanged()
+        )
+
         # Check if cached value is valid
-        if ctx.eq(old) and not self.file.hasChanged():
+        if not changed:
             return self.__node
-        # Compute voxels
+
+        # Compute voxels (TODO: remove offset calc ...)
         offset, grid = mesh_to_voxels(
             # Cached mesh
             self.__mesh,
@@ -55,7 +64,7 @@ class Mesh(Geometry, type='mesh'):
             strength=(grid * M.strenght).astype(np.float32),
         )
         # Get operation
-        O = n.Operation.OVERWRITE
+        O = self.operation.require()
         # Return node
         N = n.VoxelNode.Leaf(O, D)
         self.__node = N

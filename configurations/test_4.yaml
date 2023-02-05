@@ -24,10 +24,10 @@ materials:
   FORCE:
     color: [0.9, 0.2, 0.1, 0.2]
     strength: 5.0
-    force: [0.0, 0.0, -10.0]
+    force: [0.0, 0.0, -8.0]
   METAL:
     color: [0.8, 0.8, 0.8, 0.9]
-    strength: 6.0
+    strength: 50.0
 
 geometry:
   transform:
@@ -60,7 +60,7 @@ geometry:
         # - debug: 3
 
     - type: sphere
-      # operation: add
+      operation: inside
       material: STATIC
       transform:
         - debug: 
@@ -68,11 +68,11 @@ geometry:
         - scale: 0.55
     
     - type: sphere
-      # operation: add
+      operation: inside
       material: FORCE
       transform:
         - debug: 0
-        - translate: [0.7, 0.45, 0.5]
+        - translate: [0.7, 0.45, 0.45]
         - scale: 0.4
         - rotate:
             axis: Z
@@ -80,9 +80,9 @@ geometry:
         # {X: red, Y: green, Z: blue}
 
 parameters:
-  # a:
+  # a
   show: true
-  width: 1.2
+  width: 0.5
   material: METAL
   transform: 
     - debug: a
@@ -103,5 +103,5 @@ parameters:
     color: GRAY
     transform:
       - translate: [-3, 0, 0]
-      - scale: [0.2, 2, 2]
+      - scale: [0.2, 1.7, 1.7]
 
