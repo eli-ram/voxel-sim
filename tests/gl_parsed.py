@@ -47,7 +47,7 @@ class Voxels(w.Window):
         self.scene = s.SceneBase()
 
         # Create animator
-        self.animator = a.Animator(delta=0.5)
+        self.animator = a.Animator(delta=0.25)
 
         # Create Camera
         self.camera = m.OrbitCamera(
@@ -75,9 +75,9 @@ class Voxels(w.Window):
         B = self.buttons
 
         @B.toggle("LEFT")
-        def toggle_move(move: bool):
-            self.camera.SetActive(move)
-            self._3D_cursor.visible(move)
+        def toggle_move(enb: bool):
+            self.camera.SetActive(enb)
+            self._3D_cursor.visible(enb)
 
         # Build scene
         self.scene.setChildren([self._3D_cursor])
@@ -102,7 +102,7 @@ class Voxels(w.Window):
 
         # Update deformation if set
         if D := self.deformation:
-            t = time_to_t(time, 30.0, 1.5)
+            t = time_to_t(time, 30.0, 2.5)
             D.setDeformation(t)
 
     def render(self):

@@ -30,7 +30,7 @@ class Mesh(Geometry, type='mesh'):
     def getMesh(self) -> m.Mesh:
         return self.__mesh
 
-    def getVoxels(self, ctx: Context) -> n.VoxelNode:
+    def buildVoxels(self, ctx: Context) -> n.VoxelNode:
         # Cache context
         ctx, old = self._cacheCtx(ctx)
 
@@ -53,6 +53,7 @@ class Mesh(Geometry, type='mesh'):
             O = self.operation.require()
             # Return node
             N = n.VoxelNode.Leaf(O, D)
+            # cache node
             self.__node = N
 
         # Return cached value

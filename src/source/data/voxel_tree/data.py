@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, asdict
 from typing import Tuple, Union
 
 import numpy as np
@@ -29,8 +29,17 @@ class Data:
     def __post_init__(self):
         """ Verify the data """
         shape = self.box.shape
-        assert all(a.shape == shape for a in self.arrays()), \
-            " All data members does not have the same shape. "
+
+        # Require all arrays to have the same shape as the box
+        if not all(a.shape == shape for a in self.arrays()):
+            # Debug data
+            name = self.__class__.__name__
+            print(f"{name}:")
+            for k, v in asdict(self).items():
+                print(f" - {k}:", v.shape)
+            # Raise error
+            err = " All data members does not have the same shape. " 
+            raise AttributeError(err)
 
     @classmethod
     def Empty(cls, box: Box) -> Data:

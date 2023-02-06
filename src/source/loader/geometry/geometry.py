@@ -24,7 +24,7 @@ def void_on_error(method):
             return method(self, *args, **kwargs)
         except:
             print_exc()
-            return s.Void()
+            return s.Void
     return wrap
 
 
@@ -107,6 +107,10 @@ class Geometry(p.PolymorphicStruct):
     # Voxel operation
     operation: Operation
 
+    # Toggles
+    render: p.Bool
+    voxels: p.Bool
+
     # Cache buster for Context
     __cache = Context(n.Box.Empty())
 
@@ -128,7 +132,10 @@ class Geometry(p.PolymorphicStruct):
         raise NotImplementedError()
 
     @void_on_error
-    def render(self) -> s.Render:
+    def buildRender(self) -> s.Render:
+        if not self.render.getOr(True):
+            return s.Void
+
         # Render a Wireframe
         mesh = self.getMesh()
         color = self.material.get().color
@@ -137,13 +144,15 @@ class Geometry(p.PolymorphicStruct):
         # build model (TODO cache buffers --> change wireframe api ....)
         model = Wireframe(mesh).setColor(color)
 
-        # include debug origins
+        # include debug origins, if found
         if debugs := self.transform.getDebugs():
             return s.Scene(matrix, children=[*debugs, model])
 
         # return model
         return s.Transform(matrix, model)
 
-    def getVoxels(self, ctx: Context) -> n.VoxelNode:
+    def buildVoxels(self, ctx: Context) -> n.VoxelNode:
+        if not self.voxels.getOr(True):
+            return n.VoxelNode.Empty()
         impl = self.__class__.__name__
         raise NotImplementedError(f"{impl}.getVoxels()")

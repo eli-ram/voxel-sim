@@ -1,6 +1,4 @@
 from __future__ import annotations
-
-from typing import Iterable, Tuple
 import numpy as np
 
 __all__ = [
@@ -9,8 +7,8 @@ __all__ = [
     "float3",
 ]
 
-int3 = Tuple[int, int, int]
-float3 = Tuple[float, float, float]
+int3 = tuple[int, int, int]
+float3 = tuple[float, float, float]
 
 vector = np.ndarray[np.int64]
 vec3 = int3 | vector
@@ -51,12 +49,12 @@ class Box:
         return Box(_vec(0,0,0), _vec(0,0,0))
 
     @staticmethod
-    def Union(boxes: Iterable[Box]) -> Box:
+    def Union(boxes: list[Box]) -> Box:
         """ Create the union of multiple boxes """
         return _combine(boxes, np.min, np.max)
 
     @staticmethod
-    def Intersection(boxes: Iterable[Box]) -> Box:
+    def Intersection(boxes: list[Box]) -> Box:
         """ Create the intersection of multiple boxes """
         return _combine(boxes, np.max, np.min)
 
@@ -127,15 +125,9 @@ class Box:
         return f"Box({self.start} -> {self.stop})"
 
 
-def _combine(boxes: Iterable[Box], start, stop):
-    # Discard boxes with no volume
-    boxes = [b for b in boxes if b.has_volume]
-
-    # No boxes -> empty box
+def _combine(boxes: list[Box], start, stop):
     if not boxes:
         return Box.Empty()
-
-    # Combine the boxes
     return Box(
         start(np.stack([b.start for b in boxes]), axis=0),
         stop(np.stack([b.stop for b in boxes]), axis=0),

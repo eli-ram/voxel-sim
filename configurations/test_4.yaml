@@ -2,7 +2,7 @@
 # {X: red, Y: green, Z: blue}
 
 config:
-  run: on  
+  run: on                    
   build: on
   alpha: 0.1
   render: true
@@ -10,37 +10,32 @@ config:
   resolution: 256
   background: [0.01, 0.01, 0.02]
   region: 
-    start: [-15, -10, -10]
-    stop: [15, 20, 15]
+    start: [-20, -20, -15]
+    stop: [20, 20, 20]
 
 materials:
   BONE:
     color: [0.2, 0.6, 0.5, 0.1]
     strength: 5.0
   STATIC:
-    color: [0.2, 0.1, 0.5, 0.2]
+    color: [0.4, 0.2, 1.0, 1.2]
     strength: 5.0
     locks: [true, true, true]
   FORCE:
-    color: [0.9, 0.2, 0.1, 0.2]
+    color: [1.0, 0.3, 0.2, 1.2]
     strength: 5.0
     force: [0.0, 0.0, -8.0]
+  TISSUE:
+    color: [0.55, 0.42, 0.5, 0.3]
+    strength: 0.1
   METAL:
-    color: [0.8, 0.8, 0.8, 0.9]
+    color: [0.5, 0.5, 0.55, 0.9]
     strength: 50.0
 
 geometry:
   transform:
     # - debug: 1
-    - scale: 15
-    - translate: [-0.1, 0.2, 0.2]
-    - rotate:
-        axis: Z
-        angle: { deg: -35 }
-    - rotate:
-        axis: Y
-        angle: { deg: 41 } # 41
-    - translate: [0, -0.2, 0]
+    - scale: 20
     # - scale: 10
   elements:
     - type: mesh
@@ -48,60 +43,71 @@ geometry:
       material: BONE
       file: "./meshes/femur2.obj"
       transform:
-        # - debug: 0
+        - translate: [-0.1, -0.25, 0.07]
         - scale: 1.6
-        - translate: [0, -4.2, 0.2]
+        - rotate: 
+            axis: Z
+            angle: { deg: -30 }
         - rotate: 
             axis: Y
-            angle: { deg: 245 }
-            local: false
+            angle: { deg: -72 }
+        - translate: [0, -4.2, 0.2]
+        - debug: 0
+        # - debug: 0
         # - debug: 1
-        - translate: [0, 0, -0.1]
+        # - translate: [0, 0, -0.1]
         # - debug: 3
 
     - type: sphere
+      render: off
+      # voxels: off
       operation: inside
       material: STATIC
       transform:
         - debug: 
-        - translate: [-0.1, -1.0, -0.2]
+        - translate: [-1.1, -1.1, 0]
         - scale: 0.55
     
     - type: sphere
+      render: off
+      # voxels: off
       operation: inside
       material: FORCE
       transform:
         - debug: 0
-        - translate: [0.7, 0.45, 0.45]
-        - scale: 0.4
+        - translate: [0.5, 0, 0]
+        - scale: 0.3
         - rotate:
             axis: Z
             angle: { deg: 180 }
         # {X: red, Y: green, Z: blue}
 
+    - type: sphere
+      material: TISSUE
+      operation: outside
+      transform:
+        - scale: 0.45
+        - translate: [0.3, 0, 0]
+
 parameters:
   # a
   show: true
-  width: 0.5
+  width: 0.1
   material: METAL
   transform: 
-    - debug: a
-    - scale: 5
-    - translate: [0, 0.5, 0.4]
-    - rotate: 
-        axis: Z
-        angle: { deg: -10 }
+    - scale: 20
 
   volume_a:
     color: WHITE
     width: 15.0
     transform:
-      - translate: [2.8, 0.15, 0]
-      - scale: [0.2, 1.5, 1.5]
+      - translate: [0.75, 0, 0]
+      - scale: [0.2, 0.35, 0.35]
+      - debug: a
 
   volume_b:
     color: GRAY
     transform:
-      - translate: [-3, 0, 0]
-      - scale: [0.2, 1.7, 1.7]
+      - translate: [-1.2, 0, 0]
+      - scale: [0.05, 0.6, 0.6]
 

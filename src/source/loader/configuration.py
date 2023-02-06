@@ -97,27 +97,23 @@ class Config(p.Struct):
 
 class VoxelCache:
     node: n.VoxelNode
-    renderer: VoxelRenderer
+    renderer: VoxelRenderer | None = None
 
     def getNode(self, G: Geometry, ctx: Context):
         # Get Geometry voxels
-        N = G.getVoxels(ctx)
+        N = G.buildVoxels(ctx)
 
         # Return Corrected voxels
         self.node = ctx.finalize(N)
         return self.node
 
-    def getRenderer(self, shape: t.int3, count: int):
-        # Check if cached value can be re-used
-        if hasattr(self, 'renderer'):
-            R = self.renderer
-            if R.shape == shape and R.count == count:
-                return R
+    def getRenderer(self, shape: t.int3, count: int) -> VoxelRenderer:
+        # Rebuild if changed
+        if not (R := self.renderer) or R.shape != shape or R.count != count:
+            self.renderer = VoxelRenderer(shape, count)
 
-        # Build new
-        R = VoxelRenderer(shape, count)
-        self.renderer = R
-        return R
+        # return cached
+        return self.renderer
 
     def refNode(self):
         if hasattr(self, 'node'):
@@ -193,7 +189,7 @@ class Configuration(p.Struct):
         @TQ.dispatch
         def scene():
             # geometry
-            S.add(self.geometry.render())
+            S.add(self.geometry.buildRender())
             # params
             S.opt(self.parameters.render())
 
@@ -216,10 +212,12 @@ class Configuration(p.Struct):
         self.__cache.node = N
 
         # Wait for scene to finish
-        scene()        
+        scene()
 
         # synchronized context to render voxels
-        voxels = TQ.dispatch(lambda:self.getVoxelRenderer(N))
+        voxels = TQ.dispatch(lambda: self.getVoxelRenderer(N))
+
+        # Await voxels
         S.add(voxels())
 
     def run(self, TQ: TaskQueue, S: s.Scene):

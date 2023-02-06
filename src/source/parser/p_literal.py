@@ -57,10 +57,19 @@ class Bool(Value[bool]):
     }
 
     def parseValue(self, data: Any):
+        # Optional
         if data is None:
             return None
+
+        # require a value        
         if isMap(data) or isArray(data):
             raise CastError("Expected a Value")
+        
+        # Strip string
+        if isinstance(data, str):
+            data = data.strip()
+
+        # lookup
         try:
             return self.MAP[data]
         except KeyError:

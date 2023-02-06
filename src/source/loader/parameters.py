@@ -9,7 +9,6 @@ import source.utils.shapes as shp
 import source.loader.material as m
 import source.loader.geometry as g
 import source.interactive.scene as s
-import source.graphics.matrices as mat
 import source.data.voxel_tree.node as n
 import source.math.fields as f
 
@@ -161,6 +160,11 @@ class Parameters(p.Struct):
 
 
 if __name__ == "__main__":
-    U = UnitSphere(None)
-    P = U.make_points(1000)
-    X = U.make_points(2)
+    # U = UnitSphere(None)
+    # P = U.make_points(1000)
+    # X = U.make_points(2)
+    pass
+
+
+
+

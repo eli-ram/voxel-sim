@@ -5,6 +5,7 @@ from source.utils.wireframe.origin import Origin
 
 from .geometry import Geometry, Context
 
+
 class GeometryCollection(Geometry, type='collection'):
     """ Compose Geometry from child instances """
 
@@ -28,25 +29,40 @@ class GeometryCollection(Geometry, type='collection'):
         for element in self:
             element.loadMaterial(store)
 
-    def render(self) -> s.Scene:
+    def buildRender(self) -> s.Render:
+        if not self.render.getOr(True):
+            return s.Void
+
         # Build children
-        L = [G.render() for G in self]
+        L = [G.buildRender() for G in self if G.render.getOr(True)]
         # include debug origins
         L += self.transform.getDebugs()
         # Build the scene
         return s.Scene(self.transform.matrix, L)
 
-    def getVoxels(self, ctx: Context) -> n.VoxelNode:
+    def buildVoxels(self, ctx: Context) -> n.VoxelNode:
+        if not self.voxels.getOr(True):
+            return n.VoxelNode.Empty()
+
         # Push transform
         ctx, old = self._cacheCtx(ctx)
-        # Check if cache is valid
-        if ctx.eq(old) and not any(G.hasChanged() for G in self):
-            return self.__node
-        # Get Children
-        L = [G.getVoxels(ctx) for G in self]
-        # Get Operation
-        O = self.operation.require()
-        # Build Voxels (todo: cache)
-        N = n.VoxelNode.Parent(O, L)
-        self.__node = N
-        return N
+
+        changed = (
+            not ctx.eq(old)
+            or any(G.hasChanged() for G in self)
+            or self.operation.hasChanged()
+        )
+
+        # Compute if changed
+        if changed:
+            # Get Children
+            L = [G.buildVoxels(ctx) for G in self if G.voxels.getOr(True)]
+            # Get Operation
+            O = self.operation.require()
+            # Build Voxels
+            N = n.VoxelNode.Parent(O, L)
+            # cache node
+            self.__node = N
+
+        # return cached node
+        return self.__node

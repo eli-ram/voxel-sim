@@ -21,7 +21,7 @@ class Sphere(Geometry, type='sphere-old'):
     def getMesh(self) -> m.Mesh:
         return shp.sphere()
 
-    def getVoxels(self, ctx: Context) -> n.VoxelNode:
+    def buildVoxels(self, ctx: Context) -> n.VoxelNode:
         ctx, old = self._cacheCtx(ctx)
 
         changed = (
@@ -53,7 +53,7 @@ class Sphere2(Geometry, type='sphere'):
     def getMesh(self) -> m.Mesh:
         return shp.sphere_2(64)
 
-    def getVoxels(self, ctx: Context) -> n.VoxelNode:
+    def buildVoxels(self, ctx: Context) -> n.VoxelNode:
         ctx, old = self._cacheCtx(ctx)
 
         changed = (

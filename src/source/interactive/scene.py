@@ -1,10 +1,13 @@
-from typing import List, Protocol
+from typing import List, Protocol, TypeVar
 from ..graphics.matrices import Hierarchy
 from source.data.colors import Color
 from dataclasses import dataclass, field
 from OpenGL import GL
 import glm
 
+T = TypeVar('T')
+def as_object(cls: type[T]) -> T:
+    return cls()
 
 class Render(Protocol):
     """ General Renderable Object Interface """
@@ -53,7 +56,7 @@ class Scene:
                 for child in self.children:
                     child.render(m)
 
-
+@as_object
 class Void:
     def render(self, m: Hierarchy):
         pass
