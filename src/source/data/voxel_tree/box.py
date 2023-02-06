@@ -13,9 +13,10 @@ float3 = tuple[float, float, float]
 vector = np.ndarray[np.int64]
 vec3 = int3 | vector
 
+
 def _vec(*v: int):
     # Convert int tuple to array
-    return np.array(v, np.int64) # type: ignore
+    return np.array(v, np.int64)  # type: ignore
 
 
 class Box:
@@ -46,7 +47,7 @@ class Box:
     @staticmethod
     def Empty():
         """ Make an Empty Box """
-        return Box(_vec(0,0,0), _vec(0,0,0))
+        return Box(_vec(0, 0, 0), _vec(0, 0, 0))
 
     @staticmethod
     def Union(boxes: list[Box]) -> Box:
@@ -116,13 +117,20 @@ class Box:
         ly, hy = span(2, 0)
         lz, hz = span(0, 1)
         return Box(O + _vec(lx, ly, lz), O + _vec(hx, hy, hz))
-    
+
     def offset(self, amount: vec3):
         O = _vec(*amount)
         return Box(O + self.start, O + self.stop)
 
     def __str__(self) -> str:
         return f"Box({self.start} -> {self.stop})"
+
+    def __eq__(self, o: object) -> bool:
+        return (
+            isinstance(o, Box) and
+            np.array_equal(self.start, o.start) and
+            np.array_equal(self.stop, o.stop)
+        )
 
 
 def _combine(boxes: list[Box], start, stop):
@@ -132,8 +140,6 @@ def _combine(boxes: list[Box], start, stop):
         start(np.stack([b.start for b in boxes]), axis=0),
         stop(np.stack([b.stop for b in boxes]), axis=0),
     )
-
-
 
 
 if __name__ == '__main__':

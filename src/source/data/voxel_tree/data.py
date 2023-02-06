@@ -11,7 +11,7 @@ from ..material import Material
 int3 = Tuple[int, int, int]
 
 
-@dataclass
+@dataclass(eq=False)
 class Data:
     # The position & volume of the data
     box: Box
@@ -38,7 +38,7 @@ class Data:
             for k, v in asdict(self).items():
                 print(f" - {k}:", v.shape)
             # Raise error
-            err = " All data members does not have the same shape. " 
+            err = " All data members does not have the same shape. "
             raise AttributeError(err)
 
     @classmethod
@@ -68,6 +68,14 @@ class Data:
         """ Crop this data based on it's mask """
         return self[self.box.crop(self.mask)]
 
+    def offset(self, amount: 'np.ndarray[np.int64]'):
+        return Data(
+            box=self.box.offset(amount),
+            mask=self.mask,
+            material=self.material,
+            strength=self.strength,
+        )
+
     def __getitem__(self, box: Box) -> Data:
         """ Get the slice that overlaps the other data """
         slices = self.box.slice(box)
@@ -78,11 +86,17 @@ class Data:
             strength=self.strength[slices],
         )
 
-    def offset(self, amount: 'np.ndarray[np.int64]'):
-        B = self.box
-        return Data(
-            box=Box(B.start + amount, B.stop + amount),
-            mask=self.mask,
-            material=self.material,
-            strength=self.strength,
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, Data):
+            return False
+
+        A = self.arrays()
+        B = self.arrays()
+        if len(A) != len(B):
+            print("Data.__eq__ different types !")
+            return False
+
+        return (
+            self.box == o.box and
+            all(np.array_equal(a, b) for a, b in zip(A, B))
         )

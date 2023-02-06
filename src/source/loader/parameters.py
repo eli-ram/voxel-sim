@@ -11,43 +11,12 @@ import source.loader.geometry as g
 import source.interactive.scene as s
 import source.data.voxel_tree.node as n
 import source.math.fields as f
+import source.ml.generic as ga
 
+from source.ml.rng import UnitSphere
 from source.utils.wireframe.wireframe import Wireframe
 from source.loader.transforms.sequence import Transform
 from source.loader.data import Color
-
-
-class UnitSphere:
-
-    def __init__(self, seed: int | None) -> None:
-        self.rng = np.random.default_rng(seed)
-
-    def make_points(self, size: int):
-        # (x, y, z)[N]
-        P: t.Array[t.F] = self.rng.uniform(-1.0, 1.0, size=(3, size))
-        I = np.sum(P * P, axis=0) > 1.0
-
-        # Regenerate until all points are inside unit circle
-        while C := I.sum():  # type: ignore
-            P[:, I] = self.rng.uniform(-1, 1, size=(3, C))
-            I = np.sum(P * P, axis=0) > 1.0
-
-        # ok
-        return P
-
-    def move_points(self, P: t.Array[t.F], max: float):
-        S = P.shape
-        assert len(S) == 2 and S[0] == 3, "array is not a list of points"
-        # Move randomly
-        P += self.make_points(P.shape[1]) * max
-        # Check if points outside unit cirle
-        I = np.sum(P * P, axis=0) > 1.0
-        # Clamp points outside of unit circle
-        if I.any():
-            P[:, I] *= 1 / np.linalg.norm(P[:, I], axis=0)  # type: ignore
-        # ok
-        return P
-
 
 T = TypeVar('T')
 
@@ -89,10 +58,7 @@ class Volume(p.Struct):
         M = self._model.get() \
             .setColor(self.color.require()) \
             .setWidth(self.width.getOr(1.0))
-        T = self.transform
-        if D := T.getDebugs():
-            return s.Scene(T.matrix, [M, *D])
-        return s.Transform(T.matrix, M)
+        return self.transform.package(M)
 
 
 class Parameters(p.Struct):
@@ -135,11 +101,11 @@ class Parameters(p.Struct):
     def sample(self, ctx: g.Context):
         ctx = ctx.push(self.transform.matrix)
         # random points
-        X = self._rng.make_points(2)
+        A, B = self._rng.make_points(2)
         # define field
         F = f.Cylinder(
-            self.volume_a.transform.matrix * glm.vec3(*X[:, 0]),
-            self.volume_b.transform.matrix * glm.vec3(*X[:, 1]),
+            self.volume_a.transform.matrix * glm.vec3(*A),
+            self.volume_b.transform.matrix * glm.vec3(*B),
         )
         # get width
         width = self.width.getOr(1.0)
@@ -155,8 +121,12 @@ class Parameters(p.Struct):
         return n.VoxelNode.Leaf(O, D)
 
     def generateGenome(self, count: int):
-        P = self._rng.make_points(count)
-        PP = self._rng.move_points(P, 20)
+        config = ga.Config(
+            self.volume_a.transform.matrix,
+            self.volume_b.transform.matrix,
+        )
+
+        print(config)
 
 
 if __name__ == "__main__":

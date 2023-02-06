@@ -82,3 +82,18 @@ class MaterialStore(p.Map[Material]):
     def get(self):
         return self.store
 
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, MaterialStore):
+            return False
+
+        # NOTE
+        # {store} does not contribute here ...
+        # as we're interested in other changes
+
+        return (
+            self.forces == o.forces
+            and 
+            self.statics == o.statics
+        )
+
+

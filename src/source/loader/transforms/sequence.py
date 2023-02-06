@@ -33,8 +33,14 @@ class Transform(p.Array[Options]):
         for (matrix, name) in d:
             print(f"\n<debug:transform> '{name}'\n{matrix}")
 
-    def getDebugs(self):
+    def getDebugs(self) -> list[s.Render]:
         O = o.Origin.cached()
         def marker(M: glm.mat4):
             return s.Transform(glm.affineInverse(M), O)
         return [marker(M) for M, _ in self.debugs]
+    
+    def package(self, R: s.Render):
+        if D := self.getDebugs():
+            D.append(R)
+            return s.Scene(self.matrix, D)
+        return s.Transform(self.matrix, R)

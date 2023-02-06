@@ -7,7 +7,6 @@ import source.data.mesh as m
 import source.parser.all as p
 import source.utils.types as t
 import source.data.voxels as v
-import source.data.colors as c
 import source.interactive.scene as s
 import source.data.voxel_tree.node as n
 import source.math.voxels2truss as v2t

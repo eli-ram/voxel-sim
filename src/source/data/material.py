@@ -16,6 +16,21 @@ class Material:
 
     def __hash__(self):
         return self.id
+    
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, Material):
+            return False
+        
+        # NOTE
+        # equality is determined
+        # by physical properties
+        # {strength}
+
+        return (
+            self.id == o.id
+            and
+            self.strenght == o.strenght
+        )
 
 
 class MaterialStore:
