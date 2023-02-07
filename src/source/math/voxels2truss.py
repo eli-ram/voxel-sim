@@ -87,6 +87,10 @@ class TrussBuilder:
         # Forces Per Vertex
         self.forces = voxels.force_map()[Materials, :]
 
+        # NOTE
+        # {forces} should probably be scaled by # of vertices
+        # {forces} = (voxels.force_map() / voxels.force_count())[Materials, :] 
+
     def run(self, offsets: list[t.int3]):
         for offset in offsets:
             self.get_edges(offset)

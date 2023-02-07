@@ -10,8 +10,8 @@ config:
   resolution: 256
   background: [0.01, 0.01, 0.02]
   region: 
-    start: [-20, -20, -15]
-    stop: [20, 20, 20]
+    start: [-10, -10, -8]
+    stop: [10, 10, 10]
 
 materials:
   BONE:
@@ -35,7 +35,7 @@ materials:
 geometry:
   transform:
     # - debug: 1
-    - scale: 20
+    - scale: 10
     # - scale: 10
   elements:
     - type: mesh
@@ -95,7 +95,7 @@ parameters:
   width: 0.1
   material: METAL
   transform: 
-    - scale: 20
+    - scale: 10
 
   volume_a:
     color: WHITE

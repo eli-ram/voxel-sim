@@ -11,7 +11,7 @@ import source.loader.geometry as g
 import source.interactive.scene as s
 import source.data.voxel_tree.node as n
 import source.math.fields as f
-import source.ml.generic as ga
+import source.ml.ga as ga
 
 from source.ml.rng import UnitSphere
 from source.utils.wireframe.wireframe import Wireframe

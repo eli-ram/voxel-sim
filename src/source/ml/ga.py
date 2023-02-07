@@ -18,12 +18,11 @@ import source.ml.rng as rng
 import source.math.fields as f
 import source.data.voxels as v
 import source.data.material as m
-import source.loader.material as l_m
 import source.math.voxels2truss as v2t
 import source.math.truss2stress as fem
 import source.data.voxel_tree.node as n
 
-# directly using loader store
+from source.utils.types import bool3, float3
 
 
 @dataclass
@@ -47,8 +46,9 @@ class Config:
     # input voxels
     node: n.VoxelNode
 
-    # all materials
-    materials: l_m.MaterialStore
+    # physics constraints
+    forces: dict[m.Material, float3]
+    statics: dict[m.Material, bool3]
 
     # setup
     seed: int | None
@@ -68,9 +68,6 @@ class Config:
             yield glm.vec3(a), glm.vec3(b)
 
     def createInduvidual(self, genome:  tuple[glm.vec3, glm.vec3]):
-        # get constant internals
-        M = self.materials
-        B = self.node.data.box
 
         # unpack points
         a, b = genome
@@ -81,7 +78,10 @@ class Config:
             self.mat_b * glm.vec3(b),
         )
 
-        # Correct field params
+        # field region
+        B = self.node.data.box
+
+        # field transform
         matrix = glm.translate(-glm.vec3(B.start)) * self.matrix
 
         # Compute field
@@ -104,8 +104,8 @@ class Config:
         # Set internals
         voxels.grid = data.material
         voxels.strength = data.strength
-        voxels.forces = M.forces
-        voxels.statics = M.statics
+        voxels.forces = self.forces
+        voxels.statics = self.statics
 
         # done
         return voxels
@@ -149,7 +149,8 @@ if __name__ == '__main__':
         material=m.Material(1, "<bad>", m.Color(0, 0, 0), 1.0),
         op=n.Operation.OVERWRITE,
         node=n.VoxelNode.Empty(),
-        materials=l_m.MaterialStore(),
+        forces=dict(),
+        statics=dict(),
         seed=None,
         size=32,
     )

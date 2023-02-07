@@ -32,4 +32,8 @@ class Voxels:
         static = np.zeros((L, 3), np.float32)
         for material, force in self.forces.items():
             static[material.id, :] = force
+            # Number of voxels
+            # count = np.count_nonzero(self.grid == material.id) # type: ignore
+            # Inverse proportional force
+            # static[material.id, :] = np.divide(force, count)
         return static
