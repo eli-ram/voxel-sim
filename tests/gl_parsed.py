@@ -43,8 +43,10 @@ def time_to_t(time: float, duration: float, padding: float):
 
 class Voxels(w.Window):
 
-    deformation: Optional[DeformationWireframe] = None
+    configuration: Configuration
+    deformation: DeformationWireframe | None = None
     algorithm: ga.GA | None = None
+    present: s.Scene
 
     def setup(self):
         # Create scene
@@ -113,7 +115,7 @@ class Voxels(w.Window):
     def render(self):
         self.scene.render()
 
-    def cursor(self, x: float, y: float, dx: float, dy: float):
+    def cursor(self, x, y, dx, dy):
         self.camera.Cursor(dx, dy)
 
     def scroll(self, value: float):
@@ -127,7 +129,11 @@ class Voxels(w.Window):
             return
 
         # try to run next step
-        def resolve(none):
+        def resolve(data):
+            V = self.configuration.getVoxelRenderer(data)
+            # hacky ...
+            self.present.children[-1] = V
+            # queue next iteration
             self.spinAlgorithm()
 
         # run a step of the algorithm
@@ -139,6 +145,7 @@ class Voxels(w.Window):
         def impl(config: Configuration):
             TQ = self.tasks
             print("Processing config ...")
+            self.configuration = config
 
             # Background
             BG = config.background()
@@ -147,6 +154,7 @@ class Voxels(w.Window):
             # Build scene
             S = config.scene(TQ)
             self.scene.setChildren([self._3D_cursor, S])
+            self.present = S
 
             # Configure
             config.configure(TQ, S)

@@ -5,6 +5,7 @@ from source.utils.types import Array, F
 Points = Array[F]
 RNG = np.random.Generator
 
+
 def seed_rng(seed: int | None):
     return np.random.default_rng(seed)
 
@@ -38,7 +39,15 @@ def move_unit_points(rng: RNG, P: Points, max: float) -> Points:
 
     # Clamp points outside of unit circle
     if I.any():
-        P[I] *= 1 / np.linalg.norm(P[I], axis=1)  # type: ignore
+        N = np.linalg.norm(P[I], axis=1)  # type: ignore
+        P[I] *= np.reciprocal(N)[:, np.newaxis]  # type: ignore
 
     # ok
     return P
+
+
+if __name__ == "__main__":
+    R = seed_rng(None)
+    P = make_unit_points(R, 8) + 1.0
+    I = R.integers(0, 8, 4)  # type: ignore
+    P[I] = move_unit_points(R, P[I], 10.0)

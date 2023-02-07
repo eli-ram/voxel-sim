@@ -62,7 +62,7 @@ class Parameters(p.Struct):
         self.setError(self.material.load(store))
         print(self.material.get())
 
-    def render(self):
+    def buildRender(self):
         if not self.show.get():
             return None
 

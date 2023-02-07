@@ -126,9 +126,7 @@ class Configuration(p.Struct):
     def cache(self):
         return _Cache()
 
-    def getVoxelRenderer(self, node: n.VoxelNode):
-        # Get data
-        D = node.data
+    def getVoxelRenderer(self, D: n.Data):
         # Get config
         C = self.config
         # Instance voxel renderer
@@ -180,7 +178,7 @@ class Configuration(p.Struct):
             # geometry
             S.add(self.geometry.buildRender())
             # params
-            S.opt(self.parameters.render())
+            S.opt(self.parameters.buildRender())
 
         # Compute voxels
 
@@ -203,7 +201,7 @@ class Configuration(p.Struct):
         scene()
 
         # synchronized context to render voxels
-        voxels = TQ.dispatch(lambda: self.getVoxelRenderer(node))
+        voxels = TQ.dispatch(lambda: self.getVoxelRenderer(node.data))
 
         # Await voxels
         S.add(voxels())
@@ -226,6 +224,10 @@ class Configuration(p.Struct):
         M = m.Mesh(T.nodes, T.edges, m.Geometry.Lines)
         # Simulate Truss
         D, _ = fem.fem_simulate(T, 1E3)
+
+        # simulation failed
+        if not D:
+            return
 
         # Build wireframe on main thread
         @TQ.dispatch

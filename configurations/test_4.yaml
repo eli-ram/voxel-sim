@@ -18,18 +18,18 @@ materials:
     color: [0.2, 0.6, 0.5, 0.1]
     strength: 5.0
   STATIC:
-    color: [0.4, 0.2, 1.0, 1.2]
+    color: [0.4, 0.2, 1.0, 0.2]
     strength: 5.0
     locks: [true, true, true]
   FORCE:
-    color: [1.0, 0.3, 0.2, 1.2]
+    color: [1.0, 0.3, 0.2, 0.2]
     strength: 5.0
     force: [0.0, 0.0, -8.0]
   TISSUE:
-    color: [0.55, 0.42, 0.5, 0.3]
+    color: [0.52, 0.45, 0.5, 0.2]
     strength: 0.1
   METAL:
-    color: [0.5, 0.5, 0.55, 0.9]
+    color: [0.5, 0.5, 0.55, 1.0]
     strength: 50.0
 
 geometry:
@@ -86,6 +86,7 @@ geometry:
 parameters:
   # a
   show: true
+  population_size: 22 # 50
   width: 0.1
   material: METAL
   transform: 

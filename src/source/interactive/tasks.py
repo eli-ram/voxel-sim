@@ -1,7 +1,6 @@
 from queue import Queue
 from threading import Event, Thread
-from typing import Any, List, Set, Optional, Callable, TypeVar
-
+from typing import List, Set, Optional, Callable, TypeVar
 
 V = TypeVar('V')
 
@@ -55,7 +54,7 @@ class SequenceTask(Task):
 class TaskQueue:
     running: Set[str]
 
-    def __init__(self, num_workers: int = 1):
+    def __init__(self, num_workers: int = 2):
         self.queue = Queue[Task]()
         self.done = Queue[Task]()
         self.running = set()

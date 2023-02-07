@@ -24,6 +24,8 @@ import source.data.voxel_tree.node as n
 
 from source.utils.types import bool3, float3
 
+Genome = tuple[glm.vec3, glm.vec3]
+
 
 @dataclass
 class Config:
@@ -66,8 +68,7 @@ class Config:
         for (a, b) in zip(*population, strict=True):
             yield glm.vec3(a), glm.vec3(b)
 
-    def createInduvidual(self, genome:  tuple[glm.vec3, glm.vec3]):
-
+    def presentInduvidual(self, genome: Genome):
         # unpack points
         a, b = genome
 
@@ -95,7 +96,11 @@ class Config:
         node = n.VoxelNode(self.op, data)
 
         # Join with computed node
-        data = n.VoxelNode.process([self.node, node])
+        return n.VoxelNode.process([self.node, node])
+
+    def createInduvidual(self, genome: Genome):
+        # creation & presentation uses same code
+        data = self.presentInduvidual(genome)
 
         # build voxels
         voxels = v.Voxels(data.material.shape)
@@ -155,6 +160,14 @@ class Config:
         # done
         return fitness
 
+    def bestInduvidual(self, population, results):
+        A, B = population
+        I = np.argmin(results)
+        best_a = glm.vec3(A[I])
+        best_b = glm.vec3(B[I])
+        # best_r = results[I]
+        return best_a, best_b
+
     def selectPopulation(self, rng, population, results):
         A, B = population
 
@@ -196,7 +209,7 @@ class Config:
         A, B = population
 
         # mutation amount (* unit-rng)
-        amount = 0.1 / (1 + generation)
+        amount = 10 / (1 + generation)
 
         # number of mutations
         count = self.size // 4
@@ -215,6 +228,7 @@ class Config:
 class GA:
 
     def __init__(self, config: Config):
+        self.running = False
         self.reset(config)
 
     def reset(self, config: Config):
@@ -222,11 +236,25 @@ class GA:
         self.config = config
         self.population = config.seedPopulation(self.rng)
         self.generation = 0
+        self.best = None
+        self.r_min = []
+        self.r_mean = []
+        self.r_max = []
+
+    def current(self):
+        if self.best:
+            return self.config.presentInduvidual(self.best)
 
     def step(self):
+        R, self.running = self.running, True
+
+        # don't run twice ...
+        if R:
+            return
+
         C = self.config
 
-        print(f"[generation-{self.generation}] running:")
+        print(f"\n[generation-{self.generation}] running:")
 
         # Storage for fitness
         results = np.zeros(C.size, np.float32)
@@ -243,10 +271,17 @@ class GA:
             print(f"[genome-{i}] result: {evaluation:3.3f}")
             results[i] = evaluation
 
-        print(f"[generation-{self.generation}] results:")
-        print("max:", results.max())
-        print("mean:", results.mean())
-        print("min:", results.min())
+        self.r_min.append(results.min())
+        self.r_max.append(results.max())
+        self.r_mean.append(results.mean())
+
+        self.best = C.bestInduvidual(self.population, results)
+
+        print(f"\n[generation-{self.generation}] results:")
+        def _(l): return " -> ".join(f"{v:2.3f}" for v in l[-3:])
+        print("  max:", _(self.r_max))
+        print(" mean:", _(self.r_mean))
+        print("  min:", _(self.r_min))
         # TODO: track trends
 
         # select population based on fitness
@@ -259,3 +294,9 @@ class GA:
 
         # update counter
         self.generation += 1
+
+        # stop running
+        self.running = False
+
+        # present best induvidual
+        return C.presentInduvidual(self.best)
