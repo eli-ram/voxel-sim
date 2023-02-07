@@ -10,14 +10,34 @@ from scipy.sparse import (
 )
 import numpy as np
 
+# Scikit glue
+use_umfpack=True
+try:
+    # Configure solver
+    linalg.use_solver(
+        useUmfpack=True,
+        assumeSortedIndices=False, # would be nice to enable 
+    )
+    # NOTE: umfpack uses suitesparse 
+    # https://my-it-notes.com/2013/01/how-to-build-suitesparse-under-windows-using-visual-studio/
+except:
+    use_umfpack=False
+    print("Unable to use <scikits.umfpack> as space matrix solver")
+
 
 def sh(V: 'Array[Any]', name: str = ""):
     print(name, V.shape)
 
 
-def solve(M: sparse, F: vector) -> vector:
+def solve(M: sparse, F: vector) -> vector | None:
     # Solve: Ax = b
-    return linalg.spsolve(M, F)  # type: ignore
+    x = linalg.spsolve(M, F, use_umfpack=use_umfpack)
+    # why does it not throw an error here ?
+    if np.isnan(x).all():
+        print("[warn] detected exactly singular matrix")
+        return None
+    # ok
+    return x
 
 
 def outer_rows(V: 'Array[F]') -> 'Array[F]':
@@ -132,6 +152,8 @@ def stress_matrix(truss: Truss, elasticity: float = 2E9):
     V = V[KEEP]
     I = I[KEEP]
     J = J[KEEP]
+    # TODO: are the indices sorted (I, J) ?
+    # we can use that knowledge to speed up solving ...
 
     # Build sparse matrix
     M = sparse((V, (I, J)), shape=(L_DOF, L_DOF))
@@ -150,9 +172,10 @@ def displacements(truss: Truss, U: vector):
     """ Displacement array for vertices """
     S = truss.static
     D = np.zeros(S.shape, np.float32)
-    # Fill non static with deplacement 
+    # Fill non static with deplacement
     D[~S] = U
     return D
+
 
 def edge_stress(truss: Truss, DU: 'Array[F]', elasticity: float = 1E9):
     """ Edge compression array for edges """
@@ -183,6 +206,7 @@ def edge_stress(truss: Truss, DU: 'Array[F]', elasticity: float = 1E9):
 
     return S
 
+
 def fem_simulate(truss: Truss, elasticity: float = 1E9):
     # print("Building matrix")
     M = stress_matrix(truss, elasticity)
@@ -193,6 +217,8 @@ def fem_simulate(truss: Truss, elasticity: float = 1E9):
     # print("forces", F.shape)
     # print("Solving sparse")
     U = solve(M, F)
+    if U is None:
+        return None, None
     # print("Unpacking result")
     D = displacements(truss, U)
     E = edge_stress(truss, D, elasticity)

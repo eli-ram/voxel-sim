@@ -20,6 +20,7 @@ dependencies = [
     "PyWavefront",
     "PyYAML",
     "scipy",
+    "scikit-umfpack",
     "toml",
     "typing_extensions",
 ]

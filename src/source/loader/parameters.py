@@ -9,7 +9,7 @@ import source.data.voxel_tree.node as n
 import source.math.fields as f
 import source.loader.utils as u
 
-from source.ml.rng import UnitSphere
+import source.ml.rng as r
 from source.utils.wireframe.wireframe import Wireframe
 from source.loader.transforms.sequence import Transform
 from source.loader.data import Color
@@ -75,9 +75,9 @@ class Parameters(p.Struct):
 
     def sample(self, ctx: g.Context):
         ctx = ctx.push(self.transform.matrix)
-        rng = UnitSphere(self.seed.get())
+        rng = r.seed_rng(self.seed.get())
         # random points
-        A, B = rng.make_points(2)
+        A, B = r.make_unit_points(rng, 2)
         # define field
         F = f.Cylinder(
             self.volume_a.transform.matrix * glm.vec3(*A),
