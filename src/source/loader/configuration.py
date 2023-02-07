@@ -3,6 +3,7 @@ from functools import cache
 import glm
 import numpy as np
 
+import source.ml.ga as ga
 import source.data.mesh as m
 import source.parser.all as p
 import source.utils.types as t
@@ -22,12 +23,7 @@ from .parameters import Parameters
 from .geometry import Geometry, GeometryCollection, Context
 from .material import Color, MaterialStore
 from .box import Box
-
-
-@cache
-def unit_box():
-    return Wireframe(line_cube())
-
+from .utils import Cache, Attr, cache
 
 class Config(p.Struct):
     # Run simulation / ga
@@ -54,6 +50,10 @@ class Config(p.Struct):
     # Background color
     background: Color
 
+    @cache
+    def unitBox(self):
+        return Wireframe(line_cube())
+
     def buildScene(self):
         """ Build the scene presented to the user """
         B = self.region.box
@@ -61,6 +61,8 @@ class Config(p.Struct):
         # If no region, just present the geometry
         if B.is_empty:
             return s.Scene()
+        
+        ubox = self.unitBox()
 
         # Build the region bounding box
         bbox = s.Transform((
@@ -68,7 +70,7 @@ class Config(p.Struct):
             glm.translate(glm.vec3(*B.start))
             # scale the box to match
             * glm.scale(glm.vec3(*B.shape))
-        ), unit_box())
+        ), ubox)
 
         # Build the scene matrix to center the bounding box
         matrix = (
@@ -94,29 +96,12 @@ class Config(p.Struct):
         return Context(B)
 
 
-class VoxelCache:
-    node: n.VoxelNode
-    renderer: VoxelRenderer | None = None
 
-    def getNode(self, G: Geometry, ctx: Context):
-        # Get Geometry voxels
-        N = G.buildVoxels(ctx)
+class _Cache(Cache):
+    ga: Attr[ga.GA]
+    node: Attr[n.VoxelNode]
+    renderer: Attr[VoxelRenderer]
 
-        # Return Corrected voxels
-        self.node = ctx.finalize(N)
-        return self.node
-
-    def getRenderer(self, shape: t.int3, count: int) -> VoxelRenderer:
-        # Rebuild if changed
-        if not (R := self.renderer) or R.shape != shape or R.count != count:
-            self.renderer = VoxelRenderer(shape, count)
-
-        # return cached
-        return self.renderer
-
-    def refNode(self):
-        if hasattr(self, 'node'):
-            return self.node
 
 
 class Configuration(p.Struct):
@@ -137,7 +122,9 @@ class Configuration(p.Struct):
         self.geometry.loadMaterial(store)
         self.parameters.loadMaterial(store)
 
-    __cache = VoxelCache()
+    @cache
+    def cache(self):
+        return _Cache()
 
     def getVoxelRenderer(self, node: n.VoxelNode):
         # Get data
@@ -145,10 +132,13 @@ class Configuration(p.Struct):
         # Get config
         C = self.config
         # Instance voxel renderer
-        V = self.__cache.getRenderer(
-            D.material.shape,
-            C.resolution.getOr(256),
-        )
+        shape = D.material.shape
+        count = C.resolution.getOr(256)
+        V = self.cache().renderer.opt()
+        # Build if missing or invalidated
+        if not V or V.shape != shape or V.count != count:
+            V = VoxelRenderer(shape, count)
+            self.cache().renderer.set(V)
         # Set alpha
         V.alpha = C.alpha.getOr(0.9)
         # Set colors
@@ -195,26 +185,25 @@ class Configuration(p.Struct):
         # Compute voxels
 
         # Not configured for voxels
-        CTX = self.config.buildContext()
-        if CTX is None:
+        ctx = self.config.buildContext()
+        if ctx is None:
             print("Cannot build voxels")
             return
 
         # Build voxels
-        N = self.__cache.getNode(self.geometry, CTX)
-
-        # Build tmp
-        ROD = CTX.finalize(self.parameters.sample(CTX))
-
-        # JOIN
-        N = n.VoxelNode.Parent(n.Operation.OVERWRITE, [N, ROD])
-        self.__cache.node = N
-
+        node = ctx.finalize(self.geometry.buildVoxels(ctx))
+        self.cache().node.set(node)
+        
+        # Build tmp rod
+        # ROD = ctx.finalize(self.parameters.sample(ctx))
+        # node = n.VoxelNode.Parent(n.Operation.OVERWRITE, [node, ROD])
+        # self.cache().node.set(node)
+        
         # Wait for scene to finish
         scene()
 
         # synchronized context to render voxels
-        voxels = TQ.dispatch(lambda: self.getVoxelRenderer(N))
+        voxels = TQ.dispatch(lambda: self.getVoxelRenderer(node))
 
         # Await voxels
         S.add(voxels())
@@ -223,8 +212,8 @@ class Configuration(p.Struct):
         if not self.config.run.get():
             return
 
-        node = self.__cache.refNode()
-
+        node = self.cache().node.opt()
+        
         # No node, no actions
         if node is None:
             return
@@ -257,3 +246,39 @@ class Configuration(p.Struct):
 
         # Return def-frame¨
         return W
+
+    def buildAlgorithm(self):
+        if not self.config.run.get():
+            return
+
+        node = self.cache().node.opt()
+        if not node:
+            return
+
+        P = self.parameters
+        M = self.materials
+
+        C = ga.Config(
+            matrix=P.transform.matrix,
+            width=P.width.getOr(1.0),
+            mat_a=P.volume_a.transform.matrix,
+            mat_b=P.volume_b.transform.matrix,
+            material=P.material.get(),
+            op=P.operation.require(),
+            node=node,
+            forces=M.forces,
+            statics=M.statics,
+            seed=P.seed.get(),
+            size=P.population_size.getOr(10),
+        )
+
+        # Check cache
+        G = self.cache().ga.opt()
+
+        # Check if unset or invalid
+        if not G or G.config != C:
+            G = ga.GA(C)
+            self.cache().ga.set(G)
+
+        # ok
+        return G

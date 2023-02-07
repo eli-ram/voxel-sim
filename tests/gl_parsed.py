@@ -24,6 +24,9 @@ from source.utils.directory import directory, require, script_dir
 from source.loader.configuration import Configuration
 from source.parser.detector import ParsableDetector
 
+# ML
+import source.ml.ga as ga
+
 
 def time_to_t(time: float, duration: float, padding: float):
     M = time % (duration + padding + padding)
@@ -41,6 +44,7 @@ def time_to_t(time: float, duration: float, padding: float):
 class Voxels(w.Window):
 
     deformation: Optional[DeformationWireframe] = None
+    algorithm: ga.GA | None = None
 
     def setup(self):
         # Create scene
@@ -82,6 +86,7 @@ class Voxels(w.Window):
         # Build scene
         self.scene.setChildren([self._3D_cursor])
 
+
     def resize(self, width: int, height: int):
         self.animator.resize(width, height)
         GL.glViewport(0, 0, width, height)
@@ -114,6 +119,20 @@ class Voxels(w.Window):
     def scroll(self, value: float):
         self.camera.Zoom(value)
 
+    def spinAlgorithm(self):
+        A = self.algorithm
+
+        # no algorithm to run
+        if A is None:
+            return
+
+        # try to run next step
+        def resolve(none):
+            self.spinAlgorithm()
+
+        # run a step of the algorithm
+        self.tasks.run(A.step, resolve, 'algorithm')
+
     def detector(self, config: str):
         # Create Configuration
         @ParsableDetector[Configuration] 
@@ -132,9 +151,12 @@ class Voxels(w.Window):
             # Configure
             config.configure(TQ, S)
             # Run more
-            D = config.run(TQ, S)
-            # deformation mesh attatchment
-            window.deformation = D
+            # self.deformation = config.run(TQ, S)
+            # Get algorithm
+            alg = config.buildAlgorithm()
+            if self.algorithm != alg:
+                self.algorithm = alg
+                self.spinAlgorithm()
 
         # run
         impl(config) 

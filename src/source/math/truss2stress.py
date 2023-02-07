@@ -1,7 +1,6 @@
 # pyright: reportConstantRedefinition=false
 from typing import Union, Any
 
-from source.debug.time import time
 from ..utils.types import Array, F, I
 from ..data.truss import Truss
 from scipy.sparse import (
@@ -148,6 +147,7 @@ def force_vector(truss: Truss):
 
 
 def displacements(truss: Truss, U: vector):
+    """ Displacement array for vertices """
     S = truss.static
     D = np.zeros(S.shape, np.float32)
     # Fill non static with deplacement 
@@ -155,6 +155,7 @@ def displacements(truss: Truss, U: vector):
     return D
 
 def edge_stress(truss: Truss, DU: 'Array[F]', elasticity: float = 1E9):
+    """ Edge compression array for edges """
     E = truss.edges
     N = truss.nodes
 
@@ -182,19 +183,17 @@ def edge_stress(truss: Truss, DU: 'Array[F]', elasticity: float = 1E9):
 
     return S
 
-@time("fem-simulate")
 def fem_simulate(truss: Truss, elasticity: float = 1E9):
-    print("Building matrix")
+    # print("Building matrix")
     M = stress_matrix(truss, elasticity)
-    print("shape", M.shape)
-    print("Making vector")
+    # print("shape", M.shape)
+    # print("Making vector")
     # scipy.sparse.linalg.factorized
     F = force_vector(truss)
-    print("forces", F.shape)
-    print("Solving sparse")
+    # print("forces", F.shape)
+    # print("Solving sparse")
     U = solve(M, F)
-    print("Unpacking result")
+    # print("Unpacking result")
     D = displacements(truss, U)
-    # E = edge_stress(truss, D, elasticity)
-    E = None
+    E = edge_stress(truss, D, elasticity)
     return D, E

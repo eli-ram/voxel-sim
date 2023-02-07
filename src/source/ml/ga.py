@@ -111,17 +111,52 @@ class Config:
         return voxels
 
     def evaluateInduvidual(self, individual: v.Voxels):
+        # TODO: multiprocess this function
+        # it's the easiest way to speedup the search
 
         # build truss
         truss = v2t.voxels2truss(individual)
 
         # sinmulate [todo: multiprocess this]
+        # {deformation, edge-compression}
         D, E = fem.fem_simulate(truss)
+
+        # failstate for exact singular matrix
+        # NOTE: we do not get any arror here
+        # so it's just inferred
+        if np.all(E == 0.0):
+            return 1E100
+
+        mods = 1.0
+
+        # fix nan values if present
+        # and punish bad solutions
+        N = np.isnan(E)
+        if N.any():
+            E[N] = 0.0
+            mods = 10.0
+
+        # get min-max of compression
+        max = E.max()
+        min = E.min()
+
+        print(" max:", max)
+        print(" min:", min)
+
+        # fitness is based on 
+        # minimizing distortion
+        # lower is better
+        fitness = abs(max) + abs(min)
+
+        return fitness * mods
 
 
 class GA:
 
     def __init__(self, config: Config):
+        self.reset(config)
+
+    def reset(self, config: Config):
         self.rng = config.seedRng()
         self.config = config
         self.population = config.seedPopulation(self.rng)
@@ -129,12 +164,20 @@ class GA:
     def step(self):
         C = self.config
 
-        for genome in C.iterPopulation(self.population):
+        genomes = C.iterPopulation(self.population)
+        results = np.zeros(C.size, np.float32)
+        for i, genome in enumerate(genomes):
+            print(f"[genome-{i}]: evaluating...")
             individual = C.createInduvidual(genome)
             evaluation = C.evaluateInduvidual(individual)
-            print(evaluation)
+            print(f"[genome-{i}]:", evaluation)
+            results[i] = evaluation
 
-
+        print(results)
+        print("max:", results.max())
+        print("mean:", results.mean())
+        print("min:", results.min())
+        
 
         pass
 

@@ -3,7 +3,7 @@ from threading import Event, Thread
 from typing import Any, List, Set, Optional, Callable, TypeVar
 
 
-Value = TypeVar('Value')
+V = TypeVar('V')
 
 
 class Task:
@@ -13,9 +13,12 @@ class Task:
 
 
 class FunctionalTask(Task):
-    _value: Any
-
-    def __init__(self, compute: Callable[[], Value], complete: Callable[[Value], None], tag: Optional[str] = None):
+    def __init__(
+        self,
+        compute: Callable[[], V],
+        complete: Callable[[V], None],
+        tag: Optional[str] = None,
+    ):
         self.tag = tag
         self._compute = compute
         self._complete = complete
@@ -62,24 +65,23 @@ class TaskQueue:
             t.start()
 
     def add(self, task: Task):
-        if task.tag in self.running:
-            print(f"Task tagged '{task.tag}' is already running")
-            return
-
-        if task.tag:
-            self.running.add(task.tag)
+        if T := task.tag:
+            if T in self.running:
+                print(f"Task tagged '{task.tag}' is already running")
+                return
+            self.running.add(T)
 
         self.queue.put(task)
 
-    def run(self, compute: Callable[[], Value], complete: Callable[[Value], None], tag: Optional[str] = None):
+    def run(self, compute: Callable[[], V], complete: Callable[[V], None], tag: Optional[str] = None):
         self.add(FunctionalTask(compute, complete, tag))
 
-    def dispatch(self, synchronize: Callable[[], Value], tag: Optional[str] = None) -> Callable[[], Value]:
+    def dispatch(self, synchronize: Callable[[], V], tag: Optional[str] = None) -> Callable[[], V]:
         """ Dispatch a task to execute on the main thread get an Event back """
         processed = Event()
 
         # Construct capture
-        value: Value = None # type: ignore
+        value: V = None  # type: ignore
 
         # Construct event
         def complete(_: None):
@@ -94,7 +96,7 @@ class TaskQueue:
         def wait():
             processed.wait()
             return value
-        
+
         return wait
 
     def sync(self, synchronize: Callable[[], None], tag: Optional[str] = None):
@@ -118,7 +120,14 @@ class TaskQueue:
 
     def worker(self):
         while True:
+            # get & run next task
             task = self.queue.get()
             task.compute()
+            # close task if tagged
+            # why do we need to key-guard a set ??
+            if T := task.tag:
+                if T in self.running:
+                    self.running.remove(T)
+            # return task
             self.done.put(task)
             self.queue.task_done()
