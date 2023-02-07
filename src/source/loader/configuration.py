@@ -25,6 +25,7 @@ from .material import Color, MaterialStore
 from .box import Box
 from .utils import Cache, Attr, cache
 
+
 class Config(p.Struct):
     # Run simulation / ga
     run: p.Bool
@@ -61,7 +62,7 @@ class Config(p.Struct):
         # If no region, just present the geometry
         if B.is_empty:
             return s.Scene()
-        
+
         ubox = self.unitBox()
 
         # Build the region bounding box
@@ -96,12 +97,10 @@ class Config(p.Struct):
         return Context(B)
 
 
-
 class _Cache(Cache):
     ga: Attr[ga.GA]
     node: Attr[n.VoxelNode]
     renderer: Attr[VoxelRenderer]
-
 
 
 class Configuration(p.Struct):
@@ -191,12 +190,13 @@ class Configuration(p.Struct):
         # Build voxels
         node = ctx.finalize(self.geometry.buildVoxels(ctx))
         self.cache().node.set(node)
-        
+
         # Build tmp rod
-        # ROD = ctx.finalize(self.parameters.sample(ctx))
-        # node = n.VoxelNode.Parent(n.Operation.OVERWRITE, [node, ROD])
-        # self.cache().node.set(node)
-        
+        if not self.config.run.get():
+            ROD = ctx.finalize(self.parameters.sample(ctx))
+            node = n.VoxelNode.Parent(n.Operation.OVERWRITE, [node, ROD])
+            self.cache().node.set(node)
+
         # Wait for scene to finish
         scene()
 
@@ -211,7 +211,7 @@ class Configuration(p.Struct):
             return
 
         node = self.cache().node.opt()
-        
+
         # No node, no actions
         if node is None:
             return
@@ -253,6 +253,10 @@ class Configuration(p.Struct):
         if not self.config.run.get():
             return
 
+        ctx = self.config.buildContext()
+        if not ctx:
+            return
+
         node = self.cache().node.opt()
         if not node:
             return
@@ -261,7 +265,8 @@ class Configuration(p.Struct):
         M = self.materials
 
         C = ga.Config(
-            matrix=P.transform.matrix,
+            ctx=ctx.push(P.transform.matrix),
+            # matrix=P.transform.matrix,
             width=P.width.getOr(1.0),
             mat_a=P.volume_a.transform.matrix,
             mat_b=P.volume_b.transform.matrix,

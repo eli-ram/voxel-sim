@@ -27,10 +27,15 @@ from source.utils.types import bool3, float3
 Genome = tuple[glm.vec3, glm.vec3]
 
 
+## FIXME HOTFIX
+from source.loader.geometry import Context
+
+
 @dataclass
 class Config:
     # rod transform
-    matrix: glm.mat4
+    ctx: Context
+    # matrix: glm.mat4
 
     # rod width
     width: float
@@ -79,21 +84,20 @@ class Config:
         )
 
         # field region
-        B = self.node.data.box
+        # B = self.node.data.box
+        ctx = self.ctx
 
         # field transform
-        matrix = glm.translate(-glm.vec3(B.start)) * self.matrix
+        # matrix = glm.translate(-glm.vec3(*B.start)) * self.matrix
 
         # Compute field
-        grid = field.compute(B.shape, matrix, self.width)
+        grid = field.compute(ctx.shape, ctx.matrix, self.width)
 
         # Bundle as data w/ correct offset
-        data = n.Data \
-            .FromMaterialGrid(self.material, grid) \
-            .offset(B.start)
+        data = n.Data.FromMaterialGrid(self.material, grid)
 
         # Bundle as node
-        node = n.VoxelNode(self.op, data)
+        node = ctx.finalize(n.VoxelNode.Leaf(self.op, data))
 
         # Join with computed node
         return n.VoxelNode.process([self.node, node])

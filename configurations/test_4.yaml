@@ -10,8 +10,8 @@ config:
   resolution: 256
   background: [0.01, 0.01, 0.02]
   region: 
-    start: [-10, -10, -8]
-    stop: [10, 10, 10]
+    start: [-12, -12, -9]
+    stop: [12, 12, 12]
 
 materials:
   BONE:
@@ -29,12 +29,12 @@ materials:
     color: [0.52, 0.45, 0.5, 0.2]
     strength: 0.1
   METAL:
-    color: [0.5, 0.5, 0.55, 1.0]
+    color: [0.6, 0.6, 0.65, 1.0]
     strength: 50.0
 
 geometry:
   transform:
-    - scale: 10
+    - scale: 12
   elements:
     - type: mesh
       # operation: add
@@ -86,11 +86,11 @@ geometry:
 parameters:
   # a
   show: true
-  population_size: 22 # 50
-  width: 0.1
+  population_size: 21 # 50
+  width: 0.15
   material: METAL
   transform: 
-    - scale: 10
+    - scale: 12
 
   volume_a:
     color: WHITE

@@ -130,6 +130,10 @@ class Voxels(w.Window):
 
         # try to run next step
         def resolve(data):
+            # cancelled
+            if data is None:
+                return
+
             V = self.configuration.getVoxelRenderer(data)
             # hacky ...
             self.present.children[-1] = V

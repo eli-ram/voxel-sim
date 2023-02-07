@@ -60,6 +60,9 @@ class Context:
 
     def finalize(self, node: n.VoxelNode):
         return node.offset(self.box.start)
+    
+    def __eq__(self, o: object) -> bool:
+        return isinstance(o, Context) and self.eq(o)
 
 
 class Operation(p.Value[n.Operation]):

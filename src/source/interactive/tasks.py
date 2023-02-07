@@ -110,10 +110,12 @@ class TaskQueue:
             return
 
         task = self.done.get()
+
+        if (T := task.tag) and T in self.running:
+            self.running.remove(task.tag)
+
         task.complete()
 
-        if task.tag:
-            self.running.remove(task.tag)
 
         self.done.task_done()
 
@@ -122,11 +124,6 @@ class TaskQueue:
             # get & run next task
             task = self.queue.get()
             task.compute()
-            # close task if tagged
-            # why do we need to key-guard a set ??
-            if T := task.tag:
-                if T in self.running:
-                    self.running.remove(T)
             # return task
             self.done.put(task)
             self.queue.task_done()
