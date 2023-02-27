@@ -143,7 +143,7 @@ class Voxels(w.Window):
         # run a step of the algorithm
         self.tasks.run(A.step, resolve, 'algorithm')
 
-    def detector(self, config: str):
+    def watch(self, config: str):
         # Create Configuration
         @ParsableDetector[Configuration] 
         def impl(config: Configuration):
@@ -180,7 +180,7 @@ if __name__ == '__main__':
 
     # Run Configuration thread
     with directory(script_dir(__file__), "..", "configurations"):
-        window.detector("test_4.yaml")
+        window.watch("test_5.yaml")
 
     # Run window
     window.spin()

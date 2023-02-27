@@ -9,19 +9,20 @@ from scipy.sparse import (
     linalg,
 )
 import numpy as np
+import pypardiso.scipy_aliases as par
 
 # Scikit glue
-use_umfpack=True
+use_umfpack = True
 try:
     # Configure solver
     linalg.use_solver(
         useUmfpack=True,
-        assumeSortedIndices=False, # would be nice to enable 
+        assumeSortedIndices=False,  # would be nice to enable
     )
-    # NOTE: umfpack uses suitesparse 
+    # NOTE: umfpack uses suitesparse
     # https://my-it-notes.com/2013/01/how-to-build-suitesparse-under-windows-using-visual-studio/
 except:
-    use_umfpack=False
+    use_umfpack = False
     print("Unable to use <scikits.umfpack> as space matrix solver")
 
 
@@ -29,15 +30,29 @@ def sh(V: 'Array[Any]', name: str = ""):
     print(name, V.shape)
 
 
-def solve(M: sparse, F: vector) -> vector | None:
-    # Solve: Ax = b
-    x = linalg.spsolve(M, F, use_umfpack=use_umfpack)
+def force_vector(truss: Truss):
+    F = truss.forces
+    S = truss.static
+    # Remove force on static
+    return F[~S, None]
+
+
+def solve(A: sparse, b: Array[F]) -> vector | None:
+    """ Solve: Ax = b """
+
+    # [scipy]
+    # x = linalg.spsolve(A, b, use_umfpack=use_umfpack)
+
+    # [paradiso]
+    x = par.spsolve(A, b)
+
     # why does it not throw an error here ?
     if np.isnan(x).all():
         print("[warn] detected exactly singular matrix")
         return None
+
     # ok
-    return x
+    return x  # type: ignore
 
 
 def outer_rows(V: 'Array[F]') -> 'Array[F]':
@@ -115,7 +130,7 @@ def stress_matrix(truss: Truss, elasticity: float = 2E9):
     inplace_multiply(Q, O[:, None])
 
     # Accumulate node stress kernels
-    C = np.zeros((N.shape[0], Q.shape[1]), np.float32)
+    C = np.zeros((N.shape[0], Q.shape[1]), np.float64)
     # Choose <one> measure !
     # accumulate_rows(C, E0, E1, Q)
     accumulate_columns(C, E0, E1, Q)
@@ -159,13 +174,6 @@ def stress_matrix(truss: Truss, elasticity: float = 2E9):
     M = sparse((V, (I, J)), shape=(L_DOF, L_DOF))
 
     return M
-
-
-def force_vector(truss: Truss):
-    F = truss.forces
-    S = truss.static
-    # Remove force on static
-    return vector(F[~S, None])
 
 
 def displacements(truss: Truss, U: vector):

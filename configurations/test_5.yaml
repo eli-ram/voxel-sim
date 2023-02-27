@@ -10,8 +10,8 @@ config:
   resolution: 256
   background: [0.01, 0.01, 0.02]
   region: 
-    start: [-12, -12, -9]
-    stop: [12, 12, 12]
+    start: [-20, -20, -20]
+    stop: [20, 20, 20]
 
 materials:
   BONE:
@@ -22,11 +22,11 @@ materials:
     strength: 5.0
     locks: [true, true, true]
   FORCE:
-    color: [1.0, 0.3, 0.2, 0.2]
+    color: [1.0, 0.3, 0.2, 0.5]
     strength: 5.0
-    force: [0.0, 0.0, -8.0]
+    force: [0.0, 0.0, -10.0]
   TISSUE:
-    color: [0.52, 0.45, 0.5, 0.2]
+    color: [0.62, 0.25, 0.5, 0.4]
     strength: 0.1
   METAL:
     color: [0.6, 0.6, 0.65, 1.0]
@@ -34,7 +34,8 @@ materials:
 
 geometry:
   transform:
-    - scale: 12
+    - scale: 20
+    - translate: [0, -0.35, 0]
   elements:
     - type: mesh
       # render: off
@@ -60,18 +61,19 @@ geometry:
       material: STATIC
       transform:
         # - debug: 
-        - translate: [-1.1, -1.1, 0]
-        - scale: 0.55
+        - translate: [-0.5, -0.85, 0]
+        # convert to a plane
+        - scale: [10000, 0.25, 10000] 
     
     - type: sphere
       render: off
       # voxels: off
-      operation: inside
+      operation: outside
       material: FORCE
       transform:
         # - debug: 0
         - translate: [0.5, 0, 0]
-        - scale: 0.3
+        - scale: [0.2, 0.6, 0.6]
         - rotate:
             axis: Z
             angle: { deg: 180 }
@@ -81,17 +83,19 @@ geometry:
       material: TISSUE
       operation: outside
       transform:
-        - scale: 0.45
-        - translate: [0.3, 0, 0]
+        - scale: [0.45, 0.36, 0.36]
+        - debug: 1
+        - translate: [0.25, -0.1, 0.1]
 
 parameters:
-  # a
-  show: true
-  population_size: 21 # 50
-  width: 0.15
+  show: false
+  operation: inside
+  population_size: 15 # 50
+  width: 0.1
   material: METAL
   transform: 
-    - scale: 12
+    - scale: 20
+    - translate: [0, -0.35, 0]
 
   volume_a:
     color: WHITE
@@ -106,5 +110,5 @@ parameters:
     width: 10.0
     transform:
       - translate: [-1.2, 0, 0]
-      - scale: [0.05, 0.6, 0.6]
+      - scale: [0.05, 0.5, 0.6]
 

@@ -1,5 +1,5 @@
 [project]
-# FIXME: better name
+# FIXME: better name (?)
 name = "source"
 description = "voxel sim packate"
 version = "0.1.0"
@@ -23,8 +23,11 @@ dependencies = [
     "scikit-umfpack",
     "toml",
     "typing_extensions",
+    "pyparadiso",
 ]
 #TODO: PyOpenGL-accelerate
+#NOTE: this will only make graphics smoother, not the algorithm
+#TEMP: just install it manually if needed
 
 [build-system]
 requires = ["hatchling"]

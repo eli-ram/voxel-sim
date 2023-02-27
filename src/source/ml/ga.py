@@ -163,14 +163,13 @@ class Config:
 
         # done
         return fitness
-
+    
     def bestInduvidual(self, population, results):
         A, B = population
         I = np.argmin(results)
-        best_a = glm.vec3(A[I])
-        best_b = glm.vec3(B[I])
-        # best_r = results[I]
-        return best_a, best_b
+        genome = (glm.vec3(A[I]), glm.vec3(B[I]))
+        fitness = results[I]
+        return genome, fitness
 
     def selectPopulation(self, rng, population, results):
         A, B = population
@@ -240,14 +239,15 @@ class GA:
         self.config = config
         self.population = config.seedPopulation(self.rng)
         self.generation = 0
-        self.best = None
+        self.best_genome = None
+        self.best_fitness = np.inf
         self.r_min = []
         self.r_mean = []
         self.r_max = []
 
     def current(self):
-        if self.best:
-            return self.config.presentInduvidual(self.best)
+        if genome := self.best_genome:
+            return self.config.presentInduvidual(genome)
 
     def step(self):
         R, self.running = self.running, True
@@ -275,12 +275,18 @@ class GA:
             print(f"[genome-{i}] result: {evaluation:3.3f}")
             results[i] = evaluation
 
+        # Save progression data
         self.r_min.append(results.min())
         self.r_max.append(results.max())
         self.r_mean.append(results.mean())
 
-        self.best = C.bestInduvidual(self.population, results)
+        # Update best result
+        genome, fitness = C.bestInduvidual(self.population, results)
+        if self.best_genome is None or self.best_fitness > fitness:
+            self.best_genome = genome
+            self.best_fitness = fitness
 
+        # Log data
         print(f"\n[generation-{self.generation}] results:")
         def _(l): return " -> ".join(f"{v:2.3f}" for v in l[-3:])
         print("  max:", _(self.r_max))
@@ -303,4 +309,4 @@ class GA:
         self.running = False
 
         # present best induvidual
-        return C.presentInduvidual(self.best)
+        return C.presentInduvidual(self.best_genome)

@@ -7,7 +7,7 @@ class Voxels:
     def __init__(self, shape: t.int3):
         self.shape = shape
         self.grid = np.zeros(shape, np.uint32)
-        self.strength = np.zeros(shape, np.float32)
+        self.strength = np.zeros(shape, np.float64)
         self.forces = dict[Material, t.float3]()
         self.statics = dict[Material, t.bool3]()
         
@@ -29,7 +29,7 @@ class Voxels:
 
     def force_map(self):
         L = np.max(self.grid) + 1
-        static = np.zeros((L, 3), np.float32)
+        static = np.zeros((L, 3), np.float64)
         for material, force in self.forces.items():
             static[material.id, :] = force
             # Number of voxels

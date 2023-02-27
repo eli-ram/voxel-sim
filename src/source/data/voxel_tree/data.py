@@ -20,7 +20,7 @@ class Data:
     # What material this data is made from
     material: np.ndarray[np.uint32]
     # The strength of the data
-    strength: np.ndarray[np.float32]
+    strength: np.ndarray[np.float64]
 
     def arrays(self) -> Tuple[np.ndarray, ...]:
         """ Iterate over the data arrays """
@@ -49,7 +49,7 @@ class Data:
             box=box,
             mask=np.zeros(shape, np.bool_),
             material=np.zeros(shape, np.uint32),
-            strength=np.zeros(shape, np.float32),
+            strength=np.zeros(shape, np.float64),
         )
 
     @classmethod
@@ -61,7 +61,7 @@ class Data:
             box=box,
             mask=grid,
             material=(grid * mat.id).astype(np.uint32),
-            strength=(grid * mat.strenght).astype(np.float32),
+            strength=(grid * mat.strenght).astype(np.float64),
         )
 
     def crop(self) -> Data:
