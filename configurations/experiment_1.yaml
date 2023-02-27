@@ -6,7 +6,7 @@ config:
   alpha: 0.001
   # render: true
   outline: false
-  output: "ex1_whole"
+  output: "ex1_whole_101"
   resolution: 512 # 256
   background: [0.01, 0.01, 0.02]
   region: 
@@ -110,7 +110,7 @@ geometry:
 parameters:
   show: off
   operation: inside
-  population_size: 25
+  population_size: 101
   width: 0.08
   material: TITANIUM
   transform: 

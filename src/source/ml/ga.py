@@ -217,7 +217,7 @@ class Config:
         A, B = population
 
         # mutation amount (* unit-rng)
-        amount = 2 / (1 + generation)
+        amount = 1 / (1 + generation)
 
         # number of mutations
         count = self.size // 2
