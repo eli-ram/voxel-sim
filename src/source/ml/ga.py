@@ -13,6 +13,7 @@ Genetic Algorithm
 import glm
 import numpy as np
 from dataclasses import dataclass
+from datetime import datetime
 
 import source.ml.rng as r
 import source.math.fields as f
@@ -21,6 +22,7 @@ import source.data.material as m
 import source.math.voxels2truss as v2t
 import source.math.truss2stress as fem
 import source.data.voxel_tree.node as n
+from source.utils.directory import directory
 
 from source.utils.types import bool3, float3
 
@@ -60,6 +62,9 @@ class Config:
     # setup
     seed: int | None
     size: int
+
+    # output
+    filename: str
 
     def seedPopulation(self, rng):
         print("[config] creating a population of size", self.size)
@@ -227,6 +232,14 @@ class Config:
         # result
         return A, B
 
+    def createFilename(self, ext):
+        now = datetime.now()
+        return f'{self.filename}{now:[%Y-%m-%d][%H-%M]}{ext}'
+
+
+_results_dir = ['']
+def setResultsDir(dir: str):
+    _results_dir[0] = dir
 
 class GA:
 
@@ -244,6 +257,16 @@ class GA:
         self.r_min = []
         self.r_mean = []
         self.r_max = []
+        self.filename = config.createFilename('.txt')
+
+        with directory(_results_dir[0]):
+            with open(self.filename, "x") as f:
+                pass
+
+    def _append(self, results):
+        with directory(_results_dir[0]):
+            with open(self.filename, "a") as f:
+                f.write(" ".join(f"{v:.5f}" for v in results) + "\n")
 
     def current(self):
         if genome := self.best_genome:
@@ -276,6 +299,7 @@ class GA:
             results[i] = evaluation
 
         # Save progression data
+        self._append(results)
         self.r_min.append(results.min())
         self.r_max.append(results.max())
         self.r_mean.append(results.mean())

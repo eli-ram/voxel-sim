@@ -5,6 +5,11 @@ from OpenGL import GL
 from PIL import Image, ImageOps
 import os
 
+_results_dir = ['']
+def setResultsDir(dir: str):
+    _results_dir[0] = dir
+
+
 def force_filename_ext(filename: str, ext: str):
     name, fext = os.path.splitext(filename)
     output = f"{name}{ext}"
@@ -26,8 +31,8 @@ class Animator:
         self.frames = []
         self.recording = True
 
-    def stopRecording(self, dir, file):
-        self.save(dir, file)
+    def stopRecording(self, file):
+        self.save(file)
         self.frames = []
         self.recording = False
 
@@ -60,15 +65,15 @@ class Animator:
         )
         self.frames.append(ImageOps.flip(image))
 
-    def save(self, dir, file):
+    def save(self, file):
         print("Frames to save", len(self.frames))
         if not self.frames:
             return
         image, *images = self.frames
         filename = force_filename_ext(file, '.gif')
-        with directory(dir):
+        with directory(_results_dir[0]):
             if os.path.exists(filename):
-                print(f"Overwriting '{dir}/{filename}' !")
+                print(f"Overwriting '{_results_dir[0]}/{filename}' !")
             image.save(
                 file,
                 save_all=True,
@@ -77,10 +82,10 @@ class Animator:
                 loop=0,
             )
 
-    def recorder(self, dir: str, file_fmt: str):
+    def recorder(self, file_fmt: str):
         def record(press: bool):
             if press:
                 self.startRecording()
             else:
-                self.stopRecording(dir, file_fmt.format(datetime.now()))
+                self.stopRecording(file_fmt.format(datetime.now()))
         return record

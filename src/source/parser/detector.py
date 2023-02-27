@@ -26,7 +26,7 @@ class FileChangeDetector:
 
     def read(self):
         return open(self.file, 'r')
-
+    
 
 P = TypeVar('P', bound=Parsable)
 F = Format(prefix=' |', list_unchanged=False, list_errors=True).init()
@@ -65,6 +65,7 @@ class ParsableDetector(Generic[P]):
         T = currentThread()
         D = Generic.get(S)()
         C = S._callback
+        N = os.path.splitext(os.path.basename(S._file))[0]
 
         def poll():
             time.sleep(1.0)
@@ -78,7 +79,7 @@ class ParsableDetector(Generic[P]):
                 data = S.loadFile(f)
 
             # Parse Content
-            changed, error = D.parse(data)
+            changed, error = D.parse(data, N)
 
             # Log Content
             if S.LOG and (changed or error):

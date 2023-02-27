@@ -1,6 +1,4 @@
 # pyright: reportUnusedImport=false, reportUnusedFunction=false
-from typing import Optional
-import numpy as np
 import __init__
 
 # Packages
@@ -26,6 +24,10 @@ from source.parser.detector import ParsableDetector
 
 # ML
 import source.ml.ga as ga
+
+DIR = script_dir(__file__)
+ga.setResultsDir(require(DIR, '..', 'results', 'ga'))
+a.setResultsDir(require(DIR, '..', 'results', 'gifs'))
 
 
 def time_to_t(time: float, duration: float, padding: float):
@@ -72,10 +74,10 @@ class Voxels(w.Window):
         K = self.keys
         K.toggle("LEFT_CONTROL")(self.camera.SetPan)
         K.action("O")(self._3D_cursor.toggle)
-        K.toggle("SPACE")(self.animator.recorder(
-            require(script_dir(__file__), '..', 'results'),
-            'animation{:[%Y-%m-%d][%H-%M]}.gif'
-        ))
+        K.toggle("SPACE")(
+            # recorder hook
+            self.animator.recorder('animation{:[%Y-%m-%d][%H-%M]}.gif')
+        )
 
         # Bind Mouse Controls
         B = self.buttons
@@ -87,7 +89,6 @@ class Voxels(w.Window):
 
         # Build scene
         self.scene.setChildren([self._3D_cursor])
-
 
     def resize(self, width: int, height: int):
         self.animator.resize(width, height)
@@ -145,7 +146,7 @@ class Voxels(w.Window):
 
     def watch(self, config: str):
         # Create Configuration
-        @ParsableDetector[Configuration] 
+        @ParsableDetector[Configuration]
         def impl(config: Configuration):
             TQ = self.tasks
             print("Processing config ...")
@@ -171,7 +172,7 @@ class Voxels(w.Window):
                 self.spinAlgorithm()
 
         # run
-        impl(config) 
+        impl(config)
 
 
 if __name__ == '__main__':
@@ -180,7 +181,7 @@ if __name__ == '__main__':
 
     # Run Configuration thread
     with directory(script_dir(__file__), "..", "configurations"):
-        window.watch("test_5.yaml")
+        window.watch("experiment_1.yaml")
 
     # Run window
     window.spin()

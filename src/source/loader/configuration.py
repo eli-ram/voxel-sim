@@ -20,21 +20,33 @@ from source.interactive.tasks import TaskQueue
 from source.voxels.render import VoxelRenderer
 
 from .parameters import Parameters
-from .geometry import Geometry, GeometryCollection, Context
+from .geometry import GeometryCollection, Context
 from .material import Color, MaterialStore
 from .box import Box
 from .utils import Cache, Attr, cache
 
+class Mode(p.Enum):
+    # Setup mode (default)
+    setup: p.Empty
+    # Build voxels
+    build: p.Empty
+    # Sample parameters
+    sample: p.Empty
+    # Run simulation / ga
+    run: p.Empty
+
+    def postParse(self) -> None:
+        K = self.variant() if self.ok() else "setup"
+        self._run = K == "run"
+        self._sample = K == "sample"
+        self._build = self._run or self._sample or K == "build"
+        self._setup = True
+
+
 
 class Config(p.Struct):
     # Run simulation / ga
-    run: p.Bool
-
-    # Build Voxels
-    build: p.Bool
-
-    # Render Raw Geometry
-    render: p.Bool
+    mode: Mode
 
     # Voxel global alpha
     alpha: p.Float
@@ -50,6 +62,9 @@ class Config(p.Struct):
 
     # Background color
     background: Color
+
+    # Output file for results
+    output: p.String
 
     @cache
     def unitBox(self):
@@ -86,7 +101,7 @@ class Config(p.Struct):
 
     def buildContext(self):
         # Requested not to build
-        if not self.build.require():
+        if not self.mode._build:
             return None
         # Get box
         B = self.region.box
@@ -192,7 +207,7 @@ class Configuration(p.Struct):
         self.cache().node.set(node)
 
         # Build tmp rod
-        if not self.config.run.get():
+        if self.config.mode._sample:
             ROD = ctx.finalize(self.parameters.sample(ctx))
             node = n.VoxelNode.Parent(n.Operation.OVERWRITE, [node, ROD])
             self.cache().node.set(node)
@@ -206,8 +221,8 @@ class Configuration(p.Struct):
         # Await voxels
         S.add(voxels())
 
-    def run(self, TQ: TaskQueue, S: s.Scene):
-        if not self.config.run.get():
+    def buildDeformation(self, TQ: TaskQueue, S: s.Scene):
+        if not self.config.mode._sample:
             return
 
         node = self.cache().node.opt()
@@ -250,7 +265,7 @@ class Configuration(p.Struct):
         return W
 
     def buildAlgorithm(self):
-        if not self.config.run.get():
+        if not self.config.mode._run:
             return
 
         ctx = self.config.buildContext()
@@ -277,6 +292,7 @@ class Configuration(p.Struct):
             statics=M.statics,
             seed=P.seed.get(),
             size=P.population_size.getOr(10),
+            filename=self.config.output.getOr(self.getFilename())
         )
 
         # Check cache

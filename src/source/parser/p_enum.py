@@ -38,6 +38,10 @@ class Enum(Parsable, Generic[I]):
     def dataParse(self, data: Any):
         data = data or {}
 
+        # Interpret strings as empty objects
+        if isinstance(data, str):
+            data = { data: None }
+
         if not isMap(data):
             raise ParseError("Expected a Map for Enum option")
 

@@ -10,12 +10,15 @@ from . import p_types as t
 class Parsable:
     """ Abstract Parsable Definition """
 
+
     # Has this been changed during last update
     __changed = False
     # Did an error get raised during last update
     __error = False
     # What was the error message
     __what = ""
+    # Source File
+    __file = ""
 
     def __init__(self) -> None: ...
 
@@ -47,11 +50,15 @@ class Parsable:
     def getError(self):
         return self.__what    
 
-    def parse(self, data: t.Any) -> Tuple[bool, bool]:
+    def getFilename(self):
+        return self.__file
+
+    def parse(self, data: t.Any, file: str) -> Tuple[bool, bool]:
         # Forward State
         self.__changed = self.__error
         self.__error = False
         self.__what = ""
+        self.__file = file
 
         L = []
 
@@ -63,8 +70,8 @@ class Parsable:
 
         # Parse Children
         for P, D in L:
-            # print(self.__class__.__name__, "->", P.__class__.__name__, D)
-            changed, error = P.parse(D)
+            # print(self.__class__.__name__, "->", P.__class__.__name__, D)            
+            changed, error = P.parse(D, file)
             self.__changed |= changed
             self.__error |= error
 
