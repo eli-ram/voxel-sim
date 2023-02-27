@@ -217,10 +217,10 @@ class Config:
         A, B = population
 
         # mutation amount (* unit-rng)
-        amount = 10 / (1 + generation)
+        amount = 2 / (1 + generation)
 
         # number of mutations
-        count = self.size // 4
+        count = self.size // 2
 
         # indices of mutations
         I = rng.integers(0, self.size, count)

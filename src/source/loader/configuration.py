@@ -25,6 +25,7 @@ from .material import Color, MaterialStore
 from .box import Box
 from .utils import Cache, Attr, cache
 
+
 class Mode(p.Enum):
     # Setup mode (default)
     setup: p.Empty
@@ -41,7 +42,6 @@ class Mode(p.Enum):
         self._sample = K == "sample"
         self._build = self._run or self._sample or K == "build"
         self._setup = True
-
 
 
 class Config(p.Struct):
