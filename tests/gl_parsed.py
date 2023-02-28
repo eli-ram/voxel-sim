@@ -8,7 +8,7 @@ from OpenGL import GL
 # Interactive
 import source.interactive.window as w
 import source.interactive.scene as s
-import source.interactive.animator as a
+import source.interactive.animator as an
 
 # Graphics
 import source.graphics.matrices as m
@@ -25,9 +25,10 @@ from source.parser.detector import ParsableDetector
 # ML
 import source.ml.ga as ga
 
-DIR = script_dir(__file__)
-ga.setResultsDir(require(DIR, '..', 'results', 'ga'))
-a.setResultsDir(require(DIR, '..', 'results', 'gifs'))
+CONF = 'configurations/experiment_2.1.yaml'
+WORKSPACE = require(script_dir(__file__), '..')
+ga.setResultsDir(require(WORKSPACE, 'results', 'ga'))
+an.setResultsDir(require(WORKSPACE, 'results', 'gifs'))
 
 
 def time_to_t(time: float, duration: float, padding: float):
@@ -55,7 +56,7 @@ class Voxels(w.Window):
         self.scene = s.SceneBase()
 
         # Create animator
-        self.animator = a.Animator(delta=0.25)
+        self.animator = an.Animator(delta=0.25)
 
         # Create Camera
         self.camera = m.OrbitCamera(
@@ -180,8 +181,8 @@ if __name__ == '__main__':
     window = Voxels(900, 900, "voxels")
 
     # Run Configuration thread
-    with directory(script_dir(__file__), "..", "configurations"):
-        window.watch("experiment_1.1.yaml")
+    with directory(WORKSPACE):
+        window.watch(CONF)
 
     # Run window
     window.spin()
