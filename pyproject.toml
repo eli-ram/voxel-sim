@@ -20,10 +20,10 @@ dependencies = [
     "PyWavefront",
     "PyYAML",
     "scipy",
-    "scikit-umfpack",
+    # "scikit-umfpack",
     "toml",
     "typing_extensions",
-    "pyparadiso",
+    "pypardiso",
 ]
 #TODO: PyOpenGL-accelerate
 #NOTE: this will only make graphics smoother, not the algorithm

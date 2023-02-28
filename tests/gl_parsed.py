@@ -181,7 +181,7 @@ if __name__ == '__main__':
 
     # Run Configuration thread
     with directory(script_dir(__file__), "..", "configurations"):
-        window.watch("experiment_1.yaml")
+        window.watch("experiment_1.1.yaml")
 
     # Run window
     window.spin()

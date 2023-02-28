@@ -3,15 +3,15 @@
 
 config:
   mode: run
-  alpha: 0.001
+  alpha: 0.01
   # render: true
   outline: false
   output: "ex1_whole_101_25"
   resolution: 512 # 256
   background: [0.01, 0.01, 0.02]
   region:
-    start: [-25, -25, -25]
-    stop: [25, 25, 25]
+    start: [-30, -30, -30]
+    stop: [30, 30, 30]
 
 materials:
   BONE:
@@ -30,7 +30,7 @@ materials:
     # Where it's cutoff in the simulation
     locks: [true, true, true]
   FORCE:
-    color: [1.0, 0.3, 0.2, 100]
+    color: [1.0, 0.3, 0.2, 1]
     # Arbitrary strength to apply force to bone
     strength: 1000
     # Downwards force
@@ -68,7 +68,7 @@ geometry:
         - scale: 1.6
         - rotate:
             axis: X
-            angle: { deg: 100 }
+            angle: { deg: 110 }
         - rotate:
             axis: Y
             angle: { deg: -22 }
@@ -82,19 +82,19 @@ geometry:
       material: STATIC
       transform:
         # - debug:
-        - translate: [0, 0, -1.2]
+        - translate: [0, 0, -1.425]
         # convert to a plane
         - scale: [10000, 10000, 0.25]
 
     - type: sphere
-      render: off
+      render: on
       # voxels: off
       operation: outside
       material: FORCE
       transform:
         # - debug: 0
-        - translate: [0.31, 0.42, 1]
-        - scale: [0.4, 0.4, 0.5]
+        - translate: [0.28, 0.32, 1]
+        - scale: [0.4, 0.4, 0.4]
         # {X: red, Y: green, Z: blue}
 
     - type: sphere
@@ -108,7 +108,7 @@ geometry:
         - translate: [0.25, -0.1, 0.1]
 
 parameters:
-  show: off
+  show: on
   operation: inside
   population_size: 101
   width: 0.08
@@ -120,7 +120,8 @@ parameters:
     color: WHITE
     width: 10.0
     transform:
-      - translate: [0.3, 0.4, 0.4]
+      - translate: [0.28, 0.32, 0.6]
+      # - translate: [0.3, 0.4, 0.4]
       - scale: [0.35, 0.35, 0.35]
       # - debug: a
 
