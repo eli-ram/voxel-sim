@@ -109,7 +109,7 @@ geometry:
 
 parameters:
   show: off
-  operation: inside
+  operation: add
   population_size: 101
   width: 0.08
   material: TITANIUM
