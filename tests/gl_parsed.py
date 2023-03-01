@@ -25,7 +25,7 @@ from source.parser.detector import ParsableDetector
 # ML
 import source.ml.ga as ga
 
-CONF = 'configurations/experiment_2.1.yaml'
+CONF = 'configurations/experiment_3.1.yaml'
 WORKSPACE = require(script_dir(__file__), '..')
 ga.setResultsDir(require(WORKSPACE, 'results', 'ga'))
 an.setResultsDir(require(WORKSPACE, 'results', 'gifs'))
