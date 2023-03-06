@@ -6,7 +6,7 @@ config:
   alpha: 0.001
   # render: true
   outline: false
-  output: "ex1_fracture_P51_R35"
+  output: "ex3_partial_fracture_P10_R35"
   resolution: 512 # 256
   background: [0.01, 0.01, 0.02]
   region:
@@ -17,7 +17,7 @@ materials:
 
   BONE:
     # color: [0.89, 0.86, 0.788, 1]
-    color: [0.6, 0.57, 0.53, 10]
+    color: [0.6, 0.57, 0.53, 20]
     # from: https://openoregon.pressbooks.pub/bodyphysics/chapter/stress-and-strain-on-the-body/
     # -    ultimate strength = 135 MPa
     # - compressive strength = 205 MPa
@@ -100,6 +100,17 @@ geometry:
     - type: sphere
       render: off
       operation: inside
+      material: BONE
+      transform:
+        - scale: 0.5
+        - rotate: 
+            axis: Z
+            angle: { deg: 40 }
+        - translate: [1.2, 0, -0.2]
+
+    - type: sphere
+      render: off
+      operation: inside
       material: STATIC
       transform:
         # - debug:
@@ -120,7 +131,7 @@ geometry:
 parameters:
   show: off
   operation: inside
-  population_size: 51
+  population_size: 10
   width: 0.08
   material: TITANIUM
   transform:

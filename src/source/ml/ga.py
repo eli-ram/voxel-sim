@@ -189,8 +189,8 @@ class Config:
 
         # fourths + rest
         size = self.size
-        part = size // 4
-        rest = size % 4
+        part = (size // 5)
+        rest = (size % 5) + part
         # print(f"{size=} {part=} {rest=}")
 
         # top indices
@@ -200,6 +200,7 @@ class Config:
         # print('T', len(T))
 
         # rng indices
+        # R = I[rng.integers(part, self.size, part)]
         R = I[rng.integers(part, self.size, part)]
         rand_a = A[R]
         rand_b = B[R]
@@ -210,8 +211,8 @@ class Config:
         rest_b = r.make_unit_points(rng, rest)
 
         # build population (w/ crossover)
-        A = np.concatenate([best_a, best_a, rand_a, rand_a, rest_a])
-        B = np.concatenate([best_b, rand_b, best_b, rand_b, rest_b])
+        A = np.concatenate([best_a,  rand_a, best_a, rand_a, rest_a])
+        B = np.concatenate([best_b,  rand_b, rand_b, best_b, rest_b])
         # print('A', len(A))
 
         # new population
@@ -221,13 +222,16 @@ class Config:
         A, B = population
 
         # mutation amount (* unit-rng)
-        amount = 1 / (1 + generation)
+        amount = 10 / (1 + generation)
 
         # number of mutations
         count = self.size // 2
 
+        # cutoff position (ignore new individuals)
+        cutoff = (self.size // 5) + (self.size % 5)
+
         # indices of mutations
-        I = rng.integers(0, self.size, count)
+        I = rng.integers(0, cutoff, count)
 
         # mutate indices
         A[I] = r.move_unit_points(rng, A[I], amount)
