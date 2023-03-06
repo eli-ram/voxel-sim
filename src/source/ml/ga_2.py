@@ -85,10 +85,6 @@ class Config:
         print("[config] creating a population of size", self.size)
         return s.Generation(random_induviduals(rng, self.size), 0)
 
-    def iterPopulation(self, generation: s.Generation[Genome]):
-        # Cylinders between A & B
-        return (G for G in generation.population if not G.validated)
-
     def presentInduvidual(self, genome: Genome):
         # Create Cylinder field
         field = f.Cylinder(
@@ -115,7 +111,7 @@ class Config:
         # Join with computed node
         return n.VoxelNode.process([self.node, node])
 
-    def createInduvidual(self, genome: Genome):
+    def createPhenotype(self, genome: Genome):
         # creation & presentation uses same code
         data = self.presentInduvidual(genome)
 
@@ -131,7 +127,7 @@ class Config:
         # done
         return voxels
 
-    def evaluateInduvidual(self, individual: v.Voxels):
+    def evaluate(self, individual: v.Voxels):
         # TODO: multiprocess this function
         # it's the easiest way to speedup the search
 
@@ -230,17 +226,18 @@ class Config:
         # size
         size = generation.size()
 
-        # population
-        population = generation.population
-
         # number of mutations
         count = size // 4
 
-        # list of moves
-        moves = random_genomes(rng, count)
-
         # cutoff position (ignore new individuals)
         cutoff = (size // 5) + (size % 5)
+
+        # list of genomes to mutate
+        I = rng.integers(0, cutoff, count)
+        induviduals = [generation.population[i] for i in I]
+
+        # list of moves for mutation
+        moves = random_genomes(rng, count)
 
         # mutate gene
         def mutate(g: glm.vec3, m: glm.vec3):
@@ -249,9 +246,7 @@ class Config:
             return v / l if l > 1.0 else v
 
         # indices of mutations
-        for i in rng.integers(0, cutoff, count):
-            I = population[i]
-            M = moves[i]
+        for I, M in zip(induviduals, moves):
             G = I.genome
             # Mutate
             G.a = mutate(G.a, M.a)
@@ -296,18 +291,19 @@ class GA:
         print(f"\n[generation-{self.generation.index}] running:")
 
         # Iterate genomes
-        induviduals = C.iterPopulation(self.generation)
-        for i, I in enumerate(induviduals):
-            # print(f"[genome-{i}] evaluating:")
-            # Create induvidual
-            individual = C.createInduvidual(I.genome)
-            # Evaluate induvidual (fitness-function)
-            evaluation = C.evaluateInduvidual(individual)
-            # Store result
-            print(f"[genome-{i}] result: {evaluation:6.3f}")
-            I.fitness = evaluation
+        for i, I in enumerate(self.generation.population):
+            if not I.validated:
+                # Realize induvidual
+                phenotype = C.createPhenotype(I.genome)
+                # Evaluate induvidual (fitness-function)
+                I.fitness = C.evaluate(phenotype)
+
+            op = 'cached' if I.validated else 'result'
+            print(f"[genome-{i}] {op}: {I.fitness:6.3f}")
+            I.validated = True
 
         # Save progression data
+        # self.generation.sort()
         self.db.save(self.generation)
 
         # Update best result

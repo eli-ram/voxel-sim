@@ -50,7 +50,7 @@ class Parsable:
     def getError(self):
         return self.__what    
 
-    def getFilename(self):
+    def getFile(self):
         return self.__file
 
     def parse(self, data: t.Any, file: str) -> Tuple[bool, bool]:

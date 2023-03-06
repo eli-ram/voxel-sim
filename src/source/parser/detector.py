@@ -65,7 +65,7 @@ class ParsableDetector(Generic[P]):
         T = currentThread()
         D = Generic.get(S)()
         C = S._callback
-        N = os.path.splitext(os.path.basename(S._file))[0]
+        # N = os.path.splitext(os.path.basename(S._file))[0]
 
         def poll():
             time.sleep(1.0)
@@ -79,7 +79,7 @@ class ParsableDetector(Generic[P]):
                 data = S.loadFile(f)
 
             # Parse Content
-            changed, error = D.parse(data, N)
+            changed, error = D.parse(data, F.file)
 
             # Log Content
             if S.LOG and (changed or error):

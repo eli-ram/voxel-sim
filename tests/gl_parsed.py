@@ -23,13 +23,14 @@ from source.loader.configuration import Configuration
 from source.parser.detector import ParsableDetector
 
 # ML
-import source.ml.ga as ga
+import source.ml.ga_2 as ga
 
 CONF = 'configurations/experiment_1.2.yaml'
 CONF = 'configurations/experiment_3.1.yaml'
 WORKSPACE = require(script_dir(__file__), '..')
-ga.setResultsDir(require(WORKSPACE, 'results', 'ga'))
-an.setResultsDir(require(WORKSPACE, 'results', 'gifs'))
+RESULTS_DIR = require(WORKSPACE, 'results')
+# ga.setResultsDir(require(WORKSPACE, 'results', 'ga'))
+an.setResultsDir(require(RESULTS_DIR, 'gifs'))
 
 
 def time_to_t(time: float, duration: float, padding: float):
@@ -168,7 +169,7 @@ class Voxels(w.Window):
             # Run more
             # self.deformation = config.run(TQ, S)
             # Get algorithm
-            alg = config.buildAlgorithm()
+            alg = config.buildAlgorithm(RESULTS_DIR)
             if self.algorithm != alg:
                 self.algorithm = alg
                 self.spinAlgorithm()

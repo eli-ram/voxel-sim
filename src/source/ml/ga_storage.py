@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar, Protocol, cast
+from typing import Generic, TypeVar, Protocol, Any
 from dataclasses import dataclass
 import numpy as np
 import glm
@@ -74,8 +74,8 @@ class GenerationStorage(Generic[T], Storage[Generation[T]]):
 
 class Database(Generic[T]):
     """ A folder based storage for genetic algorithm generations """
-    FILENAME = "generation.{}.values"
-    REGEX = re.compile(r"^generation\.(\d+)\.values$")
+    FILENAME = "generation.{}.npy"
+    REGEX = re.compile(r"^generation\.(\d+)\.npy$")
 
     def __init__(self, storage: Storage[T], folder: str):
         # Add subfolder
@@ -116,14 +116,11 @@ class Database(Generic[T]):
             f"Could not load generation, file does not exist! ('{file}')"
 
         # Load data using numpy utils
-        data = np.loadtxt(file, dtype=np.float64)
-
+        data: Any = np.load(file)
+        
         # Force 2D array
         if len(data.shape) == 1:
             data = [data]
-
-        # Typecast ...
-        data = cast(list[list[float]], data)
 
         # Deserialize
         return self.__storage.deserialize(data, generation)
@@ -144,8 +141,7 @@ class Database(Generic[T]):
             f""" Generation has unexpected index (expected: {self.__generations} found: {generation.index})"""
         data = self.__storage.serialize(generation)
         file = self.__file(self.__generations)
-        with open(file, "x") as f:
-            f.writelines(" ".join(f"{v:.5f}" for v in R) + '\n' for R in data)
+        np.save(file, np.array(data), allow_pickle=False)
         self.__generations += 1
 
     def empty(self):

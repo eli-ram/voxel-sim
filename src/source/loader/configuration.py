@@ -1,9 +1,10 @@
 from functools import cache
+import os
 
 import glm
 import numpy as np
 
-import source.ml.ga as ga
+import source.ml.ga_2 as ga
 import source.data.mesh as m
 import source.parser.all as p
 import source.utils.types as t
@@ -264,7 +265,7 @@ class Configuration(p.Struct):
         # Return def-frame¨
         return W
 
-    def buildAlgorithm(self):
+    def buildAlgorithm(self, folder: str):
         if not self.config.mode._run:
             return
 
@@ -279,6 +280,9 @@ class Configuration(p.Struct):
         P = self.parameters
         M = self.materials
 
+        # Subfolder name
+        name = self.config.output.get() or os.path.basename(self.getFile())
+
         C = ga.Config(
             ctx=ctx.push(P.transform.matrix),
             # matrix=P.transform.matrix,
@@ -292,7 +296,7 @@ class Configuration(p.Struct):
             statics=M.statics,
             seed=P.seed.get(),
             size=P.population_size.getOr(10),
-            filename=self.config.output.getOr(self.getFilename())
+            folder=os.path.join(folder, name),
         )
 
         # Check cache
