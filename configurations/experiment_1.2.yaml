@@ -6,12 +6,12 @@ config:
   alpha: 0.01
   # render: true
   outline: false
-  output: "ex1_whole_101_25"
+  output: "ex1_whole_P101_R35"
   resolution: 512 # 256
   background: [0.01, 0.01, 0.02]
   region:
-    start: [-30, -30, -30]
-    stop: [30, 30, 30]
+    start: [-35, -35, -35]
+    stop: [35, 35, 35]
 
 materials:
   BONE:
@@ -55,7 +55,8 @@ materials:
 
 geometry:
   transform:
-    - scale: 25
+    - scale: 35
+    - scale: 0.84
   elements:
     - type: mesh
       # render: off
@@ -73,7 +74,7 @@ geometry:
             axis: Y
             angle: { deg: -22 }
         - translate: [0, -4.4, -0.25]
-        - debug: 0
+        # - debug: 0
 
     - type: sphere
       render: off
@@ -82,12 +83,12 @@ geometry:
       material: STATIC
       transform:
         # - debug:
-        - translate: [0, 0, -1.425]
+        - translate: [0, 0, -1.42]
         # convert to a plane
         - scale: [10000, 10000, 0.25]
 
     - type: sphere
-      render: on
+      render: off
       # voxels: off
       operation: outside
       material: FORCE
@@ -114,7 +115,8 @@ parameters:
   width: 0.08
   material: TITANIUM
   transform:
-    - scale: 25
+    - scale: 35
+    - scale: 0.84
 
   volume_a:
     color: WHITE

@@ -10,6 +10,7 @@ Genetic Algorithm
 
 """
 
+from source.loader.geometry import Context
 import glm
 import numpy as np
 from dataclasses import dataclass
@@ -29,8 +30,7 @@ from source.utils.types import bool3, float3
 Genome = tuple[glm.vec3, glm.vec3]
 
 
-## FIXME HOTFIX
-from source.loader.geometry import Context
+# FIXME HOTFIX
 
 
 @dataclass
@@ -130,9 +130,13 @@ class Config:
         # build truss
         truss = v2t.voxels2truss(individual)
 
-        # sinmulate [todo: multiprocess this]
-        # {deformation, edge-compression}
-        D, E = fem.fem_simulate(truss)
+        try:
+            # sinmulate [todo: multiprocess this]
+            # {deformation, edge-compression}
+            D, E = fem.fem_simulate(truss)
+        except Exception as e:
+            print(e)
+            return 1E10
 
         # unable to solve
         if E is None:
@@ -168,7 +172,7 @@ class Config:
 
         # done
         return fitness
-    
+
     def bestInduvidual(self, population, results):
         A, B = population
         I = np.argmin(results)
@@ -238,8 +242,11 @@ class Config:
 
 
 _results_dir = ['']
+
+
 def setResultsDir(dir: str):
     _results_dir[0] = dir
+
 
 class GA:
 
