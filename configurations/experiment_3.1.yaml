@@ -131,7 +131,7 @@ geometry:
 parameters:
   show: off
   operation: inside
-  population_size: 10
+  population_size: 18
   width: 0.08
   material: TITANIUM
   transform:

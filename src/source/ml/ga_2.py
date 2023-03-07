@@ -190,8 +190,9 @@ class Config:
 
         # fourths + rest
         size = generation.size()
-        part = (size // 5)
-        rest = (size % 5) + part
+        part = (size // 9)
+        rest = (size % 9) + part
+        part = part * 2
         # print(f"{size=} {part=} {rest=}")
 
         # top indices
@@ -221,7 +222,7 @@ class Config:
 
     def mutatePopulation(self, rng, generation: s.Generation[Genome]):
         # mutation amount (* unit-rng)
-        amount = 10 / (1 + generation.index)
+        amount = 1 / (1 + generation.index)
 
         # size
         size = generation.size()
@@ -230,10 +231,10 @@ class Config:
         count = size // 4
 
         # cutoff position (ignore new individuals)
-        cutoff = (size // 5) + (size % 5)
+        cutoff = (size // 9) + (size % 9)
 
-        # list of genomes to mutate
-        I = rng.integers(0, cutoff, count)
+        # list of genomes to mutate (spare the best genome)
+        I = rng.integers(1, cutoff, count)
         induviduals = [generation.population[i] for i in I]
 
         # list of moves for mutation
