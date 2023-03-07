@@ -1,18 +1,19 @@
-from typing import Generic, TypeVar, Protocol, Any
+from typing import Generic, TypeVar, Protocol, Any, Iterable
 from dataclasses import dataclass
 import numpy as np
 import glm
 import os
 import re
 
-A = list[float]
+Data = list[float]
 T = TypeVar('T')
 
 
 class Storage(Generic[T], Protocol):
     """ Data storage serialization protocol """
-    def deserialize(self, data: A) -> T: ...
-    def serialize(self, value: T) -> A: ...
+
+    def deserialize(self, data: Data) -> T: ...
+    def serialize(self, value: T) -> Data: ...
 
 
 @dataclass
@@ -25,20 +26,25 @@ class Induvidual(Generic[T]):
     @classmethod
     def new(cls, genome: T):
         return cls(genome, 0, False)
+    
+    @classmethod
+    def package(cls, genomes: Iterable[T]):
+        return [cls(g, 0, False) for g in genomes]
+
 
 
 class InduvidualStorage(Generic[T], Storage[Induvidual[T]]):
     def __init__(self, genome: Storage[T]) -> None:
         self.genome = genome
 
-    def serialize(self, value: Induvidual[T]) -> A:
+    def serialize(self, value: Induvidual[T]) -> Data:
         assert value.validated, \
             """ Trying to serialize a unvalidated induvidual """
         G = self.genome.serialize(value.genome)
         F = value.fitness
         return [F, *G]
 
-    def deserialize(self, data: A) -> Induvidual[T]:
+    def deserialize(self, data: Data) -> Induvidual[T]:
         F, *G = data
         return Induvidual(
             genome=self.genome.deserialize(G),
@@ -56,9 +62,11 @@ class Generation(Generic[T]):
     def size(self):
         return len(self.population)
 
-    def sort(self):
-        self.population.sort(key=lambda i: i.fitness)
-
+    def sorted(self):
+        return Generation(sorted(
+            self.population,
+            key=lambda i: i.fitness
+        ), self.index)
 
 
 class GenerationStorage(Generic[T], Storage[Generation[T]]):
@@ -80,7 +88,7 @@ class Database(Generic[T]):
     def __init__(self, storage: Storage[T], folder: str):
         # Add subfolder
         folder = os.path.join(folder, "ga")
-        
+
         # Setup internals
         self.__generations = 0
         self.__storage = GenerationStorage(storage)
@@ -117,7 +125,7 @@ class Database(Generic[T]):
 
         # Load data using numpy utils
         data: Any = np.load(file)
-        
+
         # Force 2D array
         if len(data.shape) == 1:
             data = [data]
@@ -146,7 +154,7 @@ class Database(Generic[T]):
 
     def empty(self):
         """ Check if no generations are saved """
-        return self.__generations == 0        
+        return self.__generations == 0
 
     def fitness(self, generations: 'list[Generation[T]]'):
         """ Get the fitness array for a list of generations """
@@ -158,64 +166,4 @@ class Database(Generic[T]):
         return np.array([[S.serialize(I.genome) for I in G.population] for G in generations])
 
 
-@dataclass
-class SimpleGenome:
-    a: glm.vec3
-    b: glm.vec3
 
-
-class SimpleStorage(Storage[SimpleGenome]):
-
-    def serialize(self, genome: SimpleGenome) -> A:
-        return [*genome.a, *genome.b]
-
-    def deserialize(self, data: A) -> SimpleGenome:
-        a1, a2, a3 = data[:3]
-        b1, b2, b3 = data[3:]
-        return SimpleGenome(
-            a=glm.vec3(a1, a2, a3),
-            b=glm.vec3(b1, b2, b3),
-        )
-
-
-if __name__ == '__main__':
-    from random import random
-
-    folder = os.path.dirname(__file__)
-    folder = os.path.join(folder, 'results', 'test')
-    print(folder)
-    db = Database(SimpleStorage(), folder)
-    print(db.generations())
-
-    def r():
-        return random() * 2.0 - 1.0
-
-    def v():
-        return glm.vec3(r(), r(), r())
-
-    def new():
-        return Induvidual(
-            genome=SimpleGenome(v(), v()),
-            fitness=random() * 100,
-            validated=True,
-        )
-
-    G = Generation([new() for _ in range(8)], db.generations())
-    db.save(G)
-    print(db.generations())
-
-    generations = db.loadAll()
-    for i, g in enumerate(generations):
-        A = g.population[0].fitness
-        g.sort()
-        B = g.population[0].fitness
-        print(i, A, '->', B)
-
-    F = db.fitness(generations)
-
-    def fmt(t, V):
-        print(t, " ".join(f"{v:6.3f}" for v in V))
-
-    fmt("mean", F.mean(axis=1))
-    fmt("less", F.min(axis=1))
-    fmt("parm", db.parameters(generations).std(axis=1).mean(axis=1))

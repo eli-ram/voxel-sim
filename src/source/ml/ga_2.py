@@ -10,7 +10,6 @@ Genetic Algorithm
 
 """
 
-import os
 import glm
 import numpy as np
 from dataclasses import dataclass
@@ -28,22 +27,36 @@ from source.utils.types import bool3, float3
 
 import source.ml.ga_storage as s
 
-Genome = s.SimpleGenome
-Storage = s.SimpleStorage()
+
+@dataclass
+class Genome:
+    a: glm.vec3
+    b: glm.vec3
+
+    @classmethod
+    def random(cls, rng, size: int):
+        A, B = np.split(r.make_unit_points(rng, size * 2), 2)
+        return [cls(glm.vec3(a), glm.vec3(b)) for a, b in zip(A, B)]
 
 
-def new(a, b):
-    return s.Induvidual.new(Genome(glm.vec3(a), glm.vec3(b)))
+class GenomeStorage(s.Storage[Genome]):
+
+    def serialize(self, genome: Genome) -> s.Data:
+        return [*genome.a, *genome.b]
+
+    def deserialize(self, data: s.Data) -> Genome:
+        a1, a2, a3, b1, b2, b3 = data
+        return Genome(
+            a=glm.vec3(a1, a2, a3),
+            b=glm.vec3(b1, b2, b3),
+        )
 
 
-def random_genomes(rng, size: int):
-    A, B = np.split(r.make_unit_points(rng, size * 2), 2)
-    return [Genome(glm.vec3(a), glm.vec3(b)) for a, b in zip(A, B)]
+Storage = GenomeStorage()
 
-
-def random_induviduals(rng, size: int):
-    return [s.Induvidual.new(G) for G in random_genomes(rng, size)]
-
+def open_db(folder: str):
+    """ Open the Database w/ this GenomeStorage """
+    return s.Database(Storage, folder)
 
 # FIXME HOTFIX
 
@@ -83,7 +96,8 @@ class Config:
 
     def seedPopulation(self, rng):
         print("[config] creating a population of size", self.size)
-        return s.Generation(random_induviduals(rng, self.size), 0)
+        P = s.Induvidual.package(Genome.random(rng, self.size))
+        return s.Generation(P, 0)
 
     def presentInduvidual(self, genome: Genome):
         # Create Cylinder field
@@ -127,12 +141,12 @@ class Config:
         # done
         return voxels
 
-    def evaluate(self, individual: v.Voxels):
+    def evaluate(self, phenome: v.Voxels):
         # TODO: multiprocess this function
         # it's the easiest way to speedup the search
 
         # build truss
-        truss = v2t.voxels2truss(individual)
+        truss = v2t.voxels2truss(phenome)
 
         try:
             # sinmulate [todo: multiprocess this]
@@ -177,16 +191,7 @@ class Config:
         # done
         return fitness
 
-    def bestInduvidual(self, generation: s.Generation[Genome]):
-        # sort low to high
-        generation.sort()
-
-        # Lowest is best
-        return generation.population[0]
-
     def selectPopulation(self, rng, generation: s.Generation[Genome]):
-        # sort low to high
-        generation.sort()
 
         # fourths + rest
         size = generation.size()
@@ -195,7 +200,7 @@ class Config:
         part = part * 2
         # print(f"{size=} {part=} {rest=}")
 
-        # top indices
+        # top indices (assumes sorted population)
         best = generation.population[:part]
 
         # rng indices
@@ -205,11 +210,13 @@ class Config:
         # print('R', len(R))
 
         # rest
-        rest = random_induviduals(rng, rest)
+        rest = s.Induvidual.package(Genome.random(rng, rest))
 
         # crossover
         def crossover(A: list[s.Induvidual[Genome]], B: list[s.Induvidual[Genome]]):
-            return [new(a.genome.a, b.genome.b) for a, b in zip(A, B, strict=True)]
+            return s.Induvidual.package(
+                Genome(a.genome.a, b.genome.b) for a, b in zip(A, B, strict=True)
+            )
 
         # build population w/ crossover
         return s.Generation([
@@ -238,7 +245,7 @@ class Config:
         induviduals = [generation.population[i] for i in I]
 
         # list of moves for mutation
-        moves = random_genomes(rng, count)
+        moves = Genome.random(rng, count)
 
         # mutate gene
         def mutate(g: glm.vec3, m: glm.vec3):
@@ -259,8 +266,9 @@ class Config:
         return generation
 
     def getFolder(self):
-        now = datetime.now()
-        return f'{self.folder}{now:[%Y-%m-%d][%H-%M]}'
+        """ Allow using datetime to format the folder name """
+        # Example: "test{now:[%Y-%m-%d][%H-%M]}"
+        return self.folder.format(now=datetime.now())
 
 
 class GA:
@@ -269,12 +277,19 @@ class GA:
         self.running = False
         self.reset(config)
 
-    def reset(self, config: Config):
-        self.rng = np.random.default_rng(config.seed)
-        self.config = config
-        self.generation = config.seedPopulation(self.rng)
+    def reset(self, C: Config):
+        self.db = open_db(C.getFolder())
+        self.rng = np.random.default_rng(C.seed)
         self.best = None
-        self.db = s.Database(Storage, config.getFolder())
+        self.config = C
+
+        # Initialize / Load Generation
+        if self.db.empty():
+            self.generation = C.seedPopulation(self.rng)
+        else:
+            self.generation = self.db.loadLast().sorted()
+            self.generation = C.selectPopulation(self.rng, self.generation)
+            self.generation = C.mutatePopulation(self.rng, self.generation)
 
     def current(self):
         if best := self.best:
@@ -288,11 +303,12 @@ class GA:
             return
 
         C = self.config
+        G = self.generation
 
-        print(f"\n[generation-{self.generation.index}] running:")
+        print(f"\n[generation-{G.index}] running:")
 
         # Iterate genomes
-        for i, I in enumerate(self.generation.population):
+        for i, I in enumerate(G.population):
             if not I.validated:
                 # Realize induvidual
                 phenotype = C.createPhenotype(I.genome)
@@ -303,23 +319,68 @@ class GA:
             print(f"[genome-{i}] {op}: {I.fitness:6.3f}")
             I.validated = True
 
-        # Save progression data
-        # self.generation.sort()
-        self.db.save(self.generation)
+        # order population
+        G = G.sorted()
 
-        # Update best result
-        best = C.bestInduvidual(self.generation)
+        # Save progression data
+        self.db.save(G)
+
+        # Update best result (always at 0 when sorted)
+        best = G.population[0]
         if self.best is None or self.best.fitness > best.fitness:
             self.best = best
 
         # select population based on fitness
-        self.generation = C.selectPopulation(self.rng, self.generation)
+        G = C.selectPopulation(self.rng, G)
 
         # mutate population based on generation
-        self.generation = C.mutatePopulation(self.rng, self.generation)
+        G = C.mutatePopulation(self.rng, G)
+
+        # store generation
+        self.generation = G
 
         # stop running
         self.running = False
 
         # present best induvidual
         return C.presentInduvidual(self.best.genome)
+
+
+if __name__ == '__main__':
+    # Simple test code to
+    # check the SimpleGenome
+    from os import path
+
+    folder = path.dirname(__file__)
+    folder = path.join(folder, '..', '..', '..', 'results')
+    print(folder)
+    if not path.isdir(folder):
+        raise NotADirectoryError(folder)
+
+    # Initialize folder db, in 'test' subfolder
+    db = s.Database(Storage, path.join(folder, 'test'))
+    print(db.generations())
+
+    rng = np.random.default_rng()
+
+    def __generation(rng, size: int, index: int):
+        G = Genome.random(rng, size)
+        F = rng.random(0, 100, size)
+        P = [s.Induvidual(g, f, True) for g, f in zip(G, F)]
+        return s.Generation(P, index)
+
+    db.save(__generation(rng, 8, db.generations()).sorted())
+    print(db.generations())
+
+    generations = db.loadAll()
+    for i, g in enumerate(generations):
+        print(i, g.population[0])
+
+    F = db.fitness(generations)
+
+    def fmt(t, V):
+        print(t+':', " ".join(f"{v:6.3f}" for v in V))
+
+    fmt("mean", F.mean(axis=1))
+    fmt("less", F.min(axis=1))
+    fmt("parm", db.parameters(generations).std(axis=1).mean(axis=1))
