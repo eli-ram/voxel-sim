@@ -4,14 +4,24 @@
 config:
   mode: run
   alpha: 0.001
-  # render: true
   outline: false
-  output: "ex3_partial_fracture_P10_R35"
+  output: "ex3_partial_fracture_P10_R35[2023-03-07][12-06]"
   resolution: 512 # 256
   background: [0.01, 0.01, 0.02]
   region:
     start: [-35, -35, -35]
     stop: [35, 35, 35]
+
+# Specify population setup
+population:
+  # The size of the population
+  size: 18
+  # The number of best performing induviduals
+  # That survive to the next generation
+  keep: 4
+  # Number of mutations done to induvidials
+  # as a new generation is made
+  mutate: 8
 
 materials:
 
@@ -131,7 +141,6 @@ geometry:
 parameters:
   show: off
   operation: inside
-  population_size: 18
   width: 0.08
   material: TITANIUM
   transform:

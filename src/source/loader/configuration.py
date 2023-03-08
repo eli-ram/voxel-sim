@@ -67,6 +67,16 @@ class Config(p.Struct):
     # Output file for results
     output: p.String
 
+    # Random Seed
+    seed: p.Int
+
+    def postParse(self) -> None:
+        if name := self.output.get():
+            self.folderName = name
+        else:
+            name = os.path.basename(self.getFile())
+            self.folderName = name + "{now:[%Y-%m-%d][%H-%M]}"
+
     @cache
     def unitBox(self):
         return Wireframe(line_cube())
@@ -92,9 +102,9 @@ class Config(p.Struct):
         # Build the scene matrix to center the bounding box
         matrix = (
             # Scale based on the longes side
-            glm.scale(glm.vec3(1 / max(B.shape)))
+            glm.scale(glm.vec3(1 / max(B.shape))) *
             # Translate to center
-            * glm.translate(-glm.vec3(*B.center))
+            glm.translate(-glm.vec3(*B.center))
         )
 
         # return the scene
@@ -112,6 +122,45 @@ class Config(p.Struct):
         # Create context
         return Context(B)
 
+
+class Population(p.Struct):
+    """ Population Parameters """
+
+    # The size of the population
+    size: p.Int
+    
+    # The number of best performing induviduals
+    # That survive to the next generation
+    keep: p.Int
+    
+    # Number of mutations done to induvidials
+    # as a new generation is made
+    mutate: p.Int
+
+    def values(self):
+        """ get values <or> defaults """
+        S = self.size.getOr(10)
+        K = self.keep.getOr((S - 1) // 4)
+        M = self.mutate.getOr(K)
+        return S, K, M
+
+
+class Index(p.Struct):
+    generation: p.Int
+    induvidual: p.Int
+
+
+class Inspect(p.Enum):
+    """ Pick a genome to inspect """
+    # Find the best induvidual across all generations
+    best: p.Empty
+    # Find the worst induvidual across all generations
+    worst: p.Empty
+    # Index the generations for a specific induvidual
+    index: Index
+
+    def values(self):
+        pass
 
 class _Cache(Cache):
     ga: Attr[ga.GA]
@@ -131,6 +180,9 @@ class Configuration(p.Struct):
 
     # Machine Learning Parameters
     parameters: Parameters
+
+    # Machine Learning Population
+    population: Population
 
     def postParse(self):
         store = self.materials.get()
@@ -281,7 +333,7 @@ class Configuration(p.Struct):
         M = self.materials
 
         # Subfolder name
-        name = self.config.output.get() or os.path.basename(self.getFile())
+        size, keep, mut = self.population.values()
 
         C = ga.Config(
             ctx=ctx.push(P.transform.matrix),
@@ -294,9 +346,11 @@ class Configuration(p.Struct):
             node=node,
             forces=M.forces,
             statics=M.statics,
-            seed=P.seed.get(),
-            size=P.population_size.getOr(10),
-            folder=os.path.join(folder, name),
+            size=size,
+            keep=keep,
+            mutations=mut,
+            seed=self.config.seed.get(),
+            folder=os.path.join(folder, self.config.folderName),
         )
 
         # Check cache

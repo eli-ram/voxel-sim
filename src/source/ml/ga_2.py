@@ -46,23 +46,20 @@ class GenomeStorage(s.Storage[Genome]):
 
     def deserialize(self, data: s.Data) -> Genome:
         a1, a2, a3, b1, b2, b3 = data
-        return Genome(
-            a=glm.vec3(a1, a2, a3),
-            b=glm.vec3(b1, b2, b3),
-        )
+        return Genome(glm.vec3(a1, a2, a3), glm.vec3(b1, b2, b3))
 
 
 Storage = GenomeStorage()
+
 
 def open_db(folder: str):
     """ Open the Database w/ this GenomeStorage """
     return s.Database(Storage, folder)
 
-# FIXME HOTFIX
-
 
 @dataclass
 class Config:
+    """ Genetic Algorithm Configuration """
     # rod transform
     ctx: Context
     # matrix: glm.mat4
@@ -90,9 +87,19 @@ class Config:
     # setup
     seed: int | None
     size: int
+    keep: int
+    mutations: int
 
     # output
     folder: str
+
+    def __post_init__(self):
+        # Make sure keep is inside valid range
+        self.keep = max(self.keep, 0)
+        self.keep = min(self.keep, self.size // 4)
+
+        # Make sure mutations is inside valid range
+        self.mutations = max(self.mutations, 0)
 
     def seedPopulation(self, rng):
         print("[config] creating a population of size", self.size)
@@ -195,17 +202,15 @@ class Config:
 
         # fourths + rest
         size = generation.size()
-        part = (size // 9)
-        rest = (size % 9) + part
-        part = part * 2
+        keep = self.keep
+        rest = size - (keep * 4)
         # print(f"{size=} {part=} {rest=}")
 
         # top indices (assumes sorted population)
-        best = generation.population[:part]
+        best = generation.population[:keep]
 
         # rng indices
-        # R = I[rng.integers(part, self.size, part)]
-        R = rng.integers(part, self.size, part)
+        R = rng.integers(keep, size, keep)
         rand = [generation.population[i] for i in R]
         # print('R', len(R))
 
@@ -235,14 +240,14 @@ class Config:
         size = generation.size()
 
         # number of mutations
-        count = size // 4
+        count = self.mutations
 
         # cutoff position (ignore new individuals)
-        cutoff = (size // 9) + (size % 9)
+        cutoff = self.keep * 4
 
         # list of genomes to mutate (spare the best genome)
-        I = rng.integers(1, cutoff, count)
-        induviduals = [generation.population[i] for i in I]
+        idxs: list[int] = rng.integers(1, cutoff, count)
+        picks = [generation.population[i] for i in idxs]
 
         # list of moves for mutation
         moves = Genome.random(rng, count)
@@ -254,7 +259,7 @@ class Config:
             return v / l if l > 1.0 else v
 
         # indices of mutations
-        for I, M in zip(induviduals, moves):
+        for I, M in zip(picks, moves):
             G = I.genome
             # Mutate
             G.a = mutate(G.a, M.a)
@@ -285,11 +290,17 @@ class GA:
 
         # Initialize / Load Generation
         if self.db.empty():
-            self.generation = C.seedPopulation(self.rng)
+            print("Creating first Generation")
+            G = C.seedPopulation(self.rng)
         else:
-            self.generation = self.db.loadLast().sorted()
-            self.generation = C.selectPopulation(self.rng, self.generation)
-            self.generation = C.mutatePopulation(self.rng, self.generation)
+            print("Loading last Generation")
+            G = self.db.loadLast().sorted()
+            G = C.selectPopulation(self.rng, G)
+            G = C.mutatePopulation(self.rng, G)
+
+        assert G.size() == C.size, \
+            f"Stored population has different size: {G.size()}"            
+        self.generation = G
 
     def current(self):
         if best := self.best:
