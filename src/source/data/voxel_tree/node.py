@@ -17,12 +17,11 @@ class VoxelNode:
     @staticmethod
     def process(nodes: list[VoxelNode]) -> Data:
         """ Join a sequence of Voxel nodes to raw data """
-        box = Box.Union([node.data.box for node in nodes])
-        data = Data.Empty(box)
-        for child in nodes:
-            method = impl.get(child.op)
-            method.apply(data, child.data)
-        return data.crop()
+        B = Box.Union([node.data.box for node in nodes])
+        D = Data.Empty(B)
+        for N in nodes:
+            impl.get(N.op).apply(D, N.data)
+        return D.crop()
     
     @classmethod
     def Empty(cls):

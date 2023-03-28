@@ -7,6 +7,7 @@ __all__ = [
     "float3",
 ]
 
+int2 = tuple[int, int]
 int3 = tuple[int, int, int]
 float3 = tuple[float, float, float]
 

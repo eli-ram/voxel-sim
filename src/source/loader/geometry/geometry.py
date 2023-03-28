@@ -73,6 +73,8 @@ class Operation(p.Value[n.Operation]):
         'overwrite': _.OVERWRITE,
         'inside': _.INSIDE,
         'outside': _.OUTSIDE,
+        'cut': _.CUTOUT,
+        'cutout': _.CUTOUT,
         # todo:
         # invert / inverse ?
         #

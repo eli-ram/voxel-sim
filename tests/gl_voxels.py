@@ -14,7 +14,7 @@ from source.debug.time import time
 from source.graphics import matrices as m
 
 # Interactive
-from source.interactive.animator import Animator
+import source.interactive.animator as a
 from source.interactive.scene import Scene, SceneBase, Transform, Void
 from source.interactive.window import Window
 
@@ -31,6 +31,8 @@ from source.utils.wireframe.wireframe import Wireframe
 # Voxels
 from source.voxels.proxy import VoxelProxy
 
+RESULTS = d.require(d.script_dir(__file__), '..', 'results'),
+a.setResultsDir(d.require(RESULTS, "__gl_voxels"))
 
 def time_to_t(time: float, duration: float, padding: float):
     MOD = duration + 2 * padding
@@ -63,7 +65,7 @@ class Voxels(Window):
         self.voxels.update_colors()
 
         # Store animator
-        self.animator = Animator(delta=0.5)
+        self.animator = a.Animator(delta=0.5)
 
         # Outline for Voxels
         self.scene.add(Wireframe(s.line_cube()).setColor(get.BLACK))
@@ -83,7 +85,7 @@ class Voxels(Window):
         # Normalze Voxel grid (0 -> N) => (0.0 -> 1.0)
         self.box = Scene(
             transform=glm.scale(glm.vec3(1/max(*shape))),
-            children=[Void(), self.voxels.graphics]
+            children=[Void, self.voxels.graphics]
         )
         self.scene.add(self.box)
 
@@ -114,10 +116,9 @@ class Voxels(Window):
         K.action("O")(self.voxels.toggle_outline)
 
         # Bind animator recording
-        K.toggle("SPACE")(self.animator.recorder(
-            d.require(d.script_dir(__file__), '..', 'results'),
-            'animation{:[%Y-%m-%d][%H-%M]}.gif'
-        ))
+        K.toggle("SPACE")(
+            self.animator.recorder('animation{:[%Y-%m-%d][%H-%M]}.gif')
+        )
 
         self.build()
 

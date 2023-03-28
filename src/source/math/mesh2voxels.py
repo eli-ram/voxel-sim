@@ -25,8 +25,8 @@ def mesh_to_voxels(mesh: Mesh, matrix: glm.mat4, shape: int3):
     Z = _rasterize(V, I, shape, 'Z')
     X = _rasterize(V, I, shape, 'X')
     Y = _rasterize(V, I, shape, 'Y')
-    # Join and return
-    return Z & X & Y
+    # Join and return, using best of three
+    return (Z + X + Y) > 1
  
 
 def _transform(mesh: Mesh, matrix: glm.mat4):

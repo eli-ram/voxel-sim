@@ -162,3 +162,15 @@ parameters:
     transform:
       - translate: [-1.0, -1.0, -0.7]
       - scale: [0.8, 0.8, 0.8]
+
+
+
+---
+region:
+  bbox:
+    x: [-35, 35]
+    y: [-35, 35]
+    z: [-35, 35]
+  normalization: none | short | long
+  transform:
+    - scale: 20
