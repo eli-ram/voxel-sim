@@ -1,5 +1,5 @@
 from typing import Any, Literal
-from OpenGL.GL import *
+from OpenGL import GL
 from OpenGL.arrays.vbo import VBO
 from OpenGL.arrays.numpymodule import NumpyHandler, ARRAY_TO_GL_TYPE_MAPPING # type: ignore
 from ctypes import c_void_p as ptr
@@ -20,8 +20,8 @@ class BufferView:
 
 
 TARGET_MAP: dict[str, Any] = {
-    "vertices": GL_ARRAY_BUFFER,
-    "indices": GL_ELEMENT_ARRAY_BUFFER,
+    "vertices": GL.GL_ARRAY_BUFFER,
+    "indices": GL.GL_ELEMENT_ARRAY_BUFFER,
 }
 TARGET_OPTS = Literal["vertices", "indices"]
 
@@ -51,7 +51,7 @@ class BufferConfig:
         return 0
 
     def array_buffer(self, array: 'Array[N]'):
-        usage: Any = GL_STATIC_DRAW
+        usage: Any = GL.GL_STATIC_DRAW
         target = TARGET_MAP[self.target]
         return VBO(array, usage, target)
 
@@ -64,7 +64,7 @@ class BufferConfig:
             vbo=self.array_buffer(array),
             size=self.element_size(array),
             type=self.element_type(array),
-            norm=GL_TRUE if self.norm else GL_FALSE,
+            norm=GL.GL_TRUE if self.norm else GL.GL_FALSE,
             views=views,
         )
 
@@ -93,7 +93,7 @@ class Buffer:
         self.vbo.unbind()
 
     def attribute(self, view: BufferView, attr: int):
-        glVertexAttribPointer(
+        GL.glVertexAttribPointer(
             attr,               # attribute
             self.size,          # size
             self.type,          # type
@@ -103,7 +103,7 @@ class Buffer:
         )
 
     def draw(self, view: BufferView, geometry: Any):
-        glDrawElements(
+        GL.glDrawElements(
             geometry,           # geometry type
             view.stride,        # geometry count
             self.type,          # index type

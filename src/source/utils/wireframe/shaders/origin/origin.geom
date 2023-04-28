@@ -20,11 +20,12 @@ struct Scope {
 void proc(in Scope s, vec3 dir) {
     // Use direction as color
     color = dir; 
+    vec4 offset = MVP * vec4(dir * 0.5, 0);
     // First vertex is @ origin
-    gl_Position = s.origin;
+    gl_Position = s.origin; // - offset; // this would enable negative directions
     EmitVertex();
     // Second vertex is @ direction
-    gl_Position = s.origin + vec4(s.matrix * dir, 0);
+    gl_Position = s.origin + offset;
     EmitVertex();
     // End line strip
     EndPrimitive();

@@ -1,17 +1,15 @@
 
 
-from OpenGL.GL import *
+from OpenGL import GL
 import glm
 import numpy as np
 
 from .shaders import DeformationShader
-from ...graphics.matrices import Hierarchy
-from ...graphics.buffer import BufferConfig
+from source.graphics.matrices import Hierarchy
+from source.graphics.buffer import BufferConfig
 
-from source.data import (
-    mesh as m,
-    colors,
-)
+import source.data.mesh as m
+
 
 class DeformationWireframe:
 
@@ -24,12 +22,12 @@ class DeformationWireframe:
         self._I = BufferConfig('indices').single(mesh.indices.astype(np.uint32))
         self._S = DeformationShader.get()
         self._G = mesh.geometry.value
-        self._c = colors.get.WHITE # Should not be an attribute of the wireframe !
+        self._e = 1E-3
         self._w = 1.0
         self._d = 0.0
 
-    def setColor(self, color: colors.Color):
-        self._c = color
+    def setEpsilon(self, epsilon: float):
+        self._e = epsilon
         return self
 
     def setWidth(self, width: float):
@@ -43,21 +41,21 @@ class DeformationWireframe:
     def render(self, m: Hierarchy):
         V = self._V
         I = self._I
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
-        glLineWidth(self._w)
+        GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
+        GL.glLineWidth(self._w)
         with self._S as (A, U):
             MVP = m.makeMVP()
-            glUniformMatrix4fv(U.MVP, 1, GL_FALSE, glm.value_ptr(MVP))
-            glUniform4fv(U.COLOR, 1, self._c.value)
-            glUniform1f(U.DEFORMATION, self._d)
+            GL.glUniformMatrix4fv(U.MVP, 1, GL.GL_FALSE, glm.value_ptr(MVP))
+            GL.glUniform1f(U.EPSILON, self._e)
+            GL.glUniform1f(U.DEFORMATION, self._d)
             # Bind vertex position & offset
             with V as (pos, offset):
                 V.attribute(pos, A.pos)
                 V.attribute(offset, A.offset)
             # Draw indices
             with I as (view,):
-                I.draw(view, GL_LINES)
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+                I.draw(view, GL.GL_LINES)
+        GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
 
 
 def test_case():

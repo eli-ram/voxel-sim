@@ -1,10 +1,13 @@
-from typing import List, Protocol
+from typing import List, Protocol, TypeVar
 from ..graphics.matrices import Hierarchy
 from source.data.colors import Color
 from dataclasses import dataclass, field
-from OpenGL.GL import *
+from OpenGL import GL
 import glm
 
+T = TypeVar('T')
+def as_object(cls: type[T]) -> T:
+    return cls()
 
 class Render(Protocol):
     """ General Renderable Object Interface """
@@ -40,6 +43,10 @@ class Scene:
     def add(self, child: Render):
         self.children.append(child)
 
+    def opt(self, child: Render | None):
+        if child:
+            self.children.append(child)
+
     def insert(self, index: int, child: Render):
         self.children.insert(index, child)
 
@@ -49,7 +56,7 @@ class Scene:
                 for child in self.children:
                     child.render(m)
 
-
+@as_object
 class Void:
     def render(self, m: Hierarchy):
         pass
@@ -59,12 +66,12 @@ class SceneBase:
     children: list[Render]
 
     def __init__(self):
-        glEnable(GL_DEPTH_TEST)
+        GL.glEnable(GL.GL_DEPTH_TEST)
         self.stack = Hierarchy()
         self.children = []
 
     def setBackground(self, color: Color):
-        glClearColor(*color.value)
+        GL.glClearColor(*color.value)
 
     def setChildren(self, children: List[Render]):
         self.children = children
@@ -80,6 +87,7 @@ class SceneBase:
         self.children.insert(index, child)
 
     def render(self):
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)  # type: ignore
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT |
+                   GL.GL_DEPTH_BUFFER_BIT)  # type: ignore
         for child in self.children:
             child.render(self.stack)

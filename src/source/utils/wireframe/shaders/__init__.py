@@ -8,7 +8,7 @@ class DeformationAttributes(ShaderAttributes):
 
 class DeformationUniforms(ShaderUniforms):
     MVP: int
-    COLOR: int
+    EPSILON: int
     DEFORMATION: int
 
 

@@ -46,13 +46,28 @@ class impl:
 
 
 class _(impl, op=Operation.INSIDE):
+    """ Place the child inside the parent """
     def where(self, parent, child) -> np.ndarray[np.bool_]:
         return parent.mask & child.mask
 
 class _(impl, op=Operation.OUTSIDE):
+    """ Place the child outside the parent """
     def where(self, parent, child) -> np.ndarray[np.bool_]:
         return ~parent.mask & child.mask
 
 class _(impl, op=Operation.OVERWRITE):
+    """ Place the child regardless of parent """
     def where(self, parent, child) -> np.ndarray[np.bool_]:
         return child.mask
+
+class _(impl, op=Operation.CUTOUT):
+    """ Remove the child from the parent """
+    def apply(self, parent: Data, child: Data):
+        # Find intersection
+        B = Box.Intersection([parent.box, child.box])
+        if B.is_empty:
+            return
+
+        # Apply
+        for p in parent[B].arrays():
+            p[...] = 0

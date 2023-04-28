@@ -3,40 +3,62 @@ import __init__
 
 # Packages
 import glm
-from OpenGL.GL import *
+from OpenGL import GL
 
 # Interactive
-from source.interactive import (
-    animator,
-    window as w,
-    scene as s,
-)
+import source.interactive.window as w
+import source.interactive.scene as s
+import source.interactive.animator as an
 
 # Graphics
-from source.graphics import matrices as m
+import source.graphics.matrices as m
+from source.utils.wireframe.deformation import DeformationWireframe
 from source.utils.wireframe.origin import Origin
 
 # Utils
-from source.utils.wireframe.wireframe import Wireframe
 from source.utils.directory import directory, require, script_dir
-from source.utils.shapes import origin_marker
-
-# Data
-from source.data.colors import Color
 
 # Parse
 from source.loader.configuration import Configuration
-from source.loader.parse.detector import ParsableDetector
+from source.parser.detector import ParsableDetector
+
+# ML
+import source.ml.ga_2 as ga
+
+CONF = 'configurations/experiment_1.2.yaml'
+CONF = 'configurations/experiment_3.1.yaml'
+WORKSPACE = require(script_dir(__file__), '..')
+RESULTS_DIR = require(WORKSPACE, 'results')
+# ga.setResultsDir(require(WORKSPACE, 'results', 'ga'))
+an.setResultsDir(require(RESULTS_DIR, 'gifs'))
+
+
+def time_to_t(time: float, duration: float, padding: float):
+    M = time % (duration + padding + padding)
+    D = (M - padding) / duration
+    # Wait
+    if D < 0.0:
+        return 0.0
+    # Stall
+    if D > 1.0:
+        return 1.0
+    # Interpolate
+    return D
 
 
 class Voxels(w.Window):
+
+    configuration: Configuration
+    deformation: DeformationWireframe | None = None
+    algorithm: ga.GA | None = None
+    present: s.Scene
 
     def setup(self):
         # Create scene
         self.scene = s.SceneBase()
 
         # Create animator
-        self.animator = animator.Animator(delta=0.5)
+        self.animator = an.Animator(delta=0.25)
 
         # Create Camera
         self.camera = m.OrbitCamera(
@@ -45,9 +67,8 @@ class Voxels(w.Window):
         )
 
         # Create Camera Origin
-        self.origin = s.Transform(
-            transform=glm.mat4(),
-            # mesh=Wireframe(origin_marker(0.5)).setColor(Color(1, 0.5, 0)),
+        self._3D_cursor = s.Transform(
+            transform=glm.scale(glm.vec3(2.0)),
             mesh=Origin(),
             hidden=True,
         )
@@ -55,37 +76,26 @@ class Voxels(w.Window):
         # Bind Key Controls
         K = self.keys
         K.toggle("LEFT_CONTROL")(self.camera.SetPan)
-        K.action("O")(self.origin.toggle)
-        K.toggle("SPACE")(self.animator.recorder(
-            require(script_dir(__file__), '..', 'results'),
-            'animation{:[%Y-%m-%d][%H-%M]}.gif'
-        ))
+        K.action("O")(self._3D_cursor.toggle)
+        K.toggle("SPACE")(
+            # recorder hook
+            self.animator.recorder('animation{:[%Y-%m-%d][%H-%M]}.gif')
+        )
 
         # Bind Mouse Controls
         B = self.buttons
-        B.toggle("LEFT")(self.camera.SetActive)
+
+        @B.toggle("LEFT")
+        def toggle_move(enb: bool):
+            self.camera.SetActive(enb)
+            self._3D_cursor.visible(enb)
 
         # Build scene
-        self.scene.setChildren([self.origin])
-
-    def processConfig(self, config: Configuration):
-
-        # Use Config In synchronized context
-        def synchronized(config: Configuration):
-            self.scene.setBackground(
-                config.getBackground()
-            )
-
-            self.scene.setChildren([
-                config.getRender(),
-                self.origin,
-            ])
-
-        self.tasks.sync(config, synchronized)
+        self.scene.setChildren([self._3D_cursor])
 
     def resize(self, width: int, height: int):
         self.animator.resize(width, height)
-        glViewport(0, 0, width, height)
+        GL.glViewport(0, 0, width, height)
         self.scene.stack.SetPerspective(
             fovy=glm.radians(45.0),
             aspect=(width / height),
@@ -99,21 +109,82 @@ class Voxels(w.Window):
 
         # Update Camera Matrix
         self.scene.setCamera(self.camera.Compute())
-        self.origin.transform = glm.translate(self.camera.center)
+        self._3D_cursor.transform = glm.translate(self.camera.center)
+
+        # Update deformation if set
+        if D := self.deformation:
+            t = time_to_t(time, 30.0, 2.5)
+            D.setDeformation(t)
 
     def render(self):
         self.scene.render()
 
-    def cursor(self, x: float, y: float, dx: float, dy: float):
+    def cursor(self, x, y, dx, dy):
         self.camera.Cursor(dx, dy)
 
     def scroll(self, value: float):
         self.camera.Zoom(value)
 
+    def spinAlgorithm(self):
+        A = self.algorithm
+
+        # no algorithm to run
+        if A is None:
+            return
+
+        # try to run next step
+        def resolve(data):
+            # cancelled
+            if data is None:
+                return
+
+            V = self.configuration.getVoxelRenderer(data)
+            # hacky ...
+            self.present.children[-1] = V
+            # queue next iteration
+            self.spinAlgorithm()
+
+        # run a step of the algorithm
+        self.tasks.run(A.step, resolve, 'algorithm')
+
+    def watch(self, config: str):
+        # Create Configuration
+        @ParsableDetector[Configuration]
+        def impl(config: Configuration):
+            TQ = self.tasks
+            print("Processing config ...")
+            self.configuration = config
+
+            # Background
+            BG = config.background()
+            TQ.dispatch(lambda: self.scene.setBackground(BG))
+
+            # Build scene
+            S = config.scene(TQ)
+            self.scene.setChildren([self._3D_cursor, S])
+            self.present = S
+
+            # Configure
+            config.configure(TQ, S)
+            # Run more
+            # self.deformation = config.run(TQ, S)
+            # Get algorithm
+            alg = config.buildAlgorithm(RESULTS_DIR)
+            if self.algorithm != alg:
+                self.algorithm = alg
+                self.spinAlgorithm()
+
+        # run
+        impl(config)
+
 
 if __name__ == '__main__':
+    # Create Window
     window = Voxels(900, 900, "voxels")
-    detector = ParsableDetector[Configuration](window.processConfig)
-    with directory(script_dir(__file__), "..", "configurations"):
-        detector("test_2.yaml")
+
+    # Run Configuration thread
+    with directory(WORKSPACE):
+        window.watch(CONF)
+
+    # Run window
     window.spin()

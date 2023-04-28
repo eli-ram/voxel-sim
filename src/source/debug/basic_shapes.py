@@ -1,5 +1,5 @@
 import numpy as np
-from OpenGL.GL import *  # type: ignore
+from OpenGL import GL
 
 S = np.array([  # type: ignore
     [0, -1, +1, 1.0, 0.0, 0.0],
@@ -10,9 +10,9 @@ S = np.array([  # type: ignore
 
 
 def square():
-    glBegin(GL_QUADS)
+    GL.glBegin(GL.GL_QUADS)
     for v in S:
         pos, color = v[:3], v[3:]  # type: ignore
-        glColor3fv(color)
-        glVertex3fv(pos)
-    glEnd()
+        GL.glColor3fv(color)
+        GL.glVertex3fv(pos)
+    GL.glEnd()

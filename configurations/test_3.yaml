@@ -1,0 +1,78 @@
+# Color indicators
+# {X: red, Y: green, Z: blue}
+
+config:
+  # size: 256
+  build: on
+  alpha: 0.1
+  render: true
+  outline: false
+  resolution: 256
+  background: [0.01, 0.01, 0.02]
+  region: 
+    start: [-100, -100, -100]
+    stop: [100, 100, 100]
+
+materials:
+  BONE:
+    color: [0.2, 0.6, 0.5, 0.1]
+    strength: 0.5
+  STATIC:
+    color: [0.2, 0.1, 0.5, 0.5]
+    strength: 10.0
+    locks: [true, true, true]
+  FORCE:
+    color: [0.9, 0.2, 0.1, 0.4]
+    strength: 11.0
+    force: [0.0, 0.0, -11.0]
+
+geometry:
+  transform:
+    - scale: 100
+  elements:
+    - type: mesh
+      # operation: add
+      material: BONE
+      file: "./meshes/test_bone.obj"
+      transform:
+        # - debug: 0
+        - scale: 1.6
+        - translate: [0, -4.2, 0.2]
+        - rotate: 
+            axis: Y
+            angle: { deg: 245 }
+            local: false
+        # - debug: 1
+        - translate: [0, 0, -0.1]
+        # - debug: 3
+
+    - type: sphere
+      # operation: add
+      material: STATIC
+      transform:
+        - debug: 
+        - translate: [-0.1, -1.0, -0.2]
+        - scale: 0.55
+    
+    - type: sphere
+      # operation: add
+      material: FORCE
+      transform:
+        - debug: 0
+        - translate: [0.8, 0.45, 0.5]
+        - scale: 0.4
+        # {X: red, Y: green, Z: blue}
+
+parameters:
+  inner_surface:
+    type: circle
+    transform:
+      scale: 0.2
+      position: [0.5, 0.5, 0.9]
+      rotation: [1, 0, 1, 0]
+  outer_surface:
+    type: circle
+    transform:
+      scale: 0.2
+      position: [1.0, 1.0, 1.0]
+      rotation: [1, 0, -1, 0]

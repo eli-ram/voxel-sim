@@ -1,7 +1,9 @@
+from functools import cache
 from typing import List, cast
+
 import glm
 import numpy as np
-from numpy import dtype
+
 from source.data.mesh import Geometry, Mesh
 
 
@@ -34,7 +36,7 @@ def origin_marker(size: float = 1.0):
         geometry=Geometry.Lines,
     )
 
-
+@cache
 def line_cube():
     """ A edge frame of a cube """
     return Mesh(
@@ -85,6 +87,7 @@ def simplex():
     )
 
 
+@cache
 def sphere(resolution: int = 32):
     """ Sphere Mesh """
     C = np.pi * np.linspace(-1.0, 1.0, resolution, endpoint=False)

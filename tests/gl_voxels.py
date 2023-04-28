@@ -1,13 +1,9 @@
 # pyright: reportUnusedImport=false, reportUnusedFunction=false
-from dataclasses import dataclass
-from datetime import datetime
-
-import typing as t
 
 # Packages
 import glm
 import numpy as np
-from OpenGL.GL import *
+from OpenGL import GL
 
 # Data
 from source.data.colors import Color, get
@@ -18,7 +14,7 @@ from source.debug.time import time
 from source.graphics import matrices as m
 
 # Interactive
-from source.interactive.animator import Animator
+import source.interactive.animator as a
 from source.interactive.scene import Scene, SceneBase, Transform, Void
 from source.interactive.window import Window
 
@@ -35,6 +31,8 @@ from source.utils.wireframe.wireframe import Wireframe
 # Voxels
 from source.voxels.proxy import VoxelProxy
 
+RESULTS = d.require(d.script_dir(__file__), '..', 'results'),
+a.setResultsDir(d.require(RESULTS, "__gl_voxels"))
 
 def time_to_t(time: float, duration: float, padding: float):
     MOD = duration + 2 * padding
@@ -58,16 +56,16 @@ class Voxels(Window):
             svivel_speed=0.005,
         )
         shape = (32, 32, 32)
-        resolution = 2**8
+        resolution = 2**9
         self.voxels = VoxelProxy(shape, resolution)
-        self.voxels.createMaterials({
-            "STATIC": get.BLUE,
-            "FORCE": get.RED,
-            "BONE": Color(0.3, 0.5, 0.3, 0.1),
-        })
+        M = self.voxels.materials
+        M.create("STATIC", get.BLUE, 0)
+        M.create("FORCE", get.RED, 0)
+        M.create("BONE", Color(0.3, 0.5, 0.3, 0.1), 0)
+        self.voxels.update_colors()
 
         # Store animator
-        self.animator = Animator(delta=0.5)
+        self.animator = a.Animator(delta=0.5)
 
         # Outline for Voxels
         self.scene.add(Wireframe(s.line_cube()).setColor(get.BLACK))
@@ -75,7 +73,6 @@ class Voxels(Window):
         # 3D-crosshair for camera
         self.move_cross = Transform(
             transform=glm.scale(glm.vec3(0.01, 0.01, 0.01)),
-            # mesh=Wireframe(s.origin_marker()).setColor(Color(1, 0.5, 0)),
             mesh=Origin(),
             hidden=True,
         )
@@ -88,7 +85,7 @@ class Voxels(Window):
         # Normalze Voxel grid (0 -> N) => (0.0 -> 1.0)
         self.box = Scene(
             transform=glm.scale(glm.vec3(1/max(*shape))),
-            children=[Void(), self.voxels.graphics]
+            children=[Void, self.voxels.graphics]
         )
         self.scene.add(self.box)
 
@@ -119,11 +116,10 @@ class Voxels(Window):
         K.action("O")(self.voxels.toggle_outline)
 
         # Bind animator recording
-        K.toggle("SPACE")(self.animator.recorder(
-            d.require(d.script_dir(__file__), '..', 'results'),
-            'animation{:[%Y-%m-%d][%H-%M]}.gif'
-        ))
- 
+        K.toggle("SPACE")(
+            self.animator.recorder('animation{:[%Y-%m-%d][%H-%M]}.gif')
+        )
+
         self.build()
 
     def alpha(self, up: bool):
@@ -200,7 +196,7 @@ class Voxels(Window):
 
     def resize(self, width: int, height: int):
         self.animator.resize(width, height)
-        glViewport(0, 0, width, height)
+        GL.glViewport(0, 0, width, height)
         self.scene.stack.SetPerspective(
             fovy=glm.radians(45.0),
             aspect=(width / height),

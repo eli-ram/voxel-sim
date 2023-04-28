@@ -1,6 +1,6 @@
 # pyright: reportUnknownVariableType=false
 from ..utils.directory import script_dir, cwd
-from .parse.detector import ParsableDetector
+from source.parser.detector import ParsableDetector
 from .configuration import Configuration
 import time
 

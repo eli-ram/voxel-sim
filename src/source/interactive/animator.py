@@ -1,9 +1,14 @@
 
-import datetime
-from ..utils.directory import script_dir, directory, require
-from OpenGL.GL import *
+from datetime import datetime
+from ..utils.directory import directory
+from OpenGL import GL
 from PIL import Image, ImageOps
 import os
+
+_results_dir = ['']
+def setResultsDir(dir: str):
+    _results_dir[0] = dir
+
 
 def force_filename_ext(filename: str, ext: str):
     name, fext = os.path.splitext(filename)
@@ -26,8 +31,8 @@ class Animator:
         self.frames = []
         self.recording = True
 
-    def stopRecording(self, dir, file):
-        self.save(dir, file)
+    def stopRecording(self, file):
+        self.save(file)
         self.frames = []
         self.recording = False
 
@@ -46,12 +51,12 @@ class Animator:
 
     def frame(self):
         # print("Saving frame @", self.time)
-        glPixelStorei(GL_PACK_ALIGNMENT, 1)
-        data = glReadPixels( # type: ignore
+        GL.glPixelStorei(GL.GL_PACK_ALIGNMENT, 1)
+        data = GL.glReadPixels( # type: ignore
             *self.offset,
             *self.shape,
-            GL_RGBA,
-            GL_UNSIGNED_BYTE,
+            GL.GL_RGBA,
+            GL.GL_UNSIGNED_BYTE,
         )
         image = Image.frombytes( # type: ignore
             'RGBA', 
@@ -60,15 +65,15 @@ class Animator:
         )
         self.frames.append(ImageOps.flip(image))
 
-    def save(self, dir, file):
+    def save(self, file):
         print("Frames to save", len(self.frames))
         if not self.frames:
             return
         image, *images = self.frames
         filename = force_filename_ext(file, '.gif')
-        with directory(dir):
+        with directory(_results_dir[0]):
             if os.path.exists(filename):
-                print(f"Overwriting '{dir}/{filename}' !")
+                print(f"Overwriting '{_results_dir[0]}/{filename}' !")
             image.save(
                 file,
                 save_all=True,
@@ -77,10 +82,10 @@ class Animator:
                 loop=0,
             )
 
-    def recorder(self, dir: str, file_fmt: str):
+    def recorder(self, file_fmt: str):
         def record(press: bool):
             if press:
                 self.startRecording()
             else:
-                self.stopRecording(dir, file_fmt.format(datetime.now()))
+                self.stopRecording(file_fmt.format(datetime.now()))
         return record

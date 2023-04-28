@@ -1,8 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
 
-from typing import List
-
 import numpy as np
 
 from .box import Box
@@ -17,22 +15,32 @@ class VoxelNode:
     data: Data
 
     @staticmethod
-    def process(nodes: List[VoxelNode]) -> Data:
-        box = Box.Union(node.data.box for node in nodes)
-        data = Data.Empty(box)
-        for child in nodes:
-            method = impl.get(child.op)
-            method.apply(data, child.data)
-        return data.crop()
+    def process(nodes: list[VoxelNode]) -> Data:
+        """ Join a sequence of Voxel nodes to raw data """
+        B = Box.Union([node.data.box for node in nodes])
+        D = Data.Empty(B)
+        for N in nodes:
+            impl.get(N.op).apply(D, N.data)
+        return D.crop()
+    
+    @classmethod
+    def Empty(cls):
+        """ Create a Voxel node with no volume """
+        return cls(Operation.OVERWRITE, Data.Empty(Box.Empty()))
 
     @classmethod
     def Leaf(cls, op: Operation, data: Data):
+        """ Create a Voxel node by raw data """
         return cls(op, data.crop())
 
     @classmethod
-    def Parent(cls, op: Operation, nodes: List[VoxelNode]):
+    def Parent(cls, op: Operation, nodes: list[VoxelNode]):
+        """ Create a Voxel node by joining child nodes """
         return cls(op, cls.process(nodes))
 
+    def offset(self, amount: 'np.ndarray[np.int64]'):
+        """ Offset the voxel node by a vector [x, y, z] """
+        return VoxelNode(self.op, self.data.offset(amount))
 
 def test_nodes():
     """ (bad) Test method """

@@ -7,6 +7,9 @@ import numpy as np
 
 Vec = F32Vector3
 
+def to_affine(m: glm.mat4):
+    return Hierarchy.copy(m)[:3, :]
+
 @dataclass
 class Hierarchy:
     M = glm.mat4()
@@ -24,8 +27,7 @@ class Hierarchy:
     def Push(self, m: glm.mat4):
         M = self.M
         try:
-            
-            self.M = m * M
+            self.M = M * m # * M
             yield
         finally:
             self.M = M

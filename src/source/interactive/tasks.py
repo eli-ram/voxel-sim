@@ -1,19 +1,23 @@
 from queue import Queue
 from threading import Event, Thread
-from typing import Any, List, Set, Optional, Callable, TypeVar
+from typing import List, Set, Optional, Callable, TypeVar
 
+V = TypeVar('V')
 
-Value = TypeVar('Value')
 
 class Task:
     tag: Optional[str] = None
     def compute(self): ...
     def complete(self): ...
 
-class FunctionalTask(Task):
-    _value: Any
 
-    def __init__(self, compute: Callable[[], Value], complete: Callable[[Value], None], tag: Optional[str] = None):
+class FunctionalTask(Task):
+    def __init__(
+        self,
+        compute: Callable[[], V],
+        complete: Callable[[V], None],
+        tag: Optional[str] = None,
+    ):
         self.tag = tag
         self._compute = compute
         self._complete = complete
@@ -23,6 +27,7 @@ class FunctionalTask(Task):
 
     def complete(self):
         self._complete(self._value)
+
 
 class SequenceTask(Task):
     active: Task
@@ -45,10 +50,11 @@ class SequenceTask(Task):
         self.active.complete()
         self.next()
 
+
 class TaskQueue:
     running: Set[str]
 
-    def __init__(self, num_workers: int = 1):
+    def __init__(self, num_workers: int = 2):
         self.queue = Queue[Task]()
         self.done = Queue[Task]()
         self.running = set()
@@ -58,26 +64,43 @@ class TaskQueue:
             t.start()
 
     def add(self, task: Task):
-        if task.tag in self.running:
-            print(f"Task tagged '{task.tag}' is already running")
-            return
+        if T := task.tag:
+            if T in self.running:
+                print(f"Task tagged '{task.tag}' is already running")
+                return
+            self.running.add(T)
 
-        if task.tag:
-            self.running.add(task.tag)
+        self.queue.put(task)
 
-        self.queue.put(task)            
-
-    def run(self, compute: Callable[[], Value], complete: Callable[[Value], None], tag: Optional[str] = None):
+    def run(self, compute: Callable[[], V], complete: Callable[[V], None], tag: Optional[str] = None):
         self.add(FunctionalTask(compute, complete, tag))
 
-    def sync(self, value: Value, synchronize: Callable[[Value], None], tag: Optional[str] = None):
+    def dispatch(self, synchronize: Callable[[], V], tag: Optional[str] = None) -> Callable[[], V]:
+        """ Dispatch a task to execute on the main thread get an Event back """
         processed = Event()
-        def complete(value: Value):
-            synchronize(value)
-            processed.set()
-        self.run(lambda:value, complete, tag)
-        processed.wait()
 
+        # Construct capture
+        value: V = None  # type: ignore
+
+        # Construct event
+        def complete(_: None):
+            nonlocal value
+            value = synchronize()
+            processed.set()
+
+        # run the event
+        self.run(lambda: None, complete, tag)
+
+        # return awaiter
+        def wait():
+            processed.wait()
+            return value
+
+        return wait
+
+    def sync(self, synchronize: Callable[[], None], tag: Optional[str] = None):
+        """ Make a task execute on the main thread and wait for it to finish """
+        self.dispatch(synchronize, tag).wait()
 
     def sequence(self, *tasks: Task, tag: Optional[str] = None):
         SequenceTask(self, list(tasks), tag).next()
@@ -87,16 +110,20 @@ class TaskQueue:
             return
 
         task = self.done.get()
-        task.complete()
-        
-        if task.tag:
+
+        if (T := task.tag) and T in self.running:
             self.running.remove(task.tag)
-        
+
+        task.complete()
+
+
         self.done.task_done()
 
     def worker(self):
         while True:
+            # get & run next task
             task = self.queue.get()
             task.compute()
+            # return task
             self.done.put(task)
             self.queue.task_done()

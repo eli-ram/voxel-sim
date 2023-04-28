@@ -4,16 +4,16 @@ config:
   size: 256
   resolution: 2
   background: 
-    r: 0.7
-    g: 0.8
-    b: 0.8
+    r: 0.01
+    g: 0.015
+    b: 0.025
   region:
     start: [-1, -2, -1]
     stop: [1, 1, 1] 
 
 materials:
   BONE:
-    color: [0.2, 0.6, 0.5, 0.3]
+    color: [0.3, 0.6, 0.5, 0.3]
     strength: 0.5
   FORCES:
     color: [0.6, 0.2, 0.1]
@@ -28,9 +28,14 @@ geometry:
   - type: sphere
     material: BONE
   - type: sphere-2
+    # show_origin: true
     material: STATIC
     transform:
       - scale: 0.5
+  - type: mesh
+    material: BONE
+    show_origin: true
+    file: "./meshes/test_bone.obj"
 
 other:
   - type: composite

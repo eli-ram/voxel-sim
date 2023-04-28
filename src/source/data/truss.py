@@ -8,7 +8,7 @@ class Truss:
     # list[(x, y, z)]
     nodes: 'np.ndarray[np.float32]'
     # list[(fx, fy, fz)]
-    forces: 'np.ndarray[np.float32]'
+    forces: 'np.ndarray[np.float64]'
     # list[(sx, sy, sz)]
     static: 'np.ndarray[np.bool_]' 
 
@@ -16,4 +16,4 @@ class Truss:
     # list[(a, b)]
     edges: 'np.ndarray[np.uint32]'
     # list[cross_section_area]
-    areas: 'np.ndarray[np.float32]'
+    areas: 'np.ndarray[np.float64]'

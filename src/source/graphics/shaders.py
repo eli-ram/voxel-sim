@@ -1,5 +1,5 @@
 from typing import Any, Callable, Generic, Type, TypeVar, Optional, cast
-from OpenGL.GL import *  # type: ignore
+from OpenGL import GL  # type: ignore
 from OpenGL.GL.shaders import (  # type: ignore
     ShaderProgram,
     ShaderCompilationError,
@@ -34,10 +34,10 @@ def shaderprune(func: Any):
 
 def shader(*files: str):
     __mapping__ = {  # type: ignore
-        '.vert': GL_VERTEX_SHADER,
-        '.comp': GL_COMPUTE_SHADER,
-        '.geom': GL_GEOMETRY_SHADER,
-        '.frag': GL_FRAGMENT_SHADER,
+        '.vert': GL.GL_VERTEX_SHADER,
+        '.comp': GL.GL_COMPUTE_SHADER,
+        '.geom': GL.GL_GEOMETRY_SHADER,
+        '.frag': GL.GL_FRAGMENT_SHADER,
     }
 
     @shaderprune
@@ -64,7 +64,7 @@ Binding = Callable[[int, str], int]
 
 class ShaderBindings:
     """ [InternalClass] Setup Binding class 
-    
+
         caches annotations as _fields, 
         allowing lookup using a getter in init method
     """
@@ -99,14 +99,14 @@ class ShaderUniforms(ShaderBindings):
     """ Define shader uniforms (type should be <int>) """
 
     def __init__(self, shader: ShaderProgram):
-        super().__init__(shader, glGetUniformLocation)
+        super().__init__(shader, GL.glGetUniformLocation)
 
 
 class ShaderAttributes(ShaderBindings):
     """ Define shader attributes (type should be <int>) """
 
     def __init__(self, shader: ShaderProgram):
-        super().__init__(shader, glGetAttribLocation)
+        super().__init__(shader, GL.glGetAttribLocation)
 
 
 S = TypeVar('S', bound='ShaderCache[Any, Any]')
@@ -117,15 +117,15 @@ U = TypeVar('U', bound=ShaderUniforms)
 class ShaderCache(Generic[A, U]):
     """ Define shader using generics [Attributes, Uniforms] """
 
-    FILE: str
-    CODE: list[str]
-    GLOB: Optional[str]
-    DEBUG = False
+    FILE: str       # __file__ to find script_dir
+    CODE: list[str]  # list of source code
+    GLOB: str       # directory if source code [overrides CODE if set]
+    DEBUG = False   # enable debugging
 
     def __init__(self):
         self.S = self.compile()
-        base, = self.__orig_bases__ # type: ignore
-        acls, ucls = base.__args__ # type: ignore
+        base, = self.__orig_bases__  # type: ignore
+        acls, ucls = base.__args__  # type: ignore
         self.A: A = acls(self.S)
         self.U: U = ucls(self.S)
         self.dbg(self.A)
@@ -157,10 +157,10 @@ class ShaderCache(Generic[A, U]):
     def __enter__(self):
         self.S.__enter__()
         for i in self.A:
-            glEnableVertexAttribArray(i)
+            GL.glEnableVertexAttribArray(i)
         return (self.A, self.U)
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
         for i in self.A:
-            glDisableVertexAttribArray(i)
+            GL.glDisableVertexAttribArray(i)
         self.S.__exit__(exc_type, exc_val, exc_tb)  # type: ignore

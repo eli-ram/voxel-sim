@@ -1,11 +1,9 @@
 from typing import Any, Dict, List, NamedTuple
 
-from .parse import all as p
-from .vector import Vector
-from source.data import (
-    colors,
-    material as m,
-)
+import source.parser.all as p
+import source.utils.types as t
+import source.data.material as m
+from .data import Color, Vec3
 
 
 class Locks(NamedTuple):
@@ -14,48 +12,19 @@ class Locks(NamedTuple):
     z: bool = False
 
 
-class Color(p.Value[colors.Color]):
-    def fromNone(self):
-        return colors.get.WHITE
-
-    def fromMap(self, data: Dict[str, Any]):
-        return colors.Color(**data)
-
-    def fromArray(self, data: List[Any]):
-        return colors.Color(*data)
-
-    def fromValue(self, data: Any):
-        return colors.get(data)
-
-
 class Material(p.Struct):
     color: Color
     strength: p.Float
     locks: p.Value[Locks]
-    force: Vector
-
-
-class MaterialStore(p.Map[Material]):
-    generic = Material
-    _cache: m.MaterialStore
-
-    def postParse(self):
-        store = m.MaterialStore()
-        for key, value in self:
-            store.create(key, value.color.require())
-        self._cache = store
-
-    def get(self):
-        return self._cache
-
+    force: Vec3
 
 class MaterialKey(p.String):
     _cache: m.Material
 
     def load(self, store: m.MaterialStore):
         """ Load the material from the store """
-        with self.capture():
-            key = self._value
+        with self.captureErrors():
+            key = self.maybe()
 
             if key is None:
                 raise p.ParseError("Missing material key!")
@@ -65,8 +34,66 @@ class MaterialKey(p.String):
 
             self._cache = store[key]
 
-        return self.error
+        return self.hasError()
 
     def get(self):
         """ Get the cached material """
         return self._cache
+
+
+class MaterialStore(p.Map[Material]):
+    generic = Material
+
+    # Caches
+    store: m.MaterialStore
+    forces: dict[m.Material, t.float3]
+    statics: dict[m.Material, t.bool3]
+
+    def postParse(self):
+        # New caches
+        store = m.MaterialStore()
+        forces = dict[m.Material, t.float3]()
+        statics = dict[m.Material, t.bool3]()
+
+        # Listed materials
+        for key, V in self:
+            # Register material
+            M = store.create(
+                key,
+                V.color.require(),
+                V.strength.getOr(0.0),
+                # V.force.get(),
+                # V.locks.get(),
+            )
+
+            # Bind forces
+            if (F := V.force.get()):
+                forces[M] = (F.x, F.y, F.z)
+
+            # Bind locks
+            if (L := V.locks.get()):
+                statics[M] = (L.x, L.y, L.z)
+
+        # Save caches
+        self.store = store
+        self.forces = forces
+        self.statics = statics
+
+    def get(self):
+        return self.store
+
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, MaterialStore):
+            return False
+
+        # NOTE
+        # {store} does not contribute here ...
+        # as we're interested in other changes
+
+        return (
+            self.forces == o.forces
+            and 
+            self.statics == o.statics
+        )
+
+

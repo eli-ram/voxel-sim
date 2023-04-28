@@ -1,11 +1,12 @@
-from .geometry import Geometry, GeometryArray
-from .composite import Composite
+from .geometry import Geometry, Context, Operation
+from .collection import GeometryCollection
 from .sphere import Sphere
 from .mesh import Mesh
 __all__ = [ 
+    'Context',
+    'Operation',
     'Geometry',
-    'GeometryArray',
-    'Composite',
+    'GeometryCollection',
     'Sphere',
     'Mesh',
 ]

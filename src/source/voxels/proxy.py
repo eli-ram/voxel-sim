@@ -3,18 +3,15 @@ from source.data.mesh import Mesh
 from source.math.truss2stress import fem_simulate
 
 from source.math.voxels2truss import voxels2truss
-from source.data import (
-    colors,
-    mesh,
-)
+from source.data import mesh
 
-from ..utils.wireframe.deformation import DeformationWireframe
-from ..interactive.tasks import Task
-from ..math.mesh2voxels import mesh_to_voxels
-from ..graphics.matrices import Hierarchy
-from ..data.voxels import Voxels
-from ..data.material import MaterialStore
-from ..utils.types import Array, F, int3, bool3, float3
+import source.math.utils as u
+from source.utils.wireframe.deformation import DeformationWireframe
+from source.interactive.tasks import Task
+from source.math.mesh2voxels import mesh_to_voxels
+from source.data.voxels import Voxels
+from source.data.material import MaterialStore
+from source.utils.types import Array, F, int3, bool3, float3
 from .render import VoxelRenderer
 import numpy as np
 import glm
@@ -30,11 +27,6 @@ class VoxelProxy:
         self.shape = shape
         self.graphics = VoxelRenderer(shape, res)
         self.materials = MaterialStore()
-
-    def createMaterials(self, map: dict[str, colors.Color]):
-        for k, v in map.items():
-            self.materials.create(k, v)
-        self.update_colors()        
 
     def update_colors(self):
         self.graphics.colors.setData(self.materials.colors())
@@ -101,13 +93,14 @@ class AddBoxTask(ProxyTask):
 
 class AddMeshTask(AddBoxTask):
 
-    def setMesh(self, mesh: Mesh, transform: glm.mat4, strength: float):
+    def setMesh(self, mesh: Mesh, matrix: glm.mat4, strength: float):
         self.mesh = mesh
-        self.transform = Hierarchy.copy(transform)[:3, :]
+        self.matrix = matrix
         self.strength = strength
 
     def compute(self):
-        offset, grid = mesh_to_voxels(self.mesh, self.transform, self.P.shape)
+        grid = mesh_to_voxels(self.mesh, self.matrix, self.P.shape)
+        offset, grid = u.remove_padding_grid(grid)
         values = grid * self.strength
         self.setBox(offset, values)
         AddBoxTask.compute(self)

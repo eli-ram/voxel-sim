@@ -1,0 +1,132 @@
+# Color indicators
+# {X: red, Y: green, Z: blue}
+
+config:
+  mode: run
+  alpha: 0.001
+  # render: true
+  outline: false
+  output: "ex1_whole_101_25"
+  resolution: 512 # 256
+  background: [0.01, 0.01, 0.02]
+  region:
+    start: [-25, -25, -25]
+    stop: [25, 25, 25]
+
+materials:
+  BONE:
+    # color: [0.89, 0.86, 0.788, 1]
+    color: [0.5, 0.5, 0.5, 0.4]
+    # from: https://openoregon.pressbooks.pub/bodyphysics/chapter/stress-and-strain-on-the-body/
+    # -    ultimate strength = 135 MPa
+    # - compressive strength = 205 MPa
+    #
+    strength: 135
+  STATIC:
+    color: [0.4, 0.2, 1.0, 100]
+    # Arbitrary strength to hold bone in place
+    strength: 1000
+    # Locks the bone in place
+    # Where it's cutoff in the simulation
+    locks: [true, true, true]
+  FORCE:
+    color: [1.0, 0.3, 0.2, 100]
+    # Arbitrary strength to apply force to bone
+    strength: 1000
+    # Downwards force
+    # To apply top down pressure
+    force: [0.0, 0.0, -100.0]
+  TISSUE:
+    color: [0.909, 0.745, 0.675, 1]
+    # Arbitrary strength to fix air gaps
+    strength: 0.1
+  TITANIUM:
+    # color: [0.5294, 0.5255, 0.5059, 100.0]
+    # color: [0.2294, 0.2255, 0.2059, 100.0]
+    color: [1, 1, 1, 100]
+    # (pure) from: https://www.cnclathing.com/guide/metal-strength-chart-mechanical-properties-chart-of-different-metal-grades-and-alloys-cnclathing
+    # -   yield strength = 280 - 380 MPa
+    # - tensile strength = 340 - 450 MPa (pure)
+    #
+    # (alloy?) from: https://titanium.net/medical-use-titanium/
+    # - tensile strength = 344 MPa
+    #
+    strength: 340
+
+geometry:
+  transform:
+    - scale: 25
+  elements:
+    - type: mesh
+      # render: off
+      # operation: add
+      material: BONE
+      # file: "./meshes/femur2.obj"
+      file: "./meshes/femur_whole.obj"
+      transform:
+        - translate: [-0.2, -0.6, 0.07]
+        - scale: 1.6
+        - rotate:
+            axis: X
+            angle: { deg: 100 }
+        - rotate:
+            axis: Y
+            angle: { deg: -22 }
+        - translate: [0, -4.4, -0.25]
+        - debug: 0
+
+    - type: sphere
+      render: off
+      # voxels: off
+      operation: inside
+      material: STATIC
+      transform:
+        # - debug:
+        - translate: [0, 0, -1.2]
+        # convert to a plane
+        - scale: [10000, 10000, 0.25]
+
+    - type: sphere
+      render: off
+      # voxels: off
+      operation: outside
+      material: FORCE
+      transform:
+        # - debug: 0
+        - translate: [0.31, 0.42, 1]
+        - scale: [0.4, 0.4, 0.5]
+        # {X: red, Y: green, Z: blue}
+
+    - type: sphere
+      render: off
+      voxels: off
+      material: TISSUE
+      operation: outside
+      transform:
+        - scale: [0.45, 0.36, 0.36]
+        - debug: 1
+        - translate: [0.25, -0.1, 0.1]
+
+parameters:
+  show: off
+  operation: inside
+  population_size: 101
+  width: 0.08
+  material: TITANIUM
+  transform:
+    - scale: 25
+
+  volume_a:
+    color: WHITE
+    width: 10.0
+    transform:
+      - translate: [0.3, 0.4, 0.4]
+      - scale: [0.35, 0.35, 0.35]
+      # - debug: a
+
+  volume_b:
+    color: GRAY
+    width: 10.0
+    transform:
+      - translate: [-1.0, -1.0, -0.7]
+      - scale: [0.8, 0.8, 0.8]

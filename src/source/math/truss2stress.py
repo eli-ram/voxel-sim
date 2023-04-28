@@ -1,7 +1,6 @@
 # pyright: reportConstantRedefinition=false
 from typing import Union, Any
 
-from source.debug.time import time
 from ..utils.types import Array, F, I
 from ..data.truss import Truss
 from scipy.sparse import (
@@ -10,15 +9,50 @@ from scipy.sparse import (
     linalg,
 )
 import numpy as np
+import pypardiso.scipy_aliases as par
+
+# Scikit glue
+use_umfpack = True
+try:
+    # Configure solver
+    linalg.use_solver(
+        useUmfpack=True,
+        assumeSortedIndices=False,  # would be nice to enable
+    )
+    # NOTE: umfpack uses suitesparse
+    # https://my-it-notes.com/2013/01/how-to-build-suitesparse-under-windows-using-visual-studio/
+except:
+    use_umfpack = False
+    print("Unable to use <scikits.umfpack> as space matrix solver")
 
 
 def sh(V: 'Array[Any]', name: str = ""):
     print(name, V.shape)
 
 
-def solve(M: sparse, F: vector) -> vector:
-    # Solve: Ax = b
-    return linalg.spsolve(M, F)  # type: ignore
+def force_vector(truss: Truss):
+    F = truss.forces
+    S = truss.static
+    # Remove force on static
+    return F[~S, None]
+
+
+def solve(A: sparse, b: Array[F]) -> vector | None:
+    """ Solve: Ax = b """
+
+    # [scipy]
+    # x = linalg.spsolve(A, b, use_umfpack=use_umfpack)
+
+    # [paradiso]
+    x = par.spsolve(A, b)
+
+    # why does it not throw an error here ?
+    if np.isnan(x).all():
+        print("[warn] detected exactly singular matrix")
+        return None
+
+    # ok
+    return x  # type: ignore
 
 
 def outer_rows(V: 'Array[F]') -> 'Array[F]':
@@ -96,7 +130,7 @@ def stress_matrix(truss: Truss, elasticity: float = 2E9):
     inplace_multiply(Q, O[:, None])
 
     # Accumulate node stress kernels
-    C = np.zeros((N.shape[0], Q.shape[1]), np.float32)
+    C = np.zeros((N.shape[0], Q.shape[1]), np.float64)
     # Choose <one> measure !
     # accumulate_rows(C, E0, E1, Q)
     accumulate_columns(C, E0, E1, Q)
@@ -133,6 +167,8 @@ def stress_matrix(truss: Truss, elasticity: float = 2E9):
     V = V[KEEP]
     I = I[KEEP]
     J = J[KEEP]
+    # TODO: are the indices sorted (I, J) ?
+    # we can use that knowledge to speed up solving ...
 
     # Build sparse matrix
     M = sparse((V, (I, J)), shape=(L_DOF, L_DOF))
@@ -140,21 +176,17 @@ def stress_matrix(truss: Truss, elasticity: float = 2E9):
     return M
 
 
-def force_vector(truss: Truss):
-    F = truss.forces
-    S = truss.static
-    # Remove force on static
-    return vector(F[~S, None])
-
-
 def displacements(truss: Truss, U: vector):
+    """ Displacement array for vertices """
     S = truss.static
     D = np.zeros(S.shape, np.float32)
-    # Fill non static with deplacement 
+    # Fill non static with deplacement
     D[~S] = U
     return D
 
+
 def edge_stress(truss: Truss, DU: 'Array[F]', elasticity: float = 1E9):
+    """ Edge compression array for edges """
     E = truss.edges
     N = truss.nodes
 
@@ -182,19 +214,20 @@ def edge_stress(truss: Truss, DU: 'Array[F]', elasticity: float = 1E9):
 
     return S
 
-@time("fem-simulate")
+
 def fem_simulate(truss: Truss, elasticity: float = 1E9):
-    print("Building matrix")
+    # print("Building matrix")
     M = stress_matrix(truss, elasticity)
-    print("shape", M.shape)
-    print("Making vector")
+    # print("shape", M.shape)
+    # print("Making vector")
     # scipy.sparse.linalg.factorized
     F = force_vector(truss)
-    print("forces", F.shape)
-    print("Solving sparse")
+    # print("forces", F.shape)
+    # print("Solving sparse")
     U = solve(M, F)
-    print("Unpacking result")
+    if U is None:
+        return None, None
+    # print("Unpacking result")
     D = displacements(truss, U)
-    # E = edge_stress(truss, D, elasticity)
-    E = None
+    E = edge_stress(truss, D, elasticity)
     return D, E
