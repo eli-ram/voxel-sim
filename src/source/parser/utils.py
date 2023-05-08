@@ -1,4 +1,4 @@
-from typing import Callable, Iterable, Tuple, Type, TypeVar
+from typing import Callable, Iterable, Tuple, Type, TypeVar, Protocol
 from typing_extensions import TypeGuard
 
 from .p_types import Any, Map

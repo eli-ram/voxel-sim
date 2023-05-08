@@ -5,12 +5,13 @@ config:
   mode: run
   alpha: 0.001
   outline: false
-  output: "ex3_partial_fracture_P10_R35[2023-03-07][12-06]"
+  output: "padded-test"
   resolution: 512 # 256
-  background: [0.01, 0.01, 0.02]
+  # background: [1.0, 1.0, 1.0]
+  background: [0.1, 0.1, 0.1]
   region:
-    start: [-35, -35, -35]
-    stop: [35, 35, 35]
+    start: [-40, -40, -40]
+    stop: [40, 40, 40]
 
 # Specify population setup
 population:
@@ -25,19 +26,30 @@ population:
 
 materials:
 
-  BONE:
-    # color: [0.89, 0.86, 0.788, 1]
-    color: [0.6, 0.57, 0.53, 20]
-    # from: https://openoregon.pressbooks.pub/bodyphysics/chapter/stress-and-strain-on-the-body/
-    # -    ultimate strength = 135 MPa
-    # - compressive strength = 205 MPa
-    #
-    strength: 135
+  CORTICAL_BONE:
+    # bone-white
+    # color: [0.7, 0.67, 0.63, 5]
+    color: [0.55, 0.38, 0.35, 50]
+    # Cortical Bone Elasitcity (MPa)
+    strength: 16_350
+
+  CANCELLOUS_BONE:
+    # egg-white to differentiate
+    # color: [1.0, 0.94, 0.76, 1]
+    color: [0.5, 0.4, 0.46, 0.05]
+    # Cancellous Bone Elasitcity (MPa)
+    strength: 137
+
+  TITANIUM:
+    # titanium-gray
+    color: [1.0, 1.0, 1.0, 50]
+    # Titanium Alloy Elasticity (MPa)
+    strength: 110_000
 
   STATIC:
     color: [0.4, 0.2, 1.0, 100]
     # Arbitrary strength to hold bone in place
-    strength: 1000
+    strength: 100_000_000
     # Locks the bone in place
     # Where it's cutoff in the simulation
     locks: [true, true, true]
@@ -45,39 +57,72 @@ materials:
   FORCE:
     color: [1.0, 0.3, 0.2, 20]
     # Arbitrary strength to apply force to bone
-    strength: 1000
+    strength: 100_000_000
     # Downwards force
     # To apply top down pressure
-    force: [0.0, 0.0, -100.0]
+    force: [0.0, 0.0, -2100.0]
 
   TISSUE:
-    color: [0.909, 0.745, 0.675, 1000]
+    color: [0.909, 0.745, 0.675, 1500]
     # Arbitrary strength to fix air gaps
-    strength: 0.1
-
-  TITANIUM:
-    # color: [0.5294, 0.5255, 0.5059, 100.0]
-    # color: [0.2294, 0.2255, 0.2059, 100.0]
-    color: [1, 1, 1, 100]
-    # (pure) from: https://www.cnclathing.com/guide/metal-strength-chart-mechanical-properties-chart-of-different-metal-grades-and-alloys-cnclathing
-    # -   yield strength = 280 - 380 MPa
-    # - tensile strength = 340 - 450 MPa (pure)
-    #
-    # (alloy?) from: https://titanium.net/medical-use-titanium/
-    # - tensile strength = 344 MPa
-    #
-    strength: 340
+    strength: 1
 
 geometry:
   transform:
-    - scale: 35
+    - scale: 40
     - scale: 0.84
   elements:
     - type: mesh
-      # render: off
+      render: off
       # operation: add
-      material: BONE
+      material: CORTICAL_BONE 
       file: "./meshes/femur2.obj"
+      # file: "./meshes/femur_whole.obj"
+      transform:
+        - translate: [-0.2, -0.6, 0.07]
+        - scale: 1.6
+        - rotate: 
+            axis: X
+            angle: { deg: 110 }
+        - rotate:
+            axis: Y
+            angle: { deg: -22 }
+        - translate: [0, -4.4, -0.25]
+
+    - type: collection
+      operation: outside
+      elements:
+        - type: mesh
+          file: "./meshes/femur_whole.obj"
+          render: off
+          material: CORTICAL_BONE 
+          transform:
+            - translate: [-0.2, -0.6, 0.07]
+            - scale: 1.6
+            - rotate: 
+                axis: X
+                angle: { deg: 110 }
+            - rotate:
+                axis: Y
+                angle: { deg: -22 }
+            - translate: [0, -4.4, -0.25]
+
+        - type: sphere
+          render: off
+          operation: intersect
+          material: CORTICAL_BONE 
+          transform:
+            - scale: 0.5
+            - rotate: 
+                axis: Z
+                angle: { deg: 40 }
+            - translate: [1.2, 0, -0.2]
+
+    - type: mesh
+      render: off
+      operation: inside
+      material: CANCELLOUS_BONE
+      file: "./meshes/inner_bone.obj"
       # file: "./meshes/femur_whole.obj"
       transform:
         - translate: [-0.2, -0.6, 0.07]
@@ -110,17 +155,6 @@ geometry:
     - type: sphere
       render: off
       operation: inside
-      material: BONE
-      transform:
-        - scale: 0.5
-        - rotate: 
-            axis: Z
-            angle: { deg: 40 }
-        - translate: [1.2, 0, -0.2]
-
-    - type: sphere
-      render: off
-      operation: inside
       material: STATIC
       transform:
         # - debug:
@@ -144,7 +178,7 @@ parameters:
   width: 0.08
   material: TITANIUM
   transform:
-    - scale: 35
+    - scale: 40
     - scale: 0.84
 
   volume_a:
@@ -165,12 +199,12 @@ parameters:
 
 
 
----
-region:
-  bbox:
-    x: [-35, 35]
-    y: [-35, 35]
-    z: [-35, 35]
-  normalization: none | short | long
-  transform:
-    - scale: 20
+#---
+#region:
+#  bbox:
+#    x: [-35, 35]
+#    y: [-35, 35]
+#    z: [-35, 35]
+#  normalization: none | short | long
+#  transform:
+#    - scale: 20

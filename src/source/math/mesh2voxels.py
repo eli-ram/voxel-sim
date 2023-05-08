@@ -1,5 +1,6 @@
 import glm
 import source.graphics.matrices as mat
+import numpy as np
 from source.data.mesh import Geometry, Mesh
 from .rasterizers.np_raster import Z_Hash_Rasterizer
 from .rasterizers.RasterDirection import Raster_Direction_3D
@@ -21,12 +22,16 @@ Resources:
 def mesh_to_voxels(mesh: Mesh, matrix: glm.mat4, shape: int3):
     # Transform mesh into shape
     V, I = _transform(mesh, matrix)
+    # Setup output array
+    O = np.zeros(shape, dtype=np.uint8)
     # Compute for X, Y, Z
-    Z = _rasterize(V, I, shape, 'Z')
-    X = _rasterize(V, I, shape, 'X')
-    Y = _rasterize(V, I, shape, 'Y')
-    # Join and return, using best of three
-    return (Z + X + Y) > 1
+    O[_rasterize(V, I, shape, 'Z')] += 1
+    O[_rasterize(V, I, shape, 'X')] += 1
+    O[_rasterize(V, I, shape, 'Y')] += 1
+    # Infer results 
+    # (0|1 -> empty)
+    # (2|3 -> voxel) 
+    return O > 1
  
 
 def _transform(mesh: Mesh, matrix: glm.mat4):
@@ -49,7 +54,8 @@ def _rasterize(vertices: 'Array[F]', indices: 'Array[I]', voxels: int3, directio
     D = Raster_Direction_3D[direction]
 
     # Init rasterizer
-    # Tested to be the 'fastest'
+    # Tested to be the 'fastest' of the python-rasterizers
+    # TODO: write a native rasterizer w/ python bindings
     rasterizer = Z_Hash_Rasterizer(D.reshape(voxels)) 
 
     # Potential Parallel-For

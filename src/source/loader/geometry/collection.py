@@ -26,8 +26,9 @@ class GeometryCollection(Geometry, type='collection'):
             yield G
 
     def loadMaterial(self, store):
-        for element in self:
-            element.loadMaterial(store)
+        with self.captureErrors():
+            for element in self:
+                element.loadMaterial(store)
 
     def buildRender(self) -> s.Render:
         if not self.render.getOr(True):

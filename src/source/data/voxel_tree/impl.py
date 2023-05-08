@@ -68,6 +68,29 @@ class _(impl, op=Operation.CUTOUT):
         if B.is_empty:
             return
 
+        # Get mask
+        M = child[B].mask
+
         # Apply
         for p in parent[B].arrays():
-            p[...] = 0
+            p[M] = 0
+
+class _(impl, op=Operation.INTERSECT):
+    """ Keep only overlapping regions of parent """
+    def apply(self, parent: Data, child: Data):
+        # Find intersection
+        B = Box.Intersection([parent.box, child.box])
+
+        # Get mask
+        M = child[B].mask
+
+        # Copy intersection data
+        D = [a[M] for a in parent[B].arrays()]
+
+        # Zero out parent
+        for a in parent.arrays():
+            a[...] = 0
+        
+        # Fill in intersection
+        for a, d in zip(parent[B].arrays(), D):
+            a[M] = d

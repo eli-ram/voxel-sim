@@ -33,7 +33,7 @@ class Induvidual(Generic[T]):
 
 
 
-class InduvidualStorage(Generic[T], Storage[Induvidual[T]]):
+class InduvidualStorage(Storage[Induvidual[T]]):
     def __init__(self, genome: Storage[T]) -> None:
         self.genome = genome
 
@@ -69,7 +69,7 @@ class Generation(Generic[T]):
         ), self.index)
 
 
-class GenerationStorage(Generic[T], Storage[Generation[T]]):
+class GenerationStorage(Storage[Generation[T]]):
     def __init__(self, genome: Storage[T]) -> None:
         self.individual = InduvidualStorage(genome)
 

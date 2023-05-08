@@ -15,7 +15,6 @@ from source.loader.transforms.sequence import Transform
 from source.loader.data import Color
 
 
-
 class Volume(p.Struct):
     color: Color
     width: p.Float
@@ -59,8 +58,9 @@ class Parameters(p.Struct):
     operation: g.Operation
 
     def loadMaterial(self, store: m.m.MaterialStore):
-        self.setError(self.material.load(store))
-        print(self.material.get())
+        with self.captureErrors():
+            self.material.load(store)
+            print(self.material.get())
 
     def buildRender(self):
         if not self.show.get():

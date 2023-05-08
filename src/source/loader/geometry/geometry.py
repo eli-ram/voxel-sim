@@ -60,7 +60,7 @@ class Context:
 
     def finalize(self, node: n.VoxelNode):
         return node.offset(self.box.start)
-    
+
     def __eq__(self, o: object) -> bool:
         return isinstance(o, Context) and self.eq(o)
 
@@ -75,6 +75,7 @@ class Operation(p.Value[n.Operation]):
         'outside': _.OUTSIDE,
         'cut': _.CUTOUT,
         'cutout': _.CUTOUT,
+        'intersect': _.INTERSECT,
         # todo:
         # invert / inverse ?
         #
@@ -131,7 +132,8 @@ class Geometry(p.PolymorphicStruct):
         return new, old
 
     def loadMaterial(self, store: m.MaterialStore):
-        self.setError(self.material.load(store))
+        with self.captureErrors():
+            self.material.load(store)
 
     def getMesh(self) -> mesh.Mesh:
         raise NotImplementedError()
