@@ -163,21 +163,13 @@ class Config:
             print(e)
             return 1E10
 
-        # unable to solve
+        # No Solution        
         if E is None:
             return 1E10
 
-        # fitness modifiers
-        mods = 0.0
-
-        # detect nan values
-        N = np.isnan(E)
-
-        # fix nan values if present
-        # and punish bad solutions
-        if N.any():
-            E[N] = 0.0
-            mods = 1E2
+        # Invalid Solution
+        if not np.isfinite(E).all(): # type: ignore
+            return 1E10
 
         # get min-max of compression
         max = E.max()
@@ -193,7 +185,7 @@ class Config:
         # fitness is based on
         # minimizing distortion
         # lower is better
-        fitness = abs(max) + abs(min) + mean + mods
+        fitness = abs(max) + abs(min) + mean
 
         # done
         return fitness
@@ -212,7 +204,6 @@ class Config:
         # rng indices
         R = rng.integers(keep, size, keep)
         rand = [generation.population[i] for i in R]
-        # print('R', len(R))
 
         # rest
         rest = s.Induvidual.package(Genome.random(rng, rest))
@@ -220,7 +211,8 @@ class Config:
         # crossover
         def crossover(A: list[s.Induvidual[Genome]], B: list[s.Induvidual[Genome]]):
             return s.Induvidual.package(
-                Genome(a.genome.a, b.genome.b) for a, b in zip(A, B, strict=True)
+                Genome(a.genome.a, b.genome.b) 
+                for a, b in zip(A, B, strict=True)
             )
 
         # build population w/ crossover
@@ -376,7 +368,7 @@ if __name__ == '__main__':
 
     def __generation(rng, size: int, index: int):
         G = Genome.random(rng, size)
-        F = rng.random(0, 100, size)
+        F = rng.random(size) * 100
         P = [s.Induvidual(g, f, True) for g, f in zip(G, F)]
         return s.Generation(P, index)
 

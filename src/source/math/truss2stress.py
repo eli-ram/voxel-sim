@@ -6,28 +6,9 @@ from ..data.truss import Truss
 from scipy.sparse import (
     csr_matrix as sparse,
     csc_matrix as vector,
-    linalg,
 )
 import numpy as np
 import pypardiso.scipy_aliases as par
-
-# Scikit glue
-use_umfpack = True
-try:
-    # Configure solver
-    linalg.use_solver(
-        useUmfpack=True,
-        assumeSortedIndices=False,  # would be nice to enable
-    )
-    # NOTE: umfpack uses suitesparse
-    # https://my-it-notes.com/2013/01/how-to-build-suitesparse-under-windows-using-visual-studio/
-except:
-    use_umfpack = False
-    print("Unable to use <scikits.umfpack> as space matrix solver")
-
-
-def sh(V: 'Array[Any]', name: str = ""):
-    print(name, V.shape)
 
 
 def force_vector(truss: Truss):
@@ -40,15 +21,12 @@ def force_vector(truss: Truss):
 def solve(A: sparse, b: Array[F]) -> vector | None:
     """ Solve: Ax = b """
 
-    # [scipy]
-    # x = linalg.spsolve(A, b, use_umfpack=use_umfpack)
-
-    # [paradiso]
+    # [paradiso] solver
     x = par.spsolve(A, b)
 
-    # why does it not throw an error here ?
+    # Do not propagate NaN
     if np.isnan(x).all():
-        print("[warn] detected exactly singular matrix")
+        print("[warn] poor solution")
         return None
 
     # ok

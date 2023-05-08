@@ -23,9 +23,13 @@ class Parsable:
     def __init__(self) -> None: ...
 
     @contextmanager
-    def captureErrors(self):
+    def captureErrors(self, throw=True):
         try:
             yield
+
+        except error.ChainError as e:
+            self.__error = True
+            # There is no message when chaining
 
         except error.ParseError as e:
             self.__error = True
@@ -34,6 +38,10 @@ class Parsable:
         except Exception as e:
             self.__error = True
             self.__what = error.what(e) + error.trace(e)
+
+        if throw and self.__error:
+            raise error.ChainError()
+
 
     def hasChanged(self):
         return self.__changed
@@ -44,8 +52,9 @@ class Parsable:
     def hasError(self):
         return self.__error
 
-    def setError(self, error: bool):
+    def setError(self, error: bool) -> bool:
         self.__error |= error
+        return self.__error
 
     def getError(self):
         return self.__what    
@@ -63,7 +72,7 @@ class Parsable:
         L = []
 
         # Query Data
-        with self.captureErrors():
+        with self.captureErrors(throw=False):
             if I := self.dataParse(data):
                 L = list(I)
 
@@ -77,7 +86,7 @@ class Parsable:
 
         # Post Update
         if self.__changed and not self.__error:
-            with self.captureErrors():
+            with self.captureErrors(throw=False):
                 self.postParse()
 
         # print(self.__class__.__name__, self.__changed, self.__error, self.__what)

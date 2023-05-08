@@ -5,3 +5,4 @@ class Operation(Enum):
     INSIDE = auto()
     OUTSIDE = auto()
     OVERWRITE = auto()
+    INTERSECT = auto()

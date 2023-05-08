@@ -16,3 +16,6 @@ class ParseError(Exception):
     
 class CastError(ParseError):
     """ Error for any Casting Fault """
+
+class ChainError(ParseError):
+    """ Error for chaining post-parse methods """

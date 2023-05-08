@@ -31,8 +31,9 @@ from source.utils.wireframe.wireframe import Wireframe
 # Voxels
 from source.voxels.proxy import VoxelProxy
 
-RESULTS = d.require(d.script_dir(__file__), '..', 'results'),
+RESULTS = d.require(d.script_dir(__file__), '..', 'results')
 a.setResultsDir(d.require(RESULTS, "__gl_voxels"))
+
 
 def time_to_t(time: float, duration: float, padding: float):
     MOD = duration + 2 * padding
@@ -50,18 +51,20 @@ class Voxels(Window):
 
     def setup(self):
         self.scene = SceneBase()
-        self.scene.setBackground(Color(0.3, 0.2, 0.5))
+        self.scene.setBackground(Color(1.5, 1.4, 1.7))
         self.camera = m.OrbitCamera(
             distance=1.25,
             svivel_speed=0.005,
         )
         shape = (32, 32, 32)
+        shape = (16, 16, 16)
+        shape = (8, 8, 8)
         resolution = 2**9
         self.voxels = VoxelProxy(shape, resolution)
         M = self.voxels.materials
-        M.create("STATIC", get.BLUE, 0)
-        M.create("FORCE", get.RED, 0)
-        M.create("BONE", Color(0.3, 0.5, 0.3, 0.1), 0)
+        M.create("STATIC", Color(0.0, 0.0, 1.0, 0.9), 0)
+        M.create("FORCE", Color(1.0, 0.0, 0.0, 0.9), 0)
+        M.create("BONE", Color(0.6, 0.6, 0.6, 0.2), 0)
         self.voxels.update_colors()
 
         # Store animator
@@ -120,6 +123,10 @@ class Voxels(Window):
             self.animator.recorder('animation{:[%Y-%m-%d][%H-%M]}.gif')
         )
 
+        @K.toggle("D")
+        def enb_deformation(on: bool):
+            self.truss.setDeformation(1.0 if on else 0.0)
+
         self.build()
 
     def alpha(self, up: bool):
@@ -148,9 +155,11 @@ class Voxels(Window):
                 return s.simplex()
 
             self.model.transform = (
-                glm.translate(glm.vec3(0.1, 0.1, 0.2)) *
+                glm.translate(glm.vec3(0.1, 0.15, 0.2)) *
                 glm.scale(glm.vec3(0.9)) *
-                glm.rotate(glm.radians(10.0), glm.vec3(0, 0, 1))
+                glm.rotate(glm.radians(10.0), glm.vec3(0, 0, 1)) *
+                # extra
+                glm.scale(glm.vec3(1.2))
             )
 
         def complete(mesh: Mesh):
@@ -169,30 +178,41 @@ class Voxels(Window):
         self.tasks.run(compute, complete)
 
     def makeStatic(self):
+        """
         strength = np.ones((32, 32, 1), np.float32) * 8.0
         strength[5:27, 5:27, 0] = 0.0
         offset = (0, 0, 5)
+        """
+        strength = np.ones((8, 8, 1), np.float32) * 8.0
+        strength[1:7, 1:7, 0] = 0.0
+        offset = (0, 0, 1)
         self.voxels.set_static("STATIC", (True, True, True))
         return self.voxels.add_box(offset, strength, "STATIC")
 
     def makeForce(self):
+        """
         strength = np.ones((5, 5, 1), np.float32) * 8.0
         offset = (9, 13, 15)
-        self.voxels.set_force("FORCE", (0, 0, -100))
+        """
+        strength = np.ones((1, 1, 1), np.float32) * 8.0
+        offset = (2, 3, 4)
+        self.voxels.set_force("FORCE", (0, 0, -200))
         return self.voxels.add_box(offset, strength, "FORCE")
-
-    def makeTruss(self):
-        @self.voxels.fem_simulate
-        def task(truss: DeformationWireframe):
-            self.truss = truss
-            self.box.children[0] = truss
-        return task
 
     def makeVoxels(self):
         box = self.box.transform
         model = self.model.transform
         transform = glm.affineInverse(box) * model
         return self.voxels.add_mesh(self.mesh, transform, 0.5, "BONE")
+
+    def makeTruss(self):
+        @self.voxels.fem_simulate
+        def task(truss: DeformationWireframe):
+            truss.setDeformation(0.0)
+            truss.setWidth(2.0)
+            self.truss = truss
+            self.box.children[0] = truss
+        return task
 
     def resize(self, width: int, height: int):
         self.animator.resize(width, height)
@@ -213,7 +233,7 @@ class Voxels(Window):
         self.move_cross.transform = glm.translate(self.camera.center)
 
         # Change deformation
-        if hasattr(self, 'truss'):
+        if False and hasattr(self, 'truss'):
             T = time_to_t(time, 30, 3)
             # Over exaggarate deformation 5x
             self.truss.setDeformation(T * 5.0)

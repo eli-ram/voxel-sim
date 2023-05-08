@@ -117,6 +117,7 @@ class FemSimulateTask(ProxyTask):
         truss = voxels2truss(self.P.data)
         print("Simulating Truss")
         D, _ = fem_simulate(truss, 1E3)
+        assert D is not None, "invalid truss"
         print("Creating Mesh")
         # Render mesh even if simulation failed
         if np.isnan(D).any():

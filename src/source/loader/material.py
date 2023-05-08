@@ -34,8 +34,6 @@ class MaterialKey(p.String):
 
             self._cache = store[key]
 
-        return self.hasError()
-
     def get(self):
         """ Get the cached material """
         return self._cache

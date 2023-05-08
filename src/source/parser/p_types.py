@@ -24,6 +24,5 @@ def getAnnotations(cls: Union[object, type]):
     return annotations
 
 
-Any = Any
 Map = Dict[str, Any]
 Array = List[Any]
