@@ -21,58 +21,59 @@ def _vec(*v: int):
 
 
 class Box:
-    """ A construct to handle shifted dense arrays
+    """A construct to handle shifted dense arrays
 
-        from {start} until {stop}
+    from {start} until {stop}
 
     """
 
     def __init__(self, start: vector, stop: vector):
-        assert start.shape == stop.shape == (3,), \
-            " [start] & [stop] must have a shape of (3,) "
+        assert (
+            start.shape == stop.shape == (3,)
+        ), " [start] & [stop] must have a shape of (3,) "
         self.start = start
         self.stop = stop
 
     @staticmethod
     def StartStop(start: vec3, stop: vec3) -> Box:
-        """ Create a box from [start] to [stop] """
+        """Create a box from [start] to [stop]"""
         return Box(_vec(*start), _vec(*stop))
 
     @staticmethod
     def OffsetShape(offset: vec3, shape: vec3) -> Box:
-        """ Create a box @ [offset] with [shape] """
+        """Create a box @ [offset] with [shape]"""
         start = _vec(*offset)
         stop = start + _vec(*shape)
         return Box(start, stop)
 
     @staticmethod
     def Empty():
-        """ Make an Empty Box """
+        """Make an Empty Box"""
         return Box(_vec(0, 0, 0), _vec(0, 0, 0))
 
     @staticmethod
     def Union(boxes: list[Box]) -> Box:
-        """ Create the union of multiple boxes """
+        """Create the union of multiple boxes"""
         return _combine(boxes, np.min, np.max)
 
     @staticmethod
     def Intersection(boxes: list[Box]) -> Box:
-        """ Create the intersection of multiple boxes """
+        """Create the intersection of multiple boxes"""
         return _combine(boxes, np.max, np.min)
 
     @property
     def size(self):
-        """ Get the size of this box as a numpy array """
+        """Get the size of this box as a numpy array"""
         return self.stop - self.start
 
     @property
     def center(self) -> float3:
-        """ Get the center of this box (float3) """
+        """Get the center of this box (float3)"""
         return tuple((self.start + self.stop) * 0.5)
 
     @property
     def shape(self) -> int3:
-        """ Get the shape of this box """
+        """Get the shape of this box"""
         return tuple(self.stop - self.start)
 
     @property
@@ -81,28 +82,32 @@ class Box:
 
     @property
     def has_volume(self):
-        """ Check if this box has volume """
+        """Check if this box has volume"""
         return (self.start < self.stop).all()
 
     def overlap(self, other: Box):
-        """ Check if the boxes overlap """
-        return (
-            (self.start < other.stop).all()
-            and
-            (self.stop > other.start).all()
-        )
+        """Check if the boxes overlap"""
+        return (self.start < other.stop).all() and (self.stop > other.start).all()
 
     def slice(self, other: Box):
-        """ Create slices that overlap the other Box """
+        """Create slices that overlap the other Box"""
+
+        # Don't slice agains empty
+        if other.is_empty:
+            S = slice(0)
+            return S, S, S
+
+        # Compute overlapping slices
         start = np.maximum(self.start, other.start) - self.start
         stop = np.minimum(self.stop, other.stop) - self.start
         return tuple(slice(l, h) for l, h in zip(start, stop))
 
     def crop(self, data: np.ndarray[np.bool_]):
-        """ Create a Box that is as small as possible """
+        """Create a Box that is as small as possible"""
 
-        assert data.shape == self.shape, \
-            " Cropping [data] must be of equal shape as box "
+        assert (
+            data.shape == self.shape
+        ), " Cropping [data] must be of equal shape as box "
 
         if not data.any():
             return Box.Empty()
@@ -111,7 +116,7 @@ class Box:
             B = data.any(axes)
             L = int(B[::+1].argmax())
             H = int(B[::-1].argmax())
-            return L, B.size-H
+            return L, B.size - H
 
         O = self.start
         lx, hx = span(1, 2)
@@ -128,9 +133,9 @@ class Box:
 
     def __eq__(self, o: object) -> bool:
         return (
-            isinstance(o, Box) and
-            np.array_equal(self.start, o.start) and
-            np.array_equal(self.stop, o.stop)
+            isinstance(o, Box)
+            and np.array_equal(self.start, o.start)
+            and np.array_equal(self.stop, o.stop)
         )
 
 
@@ -143,7 +148,7 @@ def _combine(boxes: list[Box], start, stop):
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Test data
     A = Box.StartStop(
         (0, 4, 4),

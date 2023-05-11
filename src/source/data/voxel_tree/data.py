@@ -23,11 +23,11 @@ class Data:
     strength: np.ndarray[np.float64]
 
     def arrays(self) -> Tuple[np.ndarray, ...]:
-        """ Iterate over the data arrays """
+        """Iterate over the data arrays"""
         return (self.mask, self.material, self.strength)
 
     def __post_init__(self):
-        """ Verify the data """
+        """Verify the data"""
         shape = self.box.shape
 
         # Require all arrays to have the same shape as the box
@@ -43,7 +43,7 @@ class Data:
 
     @classmethod
     def Empty(cls, box: Box) -> Data:
-        """ Create a data object where all values are set to zero """
+        """Create a data object where all values are set to zero"""
         shape = box.shape
         return cls(
             box=box,
@@ -65,10 +65,10 @@ class Data:
         )
 
     def crop(self) -> Data:
-        """ Crop this data based on it's mask """
+        """Crop this data based on it's mask"""
         return self[self.box.crop(self.mask)]
 
-    def offset(self, amount: 'np.ndarray[np.int64]'):
+    def offset(self, amount: "np.ndarray[np.int64]"):
         return Data(
             box=self.box.offset(amount),
             mask=self.mask,
@@ -77,7 +77,7 @@ class Data:
         )
 
     def __getitem__(self, box: Box) -> Data:
-        """ Get the slice that overlaps the other data """
+        """Get the slice that overlaps the other data"""
         slices = self.box.slice(box)
         return Data(
             box=box,
@@ -96,7 +96,4 @@ class Data:
             print("Data.__eq__ different types !")
             return False
 
-        return (
-            self.box == o.box and
-            all(np.array_equal(a, b) for a, b in zip(A, B))
-        )
+        return self.box == o.box and all(np.array_equal(a, b) for a, b in zip(A, B))

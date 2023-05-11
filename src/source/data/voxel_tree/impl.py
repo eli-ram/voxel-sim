@@ -10,6 +10,7 @@ from .operation import Operation
 
 Boxed = Tuple[Data, Box]
 
+
 class impl:
     __all__: Dict[Operation, impl] = {}
     OP: Operation
@@ -46,37 +47,51 @@ class impl:
 
 
 class _(impl, op=Operation.INSIDE):
-    """ Place the child inside the parent """
+    """Place the child inside the parent"""
+
     def where(self, parent, child) -> np.ndarray[np.bool_]:
         return parent.mask & child.mask
 
+
 class _(impl, op=Operation.OUTSIDE):
-    """ Place the child outside the parent """
+    """Place the child outside the parent"""
+
     def where(self, parent, child) -> np.ndarray[np.bool_]:
         return ~parent.mask & child.mask
 
+
 class _(impl, op=Operation.OVERWRITE):
-    """ Place the child regardless of parent """
+    """Place the child regardless of parent"""
+
     def where(self, parent, child) -> np.ndarray[np.bool_]:
         return child.mask
 
+
 class _(impl, op=Operation.CUTOUT):
-    """ Remove the child from the parent """
+    """Remove the child from the parent"""
+
     def apply(self, parent: Data, child: Data):
         # Find intersection
         B = Box.Intersection([parent.box, child.box])
-        if B.is_empty:
-            return
 
         # Get mask
-        M = child[B].mask
+        M = ~(child[B].mask)
 
-        # Apply
-        for p in parent[B].arrays():
-            p[M] = 0
+        # Copy intersection data
+        D = [a[M] for a in parent[B].arrays()]
+
+        # Zero out parent
+        for a in parent.arrays():
+            a[...] = 0
+
+        # Fill in intersection
+        for a, d in zip(parent[B].arrays(), D):
+            a[M] = d
+
 
 class _(impl, op=Operation.INTERSECT):
-    """ Keep only overlapping regions of parent """
+    """Keep only overlapping regions of parent"""
+
     def apply(self, parent: Data, child: Data):
         # Find intersection
         B = Box.Intersection([parent.box, child.box])
@@ -90,7 +105,7 @@ class _(impl, op=Operation.INTERSECT):
         # Zero out parent
         for a in parent.arrays():
             a[...] = 0
-        
+
         # Fill in intersection
         for a, d in zip(parent[B].arrays(), D):
             a[M] = d

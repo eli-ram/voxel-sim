@@ -3,12 +3,12 @@
 
 config:
   mode: run
-  alpha: 0.001
+  alpha: 0.05
   outline: false
-  output: "whole"
-  resolution: 512 # 256
-  # background: [1.0, 1.0, 1.0]
-  background: [0.1, 0.1, 0.1]
+  output: "sliced#1"
+  resolution: 1024 # 512
+  background: [1.0, 1.0, 1.0]
+  cage_color: [0.0, 0.0, 0.0, 0.5]
   region:
     start: [-40, -40, -40]
     stop: [40, 40, 40]
@@ -26,27 +26,26 @@ population:
 
 materials:
   CORTICAL_BONE:
-    # bone-white
-    # color: [0.7, 0.67, 0.63, 5]
-    color: [0.55, 0.38, 0.35, 50]
+    color: [0.052, 0.031, 0.032, 0.1]
     # Cortical Bone Elasitcity (MPa)
     strength: 16_350
 
   CANCELLOUS_BONE:
     # egg-white to differentiate
-    # color: [1.0, 0.94, 0.76, 1]
-    color: [0.5, 0.4, 0.46, 0.05]
+    color: [1.0, 0.94, 0.76, 0.45]
+    # used when illustrating rod position
+    # color: [0.2, 0.4, 0.46, 0.12]
     # Cancellous Bone Elasitcity (MPa)
     strength: 137
 
   TITANIUM:
     # titanium-gray
-    color: [1.0, 1.0, 1.0, 50]
+    color: [1.0, 1.0, 1.0, 10]
     # Titanium Alloy Elasticity (MPa)
     strength: 110_000
 
   STATIC:
-    color: [0.4, 0.2, 1.0, 100]
+    color: [0.01, 0.01, 1.0, 1]
     # Arbitrary strength to hold bone in place
     strength: 100_000_000
     # Locks the bone in place
@@ -54,7 +53,7 @@ materials:
     locks: [true, true, true]
 
   FORCE:
-    color: [1.0, 0.3, 0.2, 20]
+    color: [1.0, 0.1, 0.1, 0.2]
     # Arbitrary strength to apply force to bone
     strength: 100_000_000
     # Downwards force
@@ -62,7 +61,8 @@ materials:
     force: [0.0, 0.0, -2100.0]
 
   TISSUE:
-    color: [0.909, 0.745, 0.675, 1500]
+    # color: [0.909, 0.745, 0.675, 10.1]
+    color: [0.509, 0.945, 0.675, 10]
     # Arbitrary strength to fix air gaps
     strength: 1
 
@@ -86,7 +86,7 @@ geometry:
         - translate: [0, -4.4, -0.25]
       elements:
         - type: mesh
-          render: on
+          render: off
           operation: add
           material: CORTICAL_BONE
           file: "./meshes/femur_whole.obj"
@@ -97,16 +97,28 @@ geometry:
           material: CANCELLOUS_BONE
           file: "./meshes/inner_bone.obj"
 
+    # Imposed Fracture
     - type: collection
-      operation: outside
+      operation: inside
       elements:
-        - type: mesh
-          file: "./meshes/femur_whole.obj"
+        - type: sphere
           render: off
-          material: CORTICAL_BONE
+          operation: add
+          material: TISSUE
           transform:
-            - translate: [-0.2, -0.6, 0.07]
-            - scale: 1.6
+            - debug
+            - translate: [0.12, 0.15, 0.3]
+            - scale: 0.36
+
+        - type: mesh
+          file: "./meshes/femur_sliced.obj"
+          render: off
+          material: TISSUE
+          operation: cut
+          transform:
+            - debug
+            - translate: [-0.3, -0.7, 0.0]
+            - scale: 1.85
             - rotate:
                 axis: X
                 angle: { deg: 110 }
@@ -115,53 +127,24 @@ geometry:
                 angle: { deg: -22 }
             - translate: [0, -4.4, -0.25]
 
-        - type: sphere
-          render: off
-          operation: intersect
-          material: CORTICAL_BONE
-          transform:
-            - scale: 0.5
-            - rotate:
-                axis: Z
-                angle: { deg: 40 }
-            - translate: [1.2, 0, -0.2]
-
-    - type: mesh
-      render: off
-      operation: outside
-      material: TISSUE
-      # file: "./meshes/femur2.obj"
-      file: "./meshes/femur_whole.obj"
-      transform:
-        - translate: [-0.2, -0.6, 0.07]
-        - scale: 1.599
-        - rotate:
-            axis: X
-            angle: { deg: 110 }
-        - rotate:
-            axis: Y
-            angle: { deg: -22 }
-        - translate: [0, -4.4, -0.25]
-
+    # Static Cutoff
     - type: sphere
       render: off
       operation: inside
       material: STATIC
       transform:
-        # - debug:
         - translate: [0, 0, -1.42]
-        # convert to a plane
         - scale: [10000, 10000, 0.25]
+        # almost converted to a plane
 
+    # Downwards Force
     - type: sphere
       render: off
       operation: outside
       material: FORCE
       transform:
-        # - debug: 0
         - translate: [0.28, 0.32, 1]
         - scale: [0.4, 0.4, 0.4]
-        # {X: red, Y: green, Z: blue}
 
 parameters:
   show: off
@@ -169,30 +152,19 @@ parameters:
   width: 0.08
   material: TITANIUM
   transform:
-    - scale: 45
+    - scale: 40
     - scale: 0.84
 
   volume_a:
     color: WHITE
-    width: 10.0
+    width: 5.0
     transform:
-      - translate: [0.28, 0.32, 0.6]
-      # - translate: [0.3, 0.4, 0.4]
-      - scale: [0.35, 0.35, 0.35]
-      # - debug: a
+      - translate: [0.26, 0.30, 0.59]
+      - scale: [0.31, 0.31, 0.31]
 
   volume_b:
     color: GRAY
     width: 10.0
     transform:
-      - translate: [-1.0, -1.0, -0.7]
-      - scale: [0.8, 0.8, 0.8]
-#---
-#region:
-#  bbox:
-#    x: [-35, 35]
-#    y: [-35, 35]
-#    z: [-35, 35]
-#  normalization: none | short | long
-#  transform:
-#    - scale: 20
+      - translate: [-1.1, -1.1, -0.7]
+      - scale: [0.85, 0.85, 0.85]

@@ -25,9 +25,12 @@ from source.parser.detector import ParsableDetector
 # ML
 import source.ml.ga_2 as ga
 
+# The Configuration file path
 CONF = "configurations/experiment_1.2.yaml"
 CONF = "configurations/experiment_3.1.yaml"
 CONF = "configurations/final/whole.yaml"
+CONF = "configurations/final/sliced.yaml"
+
 WORKSPACE = require(script_dir(__file__), "..")
 RESULTS_DIR = require(WORKSPACE, "results")
 # ga.setResultsDir(require(WORKSPACE, 'results', 'ga'))
