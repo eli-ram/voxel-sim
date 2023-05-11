@@ -292,7 +292,11 @@ class GA:
 
         assert G.size() == C.size, \
             f"Stored population has different size: {G.size()}"            
+
         self.generation = G
+        # Environment may have changed...
+        # force full re-evaluation
+        self.generation.invalidate()
 
     def current(self):
         if best := self.best:
@@ -301,7 +305,8 @@ class GA:
     def step(self):
         R, self.running = self.running, True
 
-        # don't run twice ...
+        # This is used as a task
+        # Duplicated execution is not allowed
         if R:
             return
 
