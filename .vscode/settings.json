@@ -1,9 +1,13 @@
 {
-    "python.analysis.typeCheckingMode": "basic",
-    "python.autoComplete.extraPaths": [
-        "${workspaceFolder}/.env/Lib/size-packages/numpy"
-    ],
-    "python.analysis.extraPaths": [
-        "${workspaceFolder}/.env/Lib/size-packages/numpy"
-    ]
+  "python.analysis.typeCheckingMode": "basic",
+  "python.autoComplete.extraPaths": [
+    "${workspaceFolder}/.env/Lib/size-packages/numpy"
+  ],
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/.env/Lib/size-packages/numpy"
+  ],
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "python.formatting.provider": "none"
 }

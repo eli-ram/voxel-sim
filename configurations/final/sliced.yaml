@@ -1,0 +1,198 @@
+# Color indicators
+# {X: red, Y: green, Z: blue}
+
+config:
+  mode: run
+  alpha: 0.001
+  outline: false
+  output: "whole"
+  resolution: 512 # 256
+  # background: [1.0, 1.0, 1.0]
+  background: [0.1, 0.1, 0.1]
+  region:
+    start: [-40, -40, -40]
+    stop: [40, 40, 40]
+
+# Specify population setup
+population:
+  # The size of the population
+  size: 22
+  # The number of best performing induviduals
+  # That survive to the next generation
+  keep: 5
+  # Number of mutations done to induvidials
+  # as a new generation is made
+  mutate: 9
+
+materials:
+  CORTICAL_BONE:
+    # bone-white
+    # color: [0.7, 0.67, 0.63, 5]
+    color: [0.55, 0.38, 0.35, 50]
+    # Cortical Bone Elasitcity (MPa)
+    strength: 16_350
+
+  CANCELLOUS_BONE:
+    # egg-white to differentiate
+    # color: [1.0, 0.94, 0.76, 1]
+    color: [0.5, 0.4, 0.46, 0.05]
+    # Cancellous Bone Elasitcity (MPa)
+    strength: 137
+
+  TITANIUM:
+    # titanium-gray
+    color: [1.0, 1.0, 1.0, 50]
+    # Titanium Alloy Elasticity (MPa)
+    strength: 110_000
+
+  STATIC:
+    color: [0.4, 0.2, 1.0, 100]
+    # Arbitrary strength to hold bone in place
+    strength: 100_000_000
+    # Locks the bone in place
+    # Where it's cutoff in the simulation
+    locks: [true, true, true]
+
+  FORCE:
+    color: [1.0, 0.3, 0.2, 20]
+    # Arbitrary strength to apply force to bone
+    strength: 100_000_000
+    # Downwards force
+    # To apply top down pressure
+    force: [0.0, 0.0, -2100.0]
+
+  TISSUE:
+    color: [0.909, 0.745, 0.675, 1500]
+    # Arbitrary strength to fix air gaps
+    strength: 1
+
+geometry:
+  transform:
+    - scale: 40
+    - scale: 0.84
+  elements:
+    # Whole Femur
+    - type: collection
+      operation: add
+      transform:
+        - translate: [-0.2, -0.6, 0.07]
+        - scale: 1.6
+        - rotate:
+            axis: X
+            angle: { deg: 110 }
+        - rotate:
+            axis: Y
+            angle: { deg: -22 }
+        - translate: [0, -4.4, -0.25]
+      elements:
+        - type: mesh
+          render: on
+          operation: add
+          material: CORTICAL_BONE
+          file: "./meshes/femur_whole.obj"
+
+        - type: mesh
+          render: off
+          operation: inside
+          material: CANCELLOUS_BONE
+          file: "./meshes/inner_bone.obj"
+
+    - type: collection
+      operation: outside
+      elements:
+        - type: mesh
+          file: "./meshes/femur_whole.obj"
+          render: off
+          material: CORTICAL_BONE
+          transform:
+            - translate: [-0.2, -0.6, 0.07]
+            - scale: 1.6
+            - rotate:
+                axis: X
+                angle: { deg: 110 }
+            - rotate:
+                axis: Y
+                angle: { deg: -22 }
+            - translate: [0, -4.4, -0.25]
+
+        - type: sphere
+          render: off
+          operation: intersect
+          material: CORTICAL_BONE
+          transform:
+            - scale: 0.5
+            - rotate:
+                axis: Z
+                angle: { deg: 40 }
+            - translate: [1.2, 0, -0.2]
+
+    - type: mesh
+      render: off
+      operation: outside
+      material: TISSUE
+      # file: "./meshes/femur2.obj"
+      file: "./meshes/femur_whole.obj"
+      transform:
+        - translate: [-0.2, -0.6, 0.07]
+        - scale: 1.599
+        - rotate:
+            axis: X
+            angle: { deg: 110 }
+        - rotate:
+            axis: Y
+            angle: { deg: -22 }
+        - translate: [0, -4.4, -0.25]
+
+    - type: sphere
+      render: off
+      operation: inside
+      material: STATIC
+      transform:
+        # - debug:
+        - translate: [0, 0, -1.42]
+        # convert to a plane
+        - scale: [10000, 10000, 0.25]
+
+    - type: sphere
+      render: off
+      operation: outside
+      material: FORCE
+      transform:
+        # - debug: 0
+        - translate: [0.28, 0.32, 1]
+        - scale: [0.4, 0.4, 0.4]
+        # {X: red, Y: green, Z: blue}
+
+parameters:
+  show: off
+  operation: inside
+  width: 0.08
+  material: TITANIUM
+  transform:
+    - scale: 45
+    - scale: 0.84
+
+  volume_a:
+    color: WHITE
+    width: 10.0
+    transform:
+      - translate: [0.28, 0.32, 0.6]
+      # - translate: [0.3, 0.4, 0.4]
+      - scale: [0.35, 0.35, 0.35]
+      # - debug: a
+
+  volume_b:
+    color: GRAY
+    width: 10.0
+    transform:
+      - translate: [-1.0, -1.0, -0.7]
+      - scale: [0.8, 0.8, 0.8]
+#---
+#region:
+#  bbox:
+#    x: [-35, 35]
+#    y: [-35, 35]
+#    z: [-35, 35]
+#  normalization: none | short | long
+#  transform:
+#    - scale: 20

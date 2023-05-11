@@ -5,18 +5,19 @@ __all__ = [
     "get",
 ]
 
+
 def _attr(channel: int) -> float:
-    def get(self: 'Color') -> float:
+    def get(self: "Color") -> float:
         return self.value[channel]
 
-    def set(self: 'Color', value: float):
+    def set(self: "Color", value: float):
         self.value[channel] = value
 
     return property(get, set)  # type: ignore
 
 
 class Color:
-    value: 'np.ndarray[np.float32]'
+    value: "np.ndarray[np.float32]"
 
     def __init__(self, r: float, g: float, b: float, a: float = 1.0):
         self.value = np.array([r, g, b, a], dtype=np.float32)  # type: ignore
@@ -26,8 +27,11 @@ class Color:
     b = _attr(2)
     a = _attr(3)
 
+    def copy(self):
+        return Color(self.r, self.g, self.b, self.a)
+
     @staticmethod
-    def stack(colors: 'list[Color]'):
+    def stack(colors: "list[Color]"):
         return np.vstack([c.value for c in colors])
 
     def __str__(self) -> str:
@@ -35,17 +39,13 @@ class Color:
         return f"Color({r=}, {g=}, {b=}, {a=})"
 
     def __eq__(self, other: object):
-        return (
-            isinstance(other, Color) and
-            not (self.value != other.value).any()
-        )
+        return isinstance(other, Color) and not (self.value != other.value).any()
 
 
 _ = lambda *v: Color(*v)
 
 
 class get:
-
     def __new__(cls, name: str) -> Color:
         return getattr(cls, name.upper())
 
@@ -53,15 +53,9 @@ class get:
     def get(cls, name: str) -> Color:
         return getattr(cls, name.upper())
 
-    WHITE =\
-        _(1.0, 1.0, 1.0)
-    GRAY =\
-        _(0.5, 0.5, 0.5)
-    BLACK =\
-        _(0.0, 0.0, 0.0)
-    RED =\
-        _(1.0, 0.0, 0.0)
-    GREEN =\
-        _(0.0, 1.0, 0.0)
-    BLUE =\
-        _(0.0, 0.0, 1.0)
+    WHITE = _(1.0, 1.0, 1.0)
+    GRAY = _(0.5, 0.5, 0.5)
+    BLACK = _(0.0, 0.0, 0.0)
+    RED = _(1.0, 0.0, 0.0)
+    GREEN = _(0.0, 1.0, 0.0)
+    BLUE = _(0.0, 0.0, 1.0)

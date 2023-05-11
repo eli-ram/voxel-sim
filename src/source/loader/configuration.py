@@ -7,7 +7,6 @@ import numpy as np
 import source.ml.ga_2 as ga
 import source.data.mesh as m
 import source.parser.all as p
-import source.utils.types as t
 import source.data.voxels as v
 import source.interactive.scene as s
 import source.data.voxel_tree.node as n
@@ -64,6 +63,9 @@ class Config(p.Struct):
     # Background color
     background: Color
 
+    # Region Cage Color
+    cage_color: Color
+
     # Output file for results
     output: p.String
 
@@ -82,7 +84,7 @@ class Config(p.Struct):
         return Wireframe(line_cube())
 
     def buildScene(self):
-        """ Build the scene presented to the user """
+        """Build the scene presented to the user"""
         B = self.region.box
 
         # If no region, just present the geometry
@@ -90,21 +92,25 @@ class Config(p.Struct):
             return s.Scene()
 
         ubox = self.unitBox()
+        ubox.setColor(self.cage_color.require())
 
         # Build the region bounding box
-        bbox = s.Transform((
-            # translate to origin of the box
-            glm.translate(glm.vec3(*B.start))
-            # scale the box to match
-            * glm.scale(glm.vec3(*B.shape))
-        ), ubox)
+        bbox = s.Transform(
+            (
+                # translate to origin of the box
+                glm.translate(glm.vec3(*B.start))
+                # scale the box to match
+                * glm.scale(glm.vec3(*B.shape))
+            ),
+            ubox,
+        )
 
         # Build the scene matrix to center the bounding box
         matrix = (
             # Scale based on the longes side
-            glm.scale(glm.vec3(1 / max(B.shape))) *
+            glm.scale(glm.vec3(1 / max(B.shape)))
             # Translate to center
-            glm.translate(-glm.vec3(*B.center))
+            * glm.translate(-glm.vec3(*B.center))
         )
 
         # return the scene
@@ -124,21 +130,21 @@ class Config(p.Struct):
 
 
 class Population(p.Struct):
-    """ Population Parameters """
+    """Population Parameters"""
 
     # The size of the population
     size: p.Int
-    
+
     # The number of best performing induviduals
     # That survive to the next generation
     keep: p.Int
-    
+
     # Number of mutations done to induvidials
     # as a new generation is made
     mutate: p.Int
 
     def values(self):
-        """ get values <or> defaults """
+        """get values <or> defaults"""
         S = self.size.getOr(10)
         K = self.keep.getOr((S - 1) // 4)
         M = self.mutate.getOr(K)
@@ -151,7 +157,8 @@ class Index(p.Struct):
 
 
 class Inspect(p.Enum):
-    """ Pick a genome to inspect """
+    """Pick a genome to inspect"""
+
     # Find the best induvidual across all generations
     best: p.Empty
     # Find the worst induvidual across all generations
@@ -161,6 +168,7 @@ class Inspect(p.Enum):
 
     def values(self):
         pass
+
 
 class _Cache(Cache):
     ga: Attr[ga.GA]
@@ -237,18 +245,7 @@ class Configuration(p.Struct):
     def scene(self, TQ: TaskQueue):
         return TQ.dispatch(self.config.buildScene)()
 
-    def configure(self, TQ: TaskQueue, S: s.Scene):
-        """ Process config (called from parser thread) """
-        # Build the scene
-        @TQ.dispatch
-        def scene():
-            # geometry
-            S.add(self.geometry.buildRender())
-            # params
-            S.opt(self.parameters.buildRender())
-
-        # Compute voxels
-
+    def voxels(self):
         # Not configured for voxels
         ctx = self.config.buildContext()
         if ctx is None:
@@ -265,14 +262,30 @@ class Configuration(p.Struct):
             node = n.VoxelNode.Parent(n.Operation.OVERWRITE, [node, ROD])
             self.cache().node.set(node)
 
-        # Wait for scene to finish
-        scene()
+        return node
 
-        # synchronized context to render voxels
-        voxels = TQ.dispatch(lambda: self.getVoxelRenderer(node.data))
+    def configure(self, TQ: TaskQueue, S: s.Scene):
+        """Process config (called from parser thread)"""
 
-        # Await voxels
-        S.add(voxels())
+        # Build the scene
+        @TQ.dispatch
+        def scene():
+            # geometry
+            S.add(self.geometry.buildRender())
+            # params
+            S.opt(self.parameters.buildRender())
+
+        # Compute voxels
+        if node := self.voxels():
+            # Wait for scene to finish
+            # to keep insertion order
+            scene()
+
+            # synchronized context to render voxels
+            voxels = TQ.dispatch(lambda: self.getVoxelRenderer(node.data))
+
+            # Await voxels
+            S.add(voxels())
 
     def buildDeformation(self, TQ: TaskQueue, S: s.Scene):
         if not self.config.mode._sample:
@@ -291,7 +304,7 @@ class Configuration(p.Struct):
         # Make mesh
         M = m.Mesh(T.nodes, T.edges, m.Geometry.Lines)
         # Simulate Truss
-        D, _ = fem.fem_simulate(T, 1E3)
+        D, _ = fem.fem_simulate(T, 1e3)
 
         # simulation failed
         if not D:
