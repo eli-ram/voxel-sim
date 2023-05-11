@@ -1,5 +1,5 @@
 # pyright: reportUnusedImport=false, reportUnusedFunction=false
-import __init__
+from typing import TypeVar
 
 # Packages
 import glm
@@ -25,12 +25,31 @@ from source.parser.detector import ParsableDetector
 # ML
 import source.ml.ga_2 as ga
 
-CONF = 'configurations/experiment_1.2.yaml'
-CONF = 'configurations/experiment_3.1.yaml'
-WORKSPACE = require(script_dir(__file__), '..')
-RESULTS_DIR = require(WORKSPACE, 'results')
+CONF = "configurations/experiment_1.2.yaml"
+CONF = "configurations/experiment_3.1.yaml"
+CONF = "configurations/final/whole.yaml"
+WORKSPACE = require(script_dir(__file__), "..")
+RESULTS_DIR = require(WORKSPACE, "results")
 # ga.setResultsDir(require(WORKSPACE, 'results', 'ga'))
-an.setResultsDir(require(RESULTS_DIR, 'gifs'))
+an.setResultsDir(require(RESULTS_DIR, "gifs"))
+
+
+# TODO: make a proper headless mode
+# there is no need to init OpenGL & open a window
+ENB_HEADLESS = False
+
+
+def any_fn(*_a, **_k):
+    pass
+
+
+F = TypeVar("F")
+
+
+def headless(fn: F) -> F:
+    if ENB_HEADLESS:
+        return any_fn  # type: ignore
+    return fn
 
 
 def time_to_t(time: float, duration: float, padding: float):
@@ -47,27 +66,28 @@ def time_to_t(time: float, duration: float, padding: float):
 
 
 class Voxels(w.Window):
-
     configuration: Configuration
     deformation: DeformationWireframe | None = None
     algorithm: ga.GA | None = None
     present: s.Scene
 
+    @headless
     def setup(self):
         # Create scene
-        self.scene = s.SceneBase()
+        self._scene = s.SceneBase()
 
         # Create animator
-        self.animator = an.Animator(delta=0.25)
+        self._animator = an.Animator(delta=0.25)
 
         # Create Camera
-        self.camera = m.OrbitCamera(
+        self._camera = m.OrbitCamera(
             distance=1.25,
-            svivel_speed=0.005,
+            # svivel_speed=0.005,
+            svivel_speed=glm.radians(0.5),
         )
 
         # Create Camera Origin
-        self._3D_cursor = s.Transform(
+        self._cursor = s.Transform(
             transform=glm.scale(glm.vec3(2.0)),
             mesh=Origin(),
             hidden=True,
@@ -75,61 +95,85 @@ class Voxels(w.Window):
 
         # Bind Key Controls
         K = self.keys
-        K.toggle("LEFT_CONTROL")(self.camera.SetPan)
-        K.action("O")(self._3D_cursor.toggle)
+        K.toggle("LEFT_CONTROL")(self._camera.SetPan)
+        K.action("O")(self._cursor.toggle)
         K.toggle("SPACE")(
             # recorder hook
-            self.animator.recorder('animation{:[%Y-%m-%d][%H-%M]}.gif')
+            self._animator.recorder("animation{:[%Y-%m-%d][%H-%M]}.gif")
         )
+
+        # KeyPad Camera control
+        C = self._camera
+        K.action("KP_DECIMAL")(lambda: C.SetCenter(glm.vec3()))
+        K.action("KP_0")(lambda: C.SetDistance(2.0))
+        K.repeat("KP_8")(lambda: C.Svivel(0.0, +10.0))
+        K.repeat("KP_2")(lambda: C.Svivel(0.0, -10.0))
+        K.action("KP_5")(lambda: C.SetAngles(0.0, 0.0))
+        K.repeat("KP_4")(lambda: C.Svivel(+10.0, 0.0))
+        K.repeat("KP_6")(lambda: C.Svivel(-10.0, 0.0))
+        K.action("KP_7")(lambda: C.SetAngles(45.0, 45.0 - 0.0))
+        K.action("KP_9")(lambda: C.SetAngles(45.0, 45.0 + 90.0))
+        K.action("KP_3")(lambda: C.SetAngles(45.0, 45.0 + 180.0))
+        K.action("KP_1")(lambda: C.SetAngles(45.0, 45.0 - 90.0))
 
         # Bind Mouse Controls
         B = self.buttons
 
         @B.toggle("LEFT")
-        def toggle_move(enb: bool):
-            self.camera.SetActive(enb)
-            self._3D_cursor.visible(enb)
+        def _toggle_move(enb: bool):
+            self._camera.SetActive(enb)
+            self._cursor.visible(enb)
 
         # Build scene
-        self.scene.setChildren([self._3D_cursor])
+        self._scene.setChildren([self._cursor])
 
+    @headless
     def resize(self, width: int, height: int):
-        self.animator.resize(width, height)
+        self._animator.resize(width, height)
         GL.glViewport(0, 0, width, height)
-        self.scene.stack.SetPerspective(
+        self._scene.stack.SetPerspective(
             fovy=glm.radians(45.0),
             aspect=(width / height),
             near=0.001,
             far=1000.0,
         )
 
+    @headless
     def update(self, time: float, delta: float):
         # Let the animator control the time if it's recording
-        time, delta = self.animator.update(time, delta)
+        time, delta = self._animator.update(time, delta)
 
         # Update Camera Matrix
-        self.scene.setCamera(self.camera.Compute())
-        self._3D_cursor.transform = glm.translate(self.camera.center)
+        self._scene.setCamera(self._camera.Compute())
+        self._cursor.transform = glm.translate(self._camera.center)
 
         # Update deformation if set
         if D := self.deformation:
             t = time_to_t(time, 30.0, 2.5)
             D.setDeformation(t)
 
+    @headless
     def render(self):
-        self.scene.render()
+        self._scene.render()
 
+    @headless
     def cursor(self, x, y, dx, dy):
-        self.camera.Cursor(dx, dy)
+        self._camera.Cursor(dx, dy)
 
+    @headless
     def scroll(self, value: float):
-        self.camera.Zoom(value)
+        self._camera.Zoom(value)
+
+    @headless
+    def presentSolution(self, data):
+        V = self.configuration.getVoxelRenderer(data)
+        self.present.children[-1] = V
 
     def spinAlgorithm(self):
         A = self.algorithm
 
-        # no algorithm to run
-        if A is None:
+        # not allowed to run
+        if A is None or A.running:
             return
 
         # try to run next step
@@ -138,14 +182,14 @@ class Voxels(w.Window):
             if data is None:
                 return
 
-            V = self.configuration.getVoxelRenderer(data)
-            # hacky ...
-            self.present.children[-1] = V
+            # Present solution
+            self.presentSolution(data)
+
             # queue next iteration
             self.spinAlgorithm()
 
         # run a step of the algorithm
-        self.tasks.run(A.step, resolve, 'algorithm')
+        self.tasks.run(A.step, resolve, "algorithm")
 
     def watch(self, config: str):
         # Create Configuration
@@ -155,30 +199,46 @@ class Voxels(w.Window):
             print("Processing config ...")
             self.configuration = config
 
-            # Background
-            BG = config.background()
-            TQ.dispatch(lambda: self.scene.setBackground(BG))
+            # bypass in headless mode
+            if ENB_HEADLESS:
+                # only compute voxels
+                config.voxels()
 
-            # Build scene
-            S = config.scene(TQ)
-            self.scene.setChildren([self._3D_cursor, S])
-            self.present = S
+            else:
+                # Background
+                BG = config.background()
+                TQ.dispatch(lambda: self._scene.setBackground(BG))
 
-            # Configure
-            config.configure(TQ, S)
-            # Run more
-            # self.deformation = config.run(TQ, S)
+                # Build scene
+                S = config.scene(TQ)
+                self._scene.setChildren([self._cursor, S])
+                self.present = S
+
+                # Configure
+                config.configure(TQ, S)
+                # Run more
+                # self.deformation = config.run(TQ, S)
+
             # Get algorithm
             alg = config.buildAlgorithm(RESULTS_DIR)
-            if self.algorithm != alg:
+            if alg is None:
+                # no algorithm instance
+                self.algorithm = None
+
+            elif self.algorithm != alg:
+                # new algorithm instance
                 self.algorithm = alg
                 self.spinAlgorithm()
+
+            # Display current solution
+            if alg and (data := alg.current()):
+                TQ.dispatch(lambda: self.presentSolution(data))
 
         # run
         impl(config)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Create Window
     window = Voxels(900, 900, "voxels")
 

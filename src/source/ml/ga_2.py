@@ -40,7 +40,6 @@ class Genome:
 
 
 class GenomeStorage(s.Storage[Genome]):
-
     def serialize(self, genome: Genome) -> s.Data:
         return [*genome.a, *genome.b]
 
@@ -53,13 +52,14 @@ Storage = GenomeStorage()
 
 
 def open_db(folder: str):
-    """ Open the Database w/ this GenomeStorage """
+    """Open the Database w/ this GenomeStorage"""
     return s.Database(Storage, folder)
 
 
 @dataclass
 class Config:
-    """ Genetic Algorithm Configuration """
+    """Genetic Algorithm Configuration"""
+
     # rod transform
     ctx: Context
     # matrix: glm.mat4
@@ -161,15 +161,15 @@ class Config:
             D, E = fem.fem_simulate(truss)
         except Exception as e:
             print(e)
-            return 1E10
+            return 1e10
 
-        # No Solution        
+        # No Solution
         if E is None:
-            return 1E10
+            return 1e10
 
         # Invalid Solution
-        if not np.isfinite(E).all(): # type: ignore
-            return 1E10
+        if not np.isfinite(E).all():  # type: ignore
+            return 1e10
 
         # get min-max of compression
         max = E.max()
@@ -191,7 +191,6 @@ class Config:
         return fitness
 
     def selectPopulation(self, rng, generation: s.Generation[Genome]):
-
         # fourths + rest
         size = generation.size()
         keep = self.keep
@@ -211,18 +210,20 @@ class Config:
         # crossover
         def crossover(A: list[s.Induvidual[Genome]], B: list[s.Induvidual[Genome]]):
             return s.Induvidual.package(
-                Genome(a.genome.a, b.genome.b) 
-                for a, b in zip(A, B, strict=True)
+                Genome(a.genome.a, b.genome.b) for a, b in zip(A, B, strict=True)
             )
 
         # build population w/ crossover
-        return s.Generation([
-            *best,
-            *rand,
-            *crossover(best, rand),
-            *crossover(rand, best),
-            *rest,
-        ], generation.index + 1)
+        return s.Generation(
+            [
+                *best,
+                *rand,
+                *crossover(best, rand),
+                *crossover(rand, best),
+                *rest,
+            ],
+            generation.index + 1,
+        )
 
     def mutatePopulation(self, rng, generation: s.Generation[Genome]):
         # mutation amount (* unit-rng)
@@ -263,13 +264,12 @@ class Config:
         return generation
 
     def getFolder(self):
-        """ Allow using datetime to format the folder name """
+        """Allow using datetime to format the folder name"""
         # Example: "test{now:[%Y-%m-%d][%H-%M]}"
         return self.folder.format(now=datetime.now())
 
 
 class GA:
-
     def __init__(self, config: Config):
         self.running = False
         self.reset(config)
@@ -277,16 +277,17 @@ class GA:
     def reset(self, C: Config):
         self.db = open_db(C.getFolder())
         self.rng = np.random.default_rng(C.seed)
-        self.best = None
         self.config = C
 
         # Initialize / Load Generation
         if self.db.empty():
             print("Creating first Generation")
             G = C.seedPopulation(self.rng)
+            self.best = None
         else:
             print("Loading last Generation")
             G = self.db.loadLast().sorted()
+            self.best = G.population[0]
             G = C.selectPopulation(self.rng, G)
             G = C.mutatePopulation(self.rng, G)
 
@@ -323,7 +324,7 @@ class GA:
                 # Evaluate induvidual (fitness-function)
                 I.fitness = C.evaluate(phenotype)
 
-            op = 'cached' if I.validated else 'result'
+            op = "cached" if I.validated else "result"
             print(f"[genome-{i}] {op}: {I.fitness:6.3f}")
             I.validated = True
 
@@ -354,19 +355,19 @@ class GA:
         return C.presentInduvidual(self.best.genome)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Simple test code to
     # check the SimpleGenome
     from os import path
 
     folder = path.dirname(__file__)
-    folder = path.join(folder, '..', '..', '..', 'results')
+    folder = path.join(folder, "..", "..", "..", "results")
     print(folder)
     if not path.isdir(folder):
         raise NotADirectoryError(folder)
 
     # Initialize folder db, in 'test' subfolder
-    db = s.Database(Storage, path.join(folder, 'test'))
+    db = s.Database(Storage, path.join(folder, "test"))
     print(db.generations())
 
     rng = np.random.default_rng()
@@ -387,7 +388,7 @@ if __name__ == '__main__':
     F = db.fitness(generations)
 
     def fmt(t, V):
-        print(t+':', " ".join(f"{v:6.3f}" for v in V))
+        print(t + ":", " ".join(f"{v:6.3f}" for v in V))
 
     fmt("mean", F.mean(axis=1))
     fmt("less", F.min(axis=1))

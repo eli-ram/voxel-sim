@@ -10,22 +10,21 @@ config:
   # background: [1.0, 1.0, 1.0]
   background: [0.1, 0.1, 0.2]
   region:
-    start: [-40, -40, -40]
-    stop: [40, 40, 40]
+    start: [-45, -45, -45]
+    stop: [45, 45, 45]
 
 # Specify population setup
 population:
   # The size of the population
-  size: 18
+  size: 22
   # The number of best performing induviduals
   # That survive to the next generation
-  keep: 4
+  keep: 5
   # Number of mutations done to induvidials
   # as a new generation is made
-  mutate: 8
+  mutate: 9
 
 materials:
-
   CORTICAL_BONE:
     # bone-white
     # color: [0.7, 0.67, 0.63, 5]
@@ -69,19 +68,19 @@ materials:
 
 geometry:
   transform:
-    - scale: 40
+    - scale: 45
     - scale: 0.84
   elements:
     - type: mesh
       render: off
       # operation: add
-      material: CORTICAL_BONE 
+      material: CORTICAL_BONE
       file: "./meshes/femur2.obj"
       # file: "./meshes/femur_whole.obj"
       transform:
         - translate: [-0.2, -0.6, 0.07]
         - scale: 1.6
-        - rotate: 
+        - rotate:
             axis: X
             angle: { deg: 110 }
         - rotate:
@@ -95,11 +94,11 @@ geometry:
         - type: mesh
           file: "./meshes/femur_whole.obj"
           render: off
-          material: CORTICAL_BONE 
+          material: CORTICAL_BONE
           transform:
             - translate: [-0.2, -0.6, 0.07]
             - scale: 1.6
-            - rotate: 
+            - rotate:
                 axis: X
                 angle: { deg: 110 }
             - rotate:
@@ -110,10 +109,10 @@ geometry:
         - type: sphere
           render: off
           operation: intersect
-          material: CORTICAL_BONE 
+          material: CORTICAL_BONE
           transform:
             - scale: 0.5
-            - rotate: 
+            - rotate:
                 axis: Z
                 angle: { deg: 40 }
             - translate: [1.2, 0, -0.2]
@@ -178,7 +177,7 @@ parameters:
   width: 0.08
   material: TITANIUM
   transform:
-    - scale: 40
+    - scale: 45
     - scale: 0.84
 
   volume_a:
@@ -196,9 +195,6 @@ parameters:
     transform:
       - translate: [-1.0, -1.0, -0.7]
       - scale: [0.8, 0.8, 0.8]
-
-
-
 #---
 #region: 
 #  bbox:

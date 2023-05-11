@@ -11,30 +11,24 @@ class Material:
     strenght: float
 
     def __post_init__(self):
-        assert self.id > 0, \
-            "Materials should never reference Voxel-VOID (0)"
+        assert self.id > 0, "Materials should never reference Voxel-VOID (0)"
 
     def __hash__(self):
         return self.id
-    
+
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, Material):
             return False
-        
+
         # NOTE
         # equality is determined
         # by physical properties
         # {strength}
 
-        return (
-            self.id == o.id
-            and
-            self.strenght == o.strenght
-        )
+        return self.id == o.id and self.strenght == o.strenght
 
 
 class MaterialStore:
-
     def __init__(self):
         self._lut: dict[str, Material] = {}
         self._all: list[Material] = []
