@@ -67,6 +67,11 @@ class Generation(Generic[T]):
             self.population,
             key=lambda i: i.fitness
         ), self.index)
+    
+    def invalidate(self):
+        """ Invalidate every induvidual in the population """
+        for induvidual in self.population:
+            induvidual.validated = False
 
 
 class GenerationStorage(Storage[Generation[T]]):

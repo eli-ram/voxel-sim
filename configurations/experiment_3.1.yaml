@@ -4,11 +4,11 @@
 config:
   mode: run
   alpha: 0.001
-  outline: false
+  outline: off
   output: "padded-test"
   resolution: 512 # 256
   # background: [1.0, 1.0, 1.0]
-  background: [0.1, 0.1, 0.1]
+  background: [0.1, 0.1, 0.2]
   region:
     start: [-45, -45, -45]
     stop: [45, 45, 45]
@@ -35,7 +35,7 @@ materials:
   CANCELLOUS_BONE:
     # egg-white to differentiate
     # color: [1.0, 0.94, 0.76, 1]
-    color: [0.5, 0.4, 0.46, 0.05]
+    color: [0.5, 0.4, 0.46, 0.01]
     # Cancellous Bone Elasitcity (MPa)
     strength: 137
 
@@ -196,7 +196,7 @@ parameters:
       - translate: [-1.0, -1.0, -0.7]
       - scale: [0.8, 0.8, 0.8]
 #---
-#region:
+#region: 
 #  bbox:
 #    x: [-35, 35]
 #    y: [-35, 35]
