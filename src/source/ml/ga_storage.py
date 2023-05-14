@@ -6,19 +6,23 @@ import os
 import re
 
 Data = list[float]
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class Storage(Generic[T], Protocol):
-    """ Data storage serialization protocol """
+    """Data storage serialization protocol"""
 
-    def deserialize(self, data: Data) -> T: ...
-    def serialize(self, value: T) -> Data: ...
+    def deserialize(self, data: Data) -> T:
+        ...
+
+    def serialize(self, value: T) -> Data:
+        ...
 
 
 @dataclass
 class Induvidual(Generic[T]):
-    """ A individual with a genome and a fitness """
+    """A individual with a genome and a fitness"""
+
     genome: T
     fitness: float
     validated: bool
@@ -26,11 +30,10 @@ class Induvidual(Generic[T]):
     @classmethod
     def new(cls, genome: T):
         return cls(genome, 0, False)
-    
+
     @classmethod
     def package(cls, genomes: Iterable[T]):
         return [cls(g, 0, False) for g in genomes]
-
 
 
 class InduvidualStorage(Storage[Induvidual[T]]):
@@ -38,8 +41,7 @@ class InduvidualStorage(Storage[Induvidual[T]]):
         self.genome = genome
 
     def serialize(self, value: Induvidual[T]) -> Data:
-        assert value.validated, \
-            """ Trying to serialize a unvalidated induvidual """
+        assert value.validated, """ Trying to serialize a unvalidated induvidual """
         G = self.genome.serialize(value.genome)
         F = value.fitness
         return [F, *G]
@@ -55,7 +57,8 @@ class InduvidualStorage(Storage[Induvidual[T]]):
 
 @dataclass
 class Generation(Generic[T]):
-    """ A generation of induviduals """
+    """A generation of induviduals"""
+
     population: list[Induvidual[T]]
     index: int
 
@@ -63,13 +66,10 @@ class Generation(Generic[T]):
         return len(self.population)
 
     def sorted(self):
-        return Generation(sorted(
-            self.population,
-            key=lambda i: i.fitness
-        ), self.index)
-    
+        return Generation(sorted(self.population, key=lambda i: i.fitness), self.index)
+
     def invalidate(self):
-        """ Invalidate every induvidual in the population """
+        """Invalidate every induvidual in the population"""
         for induvidual in self.population:
             induvidual.validated = False
 
@@ -86,7 +86,8 @@ class GenerationStorage(Storage[Generation[T]]):
 
 
 class Database(Generic[T]):
-    """ A folder based storage for genetic algorithm generations """
+    """A folder based storage for genetic algorithm generations"""
+
     FILENAME = "generation.{}.npy"
     REGEX = re.compile(r"^generation\.(\d+)\.npy$")
 
@@ -113,20 +114,21 @@ class Database(Generic[T]):
         # [end] __init__
 
     def __file(self, generation: int):
-        """ Format the generation as a filepath """
+        """Format the generation as a filepath"""
         filename = self.FILENAME.format(generation)
         return os.path.join(self.__folder, filename)
 
     def generations(self):
-        """ Return the number of generations """
+        """Return the number of generations"""
         return self.__generations
 
     def load(self, generation: int):
-        """ Load a specific generation from file """
+        """Load a specific generation from file"""
         # Get file for generation
         file = self.__file(generation)
-        assert os.path.isfile(file), \
-            f"Could not load generation, file does not exist! ('{file}')"
+        assert os.path.isfile(
+            file
+        ), f"Could not load generation, file does not exist! ('{file}')"
 
         # Load data using numpy utils
         data: Any = np.load(file)
@@ -139,36 +141,42 @@ class Database(Generic[T]):
         return self.__storage.deserialize(data, generation)
 
     def loadAll(self):
-        """ Load all generations from file """
+        """Load all generations from file"""
         return [self.load(i) for i in range(self.__generations)]
 
+    def loadUntil(self, generation: int):
+        """Load all until generation"""
+        if generation > self.__generations:
+            raise IndexError("There is too few generations")
+        return [self.load(i) for i in range(generation)]
+
     def loadLast(self):
-        """ Load last generation from file """
+        """Load last generation from file"""
         if self.__generations == 0:
             raise IndexError("There is no generations")
         return self.load(self.__generations - 1)
 
     def save(self, generation: Generation[T]):
-        """ Save a generation to file as the new Last generation """
-        assert generation.index == self.__generations, \
-            f""" Generation has unexpected index (expected: {self.__generations} found: {generation.index})"""
+        """Save a generation to file as the new Last generation"""
+        assert (
+            generation.index == self.__generations
+        ), f""" Generation has unexpected index (expected: {self.__generations} found: {generation.index})"""
         data = self.__storage.serialize(generation)
         file = self.__file(self.__generations)
         np.save(file, np.array(data), allow_pickle=False)
         self.__generations += 1
 
     def empty(self):
-        """ Check if no generations are saved """
+        """Check if no generations are saved"""
         return self.__generations == 0
 
-    def fitness(self, generations: 'list[Generation[T]]'):
-        """ Get the fitness array for a list of generations """
+    def fitness(self, generations: "list[Generation[T]]"):
+        """Get the fitness array for a list of generations"""
         return np.array([[I.fitness for I in G.population] for G in generations])
 
-    def parameters(self, generations: 'list[Generation[T]]'):
-        """ Get the parameter array for a list of generations """
+    def parameters(self, generations: "list[Generation[T]]"):
+        """Get the parameter array for a list of generations"""
         S = self.__storage.individual.genome
-        return np.array([[S.serialize(I.genome) for I in G.population] for G in generations])
-
-
-
+        return np.array(
+            [[S.serialize(I.genome) for I in G.population] for G in generations]
+        )

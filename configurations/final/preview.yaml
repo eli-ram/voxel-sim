@@ -44,6 +44,7 @@ materials:
   TITANIUM:
     # titanium-gray
     color: [1.0, 1.0, 1.0, 10]
+    # used when illustrating rod position
     color: [0.0, 1.0, 1.0, 100]
     # Titanium Alloy Elasticity (MPa)
     strength: 110_000

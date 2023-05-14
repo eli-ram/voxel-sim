@@ -28,10 +28,10 @@ import source.ml.ga_2 as ga
 
 # The Configuration file path
 # CONF = "configurations/final/whole#1.yaml"
-# CONF = "configurations/final/whole#2.yaml"
+CONF = "configurations/final/whole#2.yaml"
 # CONF = "configurations/final/sliced#1.yaml"
 # CONF = "configurations/final/sliced#2.yaml"
-CONF = "configurations/final/preview.yaml"
+# CONF = "configurations/final/preview.yaml"
 
 WORKSPACE = require(script_dir(__file__), "..")
 RESULTS_DIR = require(WORKSPACE, "results")
