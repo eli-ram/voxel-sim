@@ -1,13 +1,8 @@
-
 from datetime import datetime
 from ..utils.directory import directory
 from OpenGL import GL
 from PIL import Image, ImageOps
 import os
-
-_results_dir = ['']
-def setResultsDir(dir: str):
-    _results_dir[0] = dir
 
 
 def force_filename_ext(filename: str, ext: str):
@@ -20,7 +15,7 @@ def force_filename_ext(filename: str, ext: str):
 
 class Animator:
     frames: list[Image.Image]
-    
+
     def __init__(self, delta: float = 0.2):
         self.delta = delta
         self.frames = []
@@ -31,13 +26,13 @@ class Animator:
         self.frames = []
         self.recording = True
 
-    def stopRecording(self, file):
-        self.save(file)
+    def stopRecording(self, dir, file):
+        self.save(dir, file)
         self.frames = []
         self.recording = False
 
     def resize(self, w: int, h: int):
-        self.offset = (0,0)
+        self.offset = (0, 0)
         self.shape = (w, h)
         self.frames = []
 
@@ -52,28 +47,28 @@ class Animator:
     def frame(self):
         # print("Saving frame @", self.time)
         GL.glPixelStorei(GL.GL_PACK_ALIGNMENT, 1)
-        data = GL.glReadPixels( # type: ignore
+        data = GL.glReadPixels(  # type: ignore
             *self.offset,
             *self.shape,
             GL.GL_RGBA,
             GL.GL_UNSIGNED_BYTE,
         )
-        image = Image.frombytes( # type: ignore
-            'RGBA', 
+        image = Image.frombytes(  # type: ignore
+            "RGBA",
             self.shape,
             data,
         )
         self.frames.append(ImageOps.flip(image))
 
-    def save(self, file):
+    def save(self, dir, file):
         print("Frames to save", len(self.frames))
         if not self.frames:
             return
         image, *images = self.frames
-        filename = force_filename_ext(file, '.gif')
-        with directory(_results_dir[0]):
+        filename = force_filename_ext(file, ".gif")
+        with directory(dir):
             if os.path.exists(filename):
-                print(f"Overwriting '{_results_dir[0]}/{filename}' !")
+                print(f"Overwriting '{dir}/{filename}' !")
             image.save(
                 file,
                 save_all=True,
@@ -82,10 +77,11 @@ class Animator:
                 loop=0,
             )
 
-    def recorder(self, file_fmt: str):
+    def recorder(self, dir, file_fmt: str):
         def record(press: bool):
             if press:
                 self.startRecording()
             else:
-                self.stopRecording(file_fmt.format(datetime.now()))
+                self.stopRecording(dir, file_fmt.format(datetime.now()))
+
         return record

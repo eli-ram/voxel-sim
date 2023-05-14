@@ -9,6 +9,7 @@ from OpenGL import GL
 import source.interactive.window as w
 import source.interactive.scene as s
 import source.interactive.animator as an
+import source.interactive.screencapture as sc
 
 # Graphics
 import source.graphics.matrices as m
@@ -26,15 +27,14 @@ from source.parser.detector import ParsableDetector
 import source.ml.ga_2 as ga
 
 # The Configuration file path
-CONF = "configurations/experiment_1.2.yaml"
-CONF = "configurations/experiment_3.1.yaml"
-CONF = "configurations/final/whole.yaml"
-CONF = "configurations/final/sliced.yaml"
+# CONF = "configurations/final/whole#1.yaml"
+# CONF = "configurations/final/whole#2.yaml"
+# CONF = "configurations/final/sliced#1.yaml"
+# CONF = "configurations/final/sliced#2.yaml"
+CONF = "configurations/final/preview.yaml"
 
 WORKSPACE = require(script_dir(__file__), "..")
 RESULTS_DIR = require(WORKSPACE, "results")
-# ga.setResultsDir(require(WORKSPACE, 'results', 'ga'))
-an.setResultsDir(require(RESULTS_DIR, "gifs"))
 
 
 # TODO: make a proper headless mode
@@ -82,6 +82,9 @@ class Voxels(w.Window):
         # Create animator
         self._animator = an.Animator(delta=0.25)
 
+        # Create screencapure
+        self._capture = sc.Screencapture()
+
         # Create Camera
         self._camera = m.OrbitCamera(
             distance=1.25,
@@ -100,9 +103,19 @@ class Voxels(w.Window):
         K = self.keys
         K.toggle("LEFT_CONTROL")(self._camera.SetPan)
         K.action("O")(self._cursor.toggle)
+        # Recording hook
         K.toggle("SPACE")(
-            # recorder hook
-            self._animator.recorder("animation{:[%Y-%m-%d][%H-%M]}.gif")
+            self._animator.recorder(
+                require(RESULTS_DIR, "gifs"),
+                "animation{:[%Y-%m-%d][%H-%M]}.gif",
+            )
+        )
+        # Screenshot hook
+        K.action("F12")(
+            self._capture.screenshot(
+                require(RESULTS_DIR, "images"),
+                "capture{:[%Y-%m-%d][%H-%M-%S]}.png",
+            )
         )
 
         # KeyPad Camera control
@@ -133,6 +146,7 @@ class Voxels(w.Window):
     @headless
     def resize(self, width: int, height: int):
         self._animator.resize(width, height)
+        self._capture.resize(width, height)
         GL.glViewport(0, 0, width, height)
         self._scene.stack.SetPerspective(
             fovy=glm.radians(45.0),
@@ -197,7 +211,7 @@ class Voxels(w.Window):
     def watch(self, config: str):
         # Create Configuration
         @ParsableDetector[Configuration]
-        def impl(config: Configuration):
+        def cimpl(config: Configuration):
             TQ = self.tasks
             print("Processing config ...")
             self.configuration = config
@@ -238,7 +252,7 @@ class Voxels(w.Window):
                 TQ.dispatch(lambda: self.presentSolution(data))
 
         # run
-        impl(config)
+        cimpl(config)
 
 
 if __name__ == "__main__":

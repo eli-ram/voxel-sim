@@ -91,15 +91,14 @@ class Box:
 
     def slice(self, other: Box):
         """Create slices that overlap the other Box"""
-
-        # Don't slice agains empty
-        if other.is_empty:
-            S = slice(0)
-            return S, S, S
+        # [global] location of array
+        Z = self.start
 
         # Compute overlapping slices
-        start = np.maximum(self.start, other.start) - self.start
-        stop = np.minimum(self.stop, other.stop) - self.start
+        start = np.maximum(_vec(0, 0, 0), other.start - Z)
+        stop = np.minimum(self.stop - Z, other.stop - Z)
+
+        # Convert to slices
         return tuple(slice(l, h) for l, h in zip(start, stop))
 
     def crop(self, data: np.ndarray[np.bool_]):

@@ -1,0 +1,168 @@
+# Color indicators
+# {X: red, Y: green, Z: blue}
+
+config:
+  mode: run
+  alpha: 0.05
+  outline: false
+  output: "sliced#2"
+  resolution: 1024 # 512
+  background: [1.0, 1.0, 1.0]
+  cage_color: [0.0, 0.0, 0.0, 0.5]
+  region:
+    start: [-40, -40, -40]
+    stop: [40, 40, 40]
+
+# Specify population setup
+population:
+  # The size of the population
+  size: 50
+  # The number of best performing induviduals
+  # That survive to the next generation
+  keep: 12
+  # Number of mutations done to induvidials
+  # as a new generation is made
+  mutate: 14
+
+materials:
+  CORTICAL_BONE:
+    color: [0.052, 0.031, 0.032, 0.1]
+    # Cortical Bone Elasitcity (MPa)
+    strength: 16_350
+
+  CANCELLOUS_BONE:
+    # egg-white to differentiate
+    color: [1.0, 0.94, 0.76, 0.45]
+    # used when illustrating rod position
+    # color: [0.2, 0.4, 0.46, 0.12]
+    # Cancellous Bone Elasitcity (MPa)
+    strength: 137
+
+  TITANIUM:
+    # titanium-gray
+    color: [1.0, 1.0, 1.0, 10]
+    # Titanium Alloy Elasticity (MPa)
+    strength: 110_000
+
+  STATIC:
+    color: [0.01, 0.01, 1.0, 1]
+    # Arbitrary strength to hold bone in place
+    strength: 100_000_000
+    # Locks the bone in place
+    # Where it's cutoff in the simulation
+    locks: [true, true, true]
+
+  FORCE:
+    color: [1.0, 0.1, 0.1, 0.2]
+    # Arbitrary strength to apply force to bone
+    strength: 100_000_000
+    # Downwards force
+    # To apply top down pressure
+    force: [0.0, 0.0, -2100.0]
+
+  TISSUE:
+    # color: [0.909, 0.745, 0.675, 10.1]
+    color: [0.509, 0.945, 0.675, 10]
+    # Arbitrary strength to fix air gaps
+    strength: 1
+
+geometry:
+  transform:
+    - scale: 40
+    - scale: 0.84
+  elements:
+    # Whole Femur
+    - type: collection
+      operation: add
+      transform:
+        - translate: [-0.2, -0.6, 0.07]
+        - scale: 1.6
+        - rotate:
+            axis: X
+            angle: { deg: 110 }
+        - rotate:
+            axis: Y
+            angle: { deg: -22 }
+        - translate: [0, -4.4, -0.25]
+      elements:
+        - type: mesh
+          render: off
+          operation: add
+          material: CORTICAL_BONE
+          file: "./meshes/femur_whole.obj"
+
+        - type: mesh
+          render: off
+          operation: inside
+          material: CANCELLOUS_BONE
+          file: "./meshes/inner_bone.obj"
+
+    # Imposed Fracture
+    - type: collection
+      operation: inside
+      elements:
+        - type: sphere
+          render: off
+          operation: add
+          material: TISSUE
+          transform:
+            - translate: [0.12, 0.15, 0.3]
+            - scale: 0.36
+
+        - type: mesh
+          file: "./meshes/femur_sliced.obj"
+          render: off
+          material: TISSUE
+          operation: cut
+          transform:
+            - translate: [-0.3, -0.7, 0.0]
+            - scale: 1.85
+            - rotate:
+                axis: X
+                angle: { deg: 110 }
+            - rotate:
+                axis: Y
+                angle: { deg: -22 }
+            - translate: [0, -4.4, -0.25]
+
+    # Static Cutoff
+    - type: sphere
+      render: off
+      operation: inside
+      material: STATIC
+      transform:
+        - translate: [0, 0, -1.42]
+        - scale: [10000, 10000, 0.25]
+        # almost converted to a plane
+
+    # Downwards Force
+    - type: sphere
+      render: off
+      operation: outside
+      material: FORCE
+      transform:
+        - translate: [0.28, 0.32, 1]
+        - scale: [0.4, 0.4, 0.4]
+
+parameters:
+  show: off
+  operation: inside
+  width: 0.08
+  material: TITANIUM
+  transform:
+    - scale: 40
+    - scale: 0.84
+
+  volume_a:
+    color: WHITE
+    width: 5.0
+    transform:
+      - translate: [0.26, 0.30, 0.59]
+      - scale: [0.31, 0.31, 0.31]
+
+  volume_b:
+    color: GRAY
+    width: 10.0
+    transform:
+      - translate: [-1.1, -1.1, -0.7]
+      - scale: [0.85, 0.85, 0.85]

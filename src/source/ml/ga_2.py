@@ -114,11 +114,7 @@ class Config:
         )
 
         # field region
-        # B = self.node.data.box
         ctx = self.ctx
-
-        # field transform
-        # matrix = glm.translate(-glm.vec3(*B.start)) * self.matrix
 
         # Compute field
         grid = field.compute(ctx.shape, ctx.matrix, self.width)
@@ -229,9 +225,6 @@ class Config:
         # mutation amount (* unit-rng)
         amount = 1 / (1 + generation.index)
 
-        # size
-        size = generation.size()
-
         # number of mutations
         count = self.mutations
 
@@ -291,8 +284,7 @@ class GA:
             G = C.selectPopulation(self.rng, G)
             G = C.mutatePopulation(self.rng, G)
 
-        assert G.size() == C.size, \
-            f"Stored population has different size: {G.size()}"            
+        assert G.size() == C.size, f"Stored population has different size: {G.size()}"
 
         self.generation = G
         # Environment may have changed...

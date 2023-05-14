@@ -8,17 +8,21 @@ from .context import glfw, UninitializedException
 from .keys import Keys
 from dataclasses import dataclass
 
-def callback(func: Any) -> None:  
+
+def callback(func: Any) -> None:
     def wrap(cls: Any, window: Any, *args: Any):
         self: Window = glfw.get_window_user_pointer(window)
         func(self, *args)
-    return wrap # type: ignore
+
+    return wrap  # type: ignore
+
 
 class DisplayType(enum.Enum):
     NORMAL = 0
     BORDERLESS = 2
     FULLSCREEN = 1
     BORDERLESS_FULLSCREEN = 3
+
 
 # TODO manage window display with this
 class WindowDisplayManager:
@@ -29,14 +33,16 @@ class WindowDisplayManager:
     def change(self, window: Any, type: DisplayType):
         pass
 
+
 @dataclass
 class Cache:
     window_pos: tuple[int, int] = (0, 0)
     window_size: tuple[int, int] = (0, 0)
     cursor_pos: tuple[float, float] = (0, 0)
 
+
 class Window:
-    " Wrapper for GLFW to allow simpler usage "
+    "Wrapper for GLFW to allow simpler usage"
 
     def __init__(self, width: int, height: int, title: str):
         self.window = glfw.create_window(width, height, title, None, None)
@@ -48,6 +54,7 @@ class Window:
         # Binding some default actions
         self.keys.action("ESCAPE")(self.close)
         self.keys.action("F11")(self.toggle_fullscreen)
+        self.keys.action("F10")(self.toggle_fullscreen)
 
         # Binding event callbacks
         glfw.make_context_current(self.window)
@@ -73,12 +80,23 @@ class Window:
     def set_position(self, x: int, y: int):
         glfw.set_window_pos(self.window, x, y)
 
-    def setup(self): ...
-    def resize(self, width: int, height: int): ...
-    def update(self, time: float, delta: float): ...
-    def render(self): ...
-    def cursor(self, x: float, y: float, dx: float, dy: float): ...
-    def scroll(self, value: float): ...
+    def setup(self):
+        ...
+
+    def resize(self, width: int, height: int):
+        ...
+
+    def update(self, time: float, delta: float):
+        ...
+
+    def render(self):
+        ...
+
+    def cursor(self, x: float, y: float, dx: float, dy: float):
+        ...
+
+    def scroll(self, value: float):
+        ...
 
     def spin(self):
         window = self.window
@@ -200,6 +218,7 @@ class Window:
     def scroll_callback(self, side_scroll: float, scroll: float):
         self.scroll(scroll)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     window = Window(800, 800, "Test-Window")
     window.spin()
