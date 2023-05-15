@@ -2,16 +2,19 @@
 # {X: red, Y: green, Z: blue}
 
 config:
-  mode: sample
+  mode: build
   alpha: 0.04
   outline: false
   output: "sliced#2"
   resolution: 1024 # 512
   background: [1.0, 1.0, 1.0]
   cage_color: [0.0, 0.0, 0.0, 0.5]
+  # region:
+  #  start: [-40, -40, -40]
+  #  stop: [40, 40, 40]
   region:
-    start: [-40, -40, -40]
-    stop: [40, 40, 40]
+    start: [-250, -250, -250]
+    stop: [250, 250, 250]
 
 # Specify population setup
 population:
@@ -28,7 +31,7 @@ materials:
   CORTICAL_BONE:
     color: [0.052, 0.031, 0.032, 0.1]
     # used when illustrating rod position
-    color: [0.052, 0.031, 0.032, 0.06]
+    # color: [0.052, 0.031, 0.032, 0.06]
     # Cortical Bone Elasitcity (MPa)
     strength: 16_350
 
@@ -36,7 +39,7 @@ materials:
     # egg-white to differentiate
     color: [1.0, 0.94, 0.76, 0.45]
     # used when illustrating rod position
-    color: [1.0, 0.94, 0.76, 0.32]
+    # color: [1.0, 0.94, 0.76, 0.32]
     # color: [0.2, 0.4, 0.46, 0.12]
     # Cancellous Bone Elasitcity (MPa)
     strength: 137
@@ -45,7 +48,7 @@ materials:
     # titanium-gray
     color: [1.0, 1.0, 1.0, 10]
     # used when illustrating rod position
-    color: [0.0, 1.0, 1.0, 100]
+    # color: [0.0, 1.0, 1.0, 100]
     # Titanium Alloy Elasticity (MPa)
     strength: 110_000
 
@@ -79,7 +82,7 @@ materials:
 
 geometry:
   transform:
-    - scale: 40
+    - scale: 250
     - scale: 0.84
   elements:
     # Whole Femur
@@ -161,7 +164,7 @@ geometry:
         - scale: [0.4, 0.4, 0.4]
 
 parameters:
-  show: on
+  show: off
   operation: add
   width: 0.08
   material: TITANIUM
