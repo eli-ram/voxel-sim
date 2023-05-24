@@ -2,7 +2,7 @@
 # {X: red, Y: green, Z: blue}
 
 config:
-  mode: build
+  mode: sample
   alpha: 0.04
   outline: false
   output: "sliced#2"
@@ -144,7 +144,7 @@ geometry:
 
     # Static Cutoff
     - type: sphere
-      voxels: off
+      voxels: on
       render: off
       operation: inside
       material: STATIC
@@ -155,7 +155,7 @@ geometry:
 
     # Downwards Force
     - type: sphere
-      voxels: off
+      voxels: on
       render: off
       operation: outside
       material: FORCE
@@ -169,7 +169,7 @@ parameters:
   width: 0.08
   material: TITANIUM
   transform:
-    - scale: 40
+    - scale: 250
     - scale: 0.84
 
   volume_a:

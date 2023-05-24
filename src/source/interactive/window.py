@@ -54,7 +54,7 @@ class Window:
         # Binding some default actions
         self.keys.action("ESCAPE")(self.close)
         self.keys.action("F11")(self.toggle_fullscreen)
-        self.keys.action("F10")(self.toggle_fullscreen)
+        self.keys.action("F10")(self.toggle_borderless_fullscreen)
 
         # Binding event callbacks
         glfw.make_context_current(self.window)
@@ -138,6 +138,7 @@ class Window:
             rate = mode.refresh_rate
 
         else:
+            glfw.window_hint(glfw.DECORATED, glfw.TRUE)
             monitor = None
             pos = self._cache.window_pos
             size = self._cache.window_size
@@ -159,11 +160,14 @@ class Window:
 
             monitor = glfw.get_primary_monitor()
             mode = glfw.get_video_mode(monitor)
+            glfw.window_hint(glfw.DECORATED, glfw.FALSE)
+            monitor = None
             pos = (0, 0)
             size = mode.size
             rate = mode.refresh_rate
 
         else:
+            glfw.window_hint(glfw.DECORATED, glfw.TRUE)
             monitor = None
             pos = self._cache.window_pos
             size = self._cache.window_size
