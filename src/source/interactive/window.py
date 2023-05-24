@@ -39,6 +39,8 @@ class Cache:
     window_pos: tuple[int, int] = (0, 0)
     window_size: tuple[int, int] = (0, 0)
     cursor_pos: tuple[float, float] = (0, 0)
+    border_on: bool = True
+    resize_refresh_now: bool = False
 
 
 class Window:
@@ -54,16 +56,16 @@ class Window:
         # Binding some default actions
         self.keys.action("ESCAPE")(self.close)
         self.keys.action("F11")(self.toggle_fullscreen)
-        self.keys.action("F10")(self.toggle_borderless_fullscreen)
 
         # Binding event callbacks
         glfw.make_context_current(self.window)
         glfw.set_window_user_pointer(self.window, self)
         glfw.set_key_callback(self.window, self.key_callback)
         glfw.set_mouse_button_callback(self.window, self.button_callback)
-        glfw.set_window_size_callback(self.window, self.resize_callback)
-        glfw.set_window_pos_callback(self.window, self.position_callback)
-        glfw.set_window_refresh_callback(self.window, self.refresh_callback)
+        glfw.set_framebuffer_size_callback(self.window, self.frame_size_callback)
+        glfw.set_window_size_callback(self.window, self.win_size_callback)
+        glfw.set_window_pos_callback(self.window, self.win_pos_callback)
+        glfw.set_window_refresh_callback(self.window, self.win_refresh_callback)
         glfw.set_cursor_pos_callback(self.window, self.cursor_callback)
         glfw.set_scroll_callback(self.window, self.scroll_callback)
 
@@ -99,20 +101,31 @@ class Window:
         ...
 
     def spin(self):
+        # Fix context
         window = self.window
-
         glfw.make_context_current(window)
+
+        # Setup internal state
         glfw.set_time(0.0)
         self.prev_time = 0.0
+        self._cache.window_size = glfw.get_window_size(window)
+        self._cache.window_pos = glfw.get_window_pos(window)
+
+        # Setup child state
         self.setup()
-        width, height = glfw.get_window_size(self.window)
+        
+        # Resize child
+        width, height = glfw.get_framebuffer_size(self.window)
         self.resize(width, height)
-        self._half_size = (width // 2, height // 2)
+
+        # Run render and event loop
         print("[window] running ....")
         while not glfw.window_should_close(window):
             self.frame()
             glfw.poll_events()
             self.tasks.update()
+
+        # Window wanted to close
         print("[window] closing ....")
 
     def frame(self):
@@ -152,35 +165,6 @@ class Window:
             rate,
         )
 
-    def toggle_borderless_fullscreen(self):
-        size: tuple[int, int]
-        if not glfw.get_window_monitor(self.window):
-            self._cache.window_pos = glfw.get_window_pos(self.window)
-            self._cache.window_size = glfw.get_window_size(self.window)
-
-            monitor = glfw.get_primary_monitor()
-            mode = glfw.get_video_mode(monitor)
-            glfw.window_hint(glfw.DECORATED, glfw.FALSE)
-            monitor = None
-            pos = (0, 0)
-            size = mode.size
-            rate = mode.refresh_rate
-
-        else:
-            glfw.window_hint(glfw.DECORATED, glfw.TRUE)
-            monitor = None
-            pos = self._cache.window_pos
-            size = self._cache.window_size
-            rate = 0
-
-        glfw.set_window_monitor(
-            self.window,
-            monitor,
-            *pos,
-            *size,
-            rate,
-        )
-
     @callback
     def key_callback(self, key: int, code: int, action: int, mods: int):
         self.keys.trigger(key, code, action, mods)
@@ -190,20 +174,28 @@ class Window:
         self.buttons.trigger(button, action, mods)
 
     @callback
-    def resize_callback(self, width: int, height: int):
-        if width <= 0 or height <= 0:
-            return
+    def frame_size_callback(self, width: int, height: int):
+        ready = self._cache.resize_refresh_now
+        if width and height:
+            self.resize(width, height)
+            if ready:
+                self.frame()
+        self._cache.resize_refresh_now = not ready        
 
-        self._half_size = (width // 2, height // 2)
-        self.resize(width, height)
+    @callback
+    def win_size_callback(self, width: int, height: int):
+        ready = self._cache.resize_refresh_now
+        if width and height and ready:
+            # self.resize(width, height)
+            self.frame()
+        self._cache.resize_refresh_now = not ready        
+
+    @callback
+    def win_pos_callback(self, x: int, y: int):
         self.frame()
 
     @callback
-    def position_callback(self, x: int, y: int):
-        self.frame()
-
-    @callback
-    def refresh_callback(self):
+    def win_refresh_callback(self):
         self.frame()
 
     @callback

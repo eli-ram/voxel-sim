@@ -131,6 +131,8 @@ class Voxels(w.Window):
         K.action("KP_9")(lambda: C.SetAngles(45.0, 45.0 + 90.0))
         K.action("KP_3")(lambda: C.SetAngles(45.0, 45.0 + 180.0))
         K.action("KP_1")(lambda: C.SetAngles(45.0, 45.0 - 90.0))
+        K.repeat("KP_ADD")(lambda: C.Zoom(1.0))
+        K.repeat("KP_SUBTRACT")(lambda: C.Zoom(-1.0))
 
         # Bind Mouse Controls
         B = self.buttons

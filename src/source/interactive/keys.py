@@ -7,7 +7,10 @@ class NotAKey(Exception):
     "The key could not be found"
 
     @classmethod
-    def convert(cls, k: str):
+    def convert(cls, k: str | int):
+        if isinstance(k, int):
+            return k # assume correct key
+        
         key = glfw.__dict__.get(f"KEY_{k.upper()}")
         if not key:
             raise cls(k)
@@ -17,13 +20,14 @@ class NotAKey(Exception):
 ToggleCallback = Callable[[bool], Any]
 ActionCallback = Callable[[], Any]
 
-
 class Keys:
+    _ = glfw
+
     def __init__(self):
         self.lut = dict[Any, ToggleCallback]()
         self.rep = dict[Any, ActionCallback]()
 
-    def toggle(self, k: str):
+    def toggle(self, k: str | int):
         key = NotAKey.convert(k)
 
         def call(func: ToggleCallback):

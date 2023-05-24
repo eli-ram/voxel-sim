@@ -9,12 +9,11 @@ config:
   resolution: 1024 # 512
   background: [1.0, 1.0, 1.0]
   cage_color: [0.0, 0.0, 0.0, 0.5]
-  # region:
-  #  start: [-40, -40, -40]
-  #  stop: [40, 40, 40]
   region:
-    start: [-250, -250, -250]
-    stop: [250, 250, 250]
+    #start: [-250, -250, -250]
+    #stop: [250, 250, 250]
+    start: [-50, -50, -50]
+    stop: [50, 50, 50]
 
 # Specify population setup
 population:
@@ -82,7 +81,8 @@ materials:
 
 geometry:
   transform:
-    - scale: 250
+    # - scale: 250
+    - scale: 50
     - scale: 0.84
   elements:
     # Whole Femur
@@ -169,7 +169,8 @@ parameters:
   width: 0.08
   material: TITANIUM
   transform:
-    - scale: 250
+    # - scale: 250
+    - scale: 50
     - scale: 0.84
 
   volume_a:
